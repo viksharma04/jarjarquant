@@ -2,7 +2,6 @@
 import yfinance as yf
 import pandas as pd
 import numpy as np
-import seaborn as sns
 import matplotlib.pyplot as plt
 from typing import Optional
 
@@ -28,14 +27,46 @@ class Labelling:
 
         return cls(random_price_series)
     
+    @classmethod
+    def from_yf_ticker(cls, ticker: str = "SPY", **kwags):
+
+        ticker = yf.Ticker(ticker)
+        series = ticker.history(**kwags)['Close']
+        
+        return cls(series)
+
+    
     @staticmethod
-    def generate_random_price_series(periods: int = 252, volatility:float = 0.01, freq: str = 'B'):
+    def generate_random_price_series(periods: int = 252, loc:float = 0.001, volatility:float = 0.01, freq: str = 'B'):
 
         date_range = pd.date_range(start='2100-01-01', periods=periods, freq=freq)
         # TODO: Implement random series with distributions other than normal
-        returns = np.random.normal(loc=0, scale=volatility, size=periods)
+        returns = np.random.normal(loc=loc, scale=volatility, size=periods)
         prices = 100 * (1 + returns).cumprod()
 
         return pd.Series(prices, index=date_range, name='price')
     
-    # def inverse_cumsum_filter(self, )
+    @staticmethod
+    def inverse_cumsum_filter(series: pd.Series, h: float, n: int) -> pd.Series:
+        """
+        Apply a cumulative sum filter to a time series based on a rolling period.
+        
+        Parameters:
+        - series: pd.Series, time series of prices with time stamp index
+        - h: float, threshold value for filtering
+        - n: int, lookback period for the rolling window
+        
+        Returns:
+        - pd.Series, boolean series where True indicates dates flagged by the filter
+        """
+        returns = series.pct_change()       
+        # Ensure the series is sorted by index (time)
+        returns = returns.add(1)
+        
+        # Calculate the rolling cumulative sum over the lookback period n
+        rolling_cumsum = returns.rolling(window=n).apply(np.prod) -1
+        
+        # Flag dates where the cumulative return is less than the absolute value of h
+        flagged = (rolling_cumsum.abs() < h)
+        
+        return flagged

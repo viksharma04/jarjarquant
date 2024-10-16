@@ -12,6 +12,13 @@ __version__ = "0.1.0"
 
 
 class Jarjarquant(DataGatherer, Labeller, FeatureEngineer):
+    """_summary_
+
+    Args:
+        DataGatherer (_type_): _description_
+        Labeller (_type_): _description_
+        FeatureEngineer (_type_): _description_
+    """
 
     def __init__(self, series=None):
 
@@ -20,10 +27,21 @@ class Jarjarquant(DataGatherer, Labeller, FeatureEngineer):
         self.labeller = Labeller(timeseries=series)
 
     @classmethod
-    def from_random_normal(cls, **kwags):
+    def from_random_normal(cls, loc: float = 0.005, volatility: float = 0.05, periods: int = 252, **kwags):
+        """Create a random price series using returns from a normal distribution
+
+        Args:
+            loc (float, optional): mean return. Defaults to 0.005.
+            volatility (float, optional): period volatility. Defaults to 0.05.
+            periods (int, optional): number of data points. Defaults to 252.
+
+        Returns:
+            _type_: _description_
+        """
 
         cls.data_gatherer = DataGatherer()
-        series = cls.data_gatherer.generate_random_normal(**kwags)
+        series = cls.data_gatherer.generate_random_normal(
+            loc=loc, volatility=volatility, periods=periods, **kwags)
 
         return cls(series)
 
@@ -46,3 +64,5 @@ class Jarjarquant(DataGatherer, Labeller, FeatureEngineer):
     @series.deleter
     def series(self):
         del self._series
+
+    # TODO: Repl function

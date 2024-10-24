@@ -11,7 +11,10 @@ class Jarjarquant:
 
     def __init__(self, series=None):
         self.data_gatherer = DataGatherer()
-        self._series = series or self.data_gatherer.generate_random_normal()
+        if series is None:
+            self._series = self.data_gatherer.generate_random_normal()
+        else:
+            self._series = series
         self.labeller = Labeller(self._series)
         self.feature_engineer = FeatureEngineer(pd.DataFrame(self._series))
 

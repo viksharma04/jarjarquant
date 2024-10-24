@@ -15,8 +15,7 @@ class Labeller:
         """
         self.series = timeseries
 
-    @staticmethod
-    def inverse_cumsum_filter(series: pd.Series, h: float, n: int) -> pd.Series:
+    def inverse_cumsum_filter(self, series: pd.Series = None, h: float = 0.01, n: int = 2) -> pd.Series:
         """
         Apply a cumulative sum filter to a time series based on a rolling period.
 
@@ -28,6 +27,9 @@ class Labeller:
         Returns:
         - pd.Series, boolean series where True indicates dates flagged by the filter
         """
+        if series is None:
+            series = self.series
+
         returns = series.pct_change()
         # Ensure the series is sorted by index (time)
         returns = returns.add(1)

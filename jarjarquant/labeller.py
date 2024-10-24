@@ -73,3 +73,72 @@ class Labeller:
         # Display the plot
         plt.grid(True)
         plt.show()
+
+    # Getting dates for the vertical barrier
+    @staticmethod
+    def get_vertical_barrier(t_events, close, num_days=1):
+        """Get a datetime index of dates for the vertical barrier
+
+        Args:
+            tEvents (datetime index): dates when the algorithm should look for trades
+            close (pd.Series): series of prices
+            numDays (int, optional): vertical barrier limit. Defaults to 1.
+
+        Returns:
+            pd.Series: series of datetime values
+        """
+        t1 = close.index.searchsorted(t_events+pd.Timedelta(days=num_days))
+        t1 = t1[t1 < close.shape[0]]
+        t1 = (pd.Series(close.index[t1], index=t_events[:t1.shape[0]]))
+        return t1
+
+    @staticmethod
+    def find_min_column(row):
+
+        if pd.isnull(row['pt']) & pd.isnull(row['sl']):
+            min_value = row[['pt', 'sl']].min()
+        else:
+            min_value = pd.Timestamp(0)
+        return row[['pt', 'sl']].idxmin() if min_value <= row['vb'] else row[['pt', 'sl', 'vb']].idxmin()
+
+    def triple_barrier_method(self, close: pd.Series = None, t_events: pd.Series = None, pt_sl: int = 1, n_days: int = 1):
+
+        if close is None:
+            close = self.series
+
+        if t_events is None:
+            t_events = close.index
+
+        trgt = pd.Series(0.01, index=t_events)
+
+        v_bars = self.get_vertical_barrier(t_events, close, n_days)
+        pt_sl = [pt_sl, -pt_sl]
+
+        events = pd.concat({'vb': v_bars, 'trgt': trgt},
+                           axis=1).dropna(subset=['trgt'])
+
+        exits = events[['vb']].copy(deep=True)
+
+        pt = pt_sl[0]*events['trgt']
+        sl = pt_sl[1]*events['trgt']
+
+        for event, vb in events['vb'].fillna(close.index[-1]).items():
+
+            price_path = close[event:vb]
+            return_path = (price_path/close[event]-1)
+            exits.loc[event, 'sl'] = return_path[return_path <
+                                                 # earliest stop loss
+                                                 sl[event]].index.min()
+            exits.loc[event, 'pt'] = return_path[return_path >
+                                                 # earliest profit taking
+                                                 pt[event]].index.min()
+
+        exits['vb'] = exits['vb'].fillna(close.index[-1])
+        exits['barrier_hit'] = exits.apply(self.find_min_column, axis=1)
+        exits['hit_date'] = exits[['vb', 'sl', 'pt']].min(axis=1)
+        exits['returns'] = close[exits['hit_date']
+                                 ].values/close[t_events].values - 1
+        exits['bin'] = np.sign(exits['returns'])
+        exits.loc[exits['barrier_hit'] == 'vb', 'bin'] = 0
+
+        return exits[['bin', 'returns', 'hit_date']]

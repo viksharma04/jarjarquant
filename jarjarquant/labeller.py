@@ -101,7 +101,7 @@ class Labeller:
             min_value = pd.Timestamp(0)
         return row[['pt', 'sl']].idxmin() if min_value <= row['vb'] else row[['pt', 'sl', 'vb']].idxmin()
 
-    def triple_barrier_method(self, close: pd.Series = None, t_events: pd.Series = None, scale_pt_sl: bool = False, pt_sl: int = 1, scale_lookback: int = 1, n_days: int = 1):
+    def triple_barrier_method(self, close: pd.Series = None, t_events: pd.DatetimeIndex = None, scale_pt_sl: bool = False, pt_sl: int = 1, scale_lookback: int = 1, n_days: int = 1):
 
         if close is None:
             close = self.series
@@ -112,11 +112,15 @@ class Labeller:
         # If scale pt_sl is True pt_sl is multiplied by the average period volatility over the scale_lookback period
         if scale_pt_sl:
             returns = close.pct_change()
-            vol = returns.rolling(widnow=scale_lookback).std()
-            trgt = vol[vol.index.isin(t_events.index)]
+            vol = returns.rolling(
+                window=scale_lookback).std()*np.sqrt(scale_lookback)
+            trgt = vol[vol.index.isin(t_events)]
+            close = close.iloc[scale_lookback:]
         # If scale pt_sl is False pt_sl is used as absolute return i.e 1 = 1% return
         else:
             trgt = pd.Series(0.01, index=t_events)
+
+        t_events = t_events[t_events.isin(close.index)]
 
         v_bars = self.get_vertical_barrier(t_events, close, n_days)
         pt_sl = [pt_sl, -pt_sl]

@@ -41,7 +41,7 @@ class FeatureEngineer:
         w = np.array(w[::-1]).reshape(-1, 1)
         return w
 
-    def frac_diff(self, d, thres=.01):
+    def frac_diff(self, features_df: pd.DataFrame = None, d: float = 0.7, thres=.01):
         """
         Apply fractional differentiation to time series data, preserving memory of long-term dependencies.
 
@@ -59,25 +59,28 @@ class FeatureEngineer:
             A DataFrame with fractionally differentiated series for each column in `features_df`.
             The output retains long-term memory by applying the computed weights to each time series.
         """
-        w = self.get_weights(d, self.features_df.shape[0])
+        if features_df is None:
+            features_df = self.features_df
+
+        w = self.get_weights(d, features_df.shape[0])
         w_ = np.cumsum(abs(w))
         w_ /= w_[-1]
         skip = w_[w_ > thres].shape[0]
         df = {}
-        for name in self.features_df.columns:
-            seriesF, df_ = self.features_df[[name]].ffill().dropna(
-            ), pd.Series(index=self.features_df.index, dtype=float)
+        for name in features_df.columns:
+            seriesF, df_ = features_df[[name]].ffill().dropna(
+            ), pd.Series(index=features_df.index, dtype=float)
             for iloc in range(skip, seriesF.shape[0]):
                 loc = seriesF.index[iloc]
-                if not np.isfinite(self.features_df.loc[loc, name]):
+                if not np.isfinite(features_df.loc[loc, name]):
                     continue
                 df_[loc] = np.dot(w[-(iloc+1):, :].T, seriesF.loc[:loc])[0, 0]
             df[name] = df_.copy(deep=True)
         df = pd.concat(df, axis=1)
 
-        self.features_df = df
+        features_df = df
 
-        return self.features_df
+        return features_df
 
     @staticmethod
     def getWeights_FFD(d, thres):
@@ -105,7 +108,7 @@ class FeatureEngineer:
             k += 1
         return np.array(w[::-1]).reshape(-1, 1)
 
-    def fracDiff_FFD(self, d, thres=1e-5):
+    def fracDiff_FFD(self, features_df: pd.DataFrame = None, d: float = 0.7, thres=1e-5):
         """
         Apply Fractional Differencing with Fixed-Width Window on a time series to make it stationary.
 
@@ -125,16 +128,19 @@ class FeatureEngineer:
         w, df = self.getWeights_FFD(d, thres), {}
         width = len(w) - 1
 
+        if features_df is None:
+            features_df = self.features_df
+
         # Apply fractional differencing to each column in the DataFrame
-        for name in self.features_df.columns:
+        for name in features_df.columns:
             # Forward fill to handle missing data and create a new series for results
-            seriesF = self.features_df[[name]].ffill().dropna()
-            df_ = pd.Series(index=self.features_df.index, dtype=float)
+            seriesF = features_df[[name]].ffill().dropna()
+            df_ = pd.Series(index=features_df.index, dtype=float)
 
             # Loop through the series and apply the fractional differencing weights
             for iloc in range(width, seriesF.shape[0]):
                 loc0, loc1 = seriesF.index[iloc - width], seriesF.index[iloc]
-                if not np.isfinite(self.features_df.loc[loc1, name]):
+                if not np.isfinite(features_df.loc[loc1, name]):
                     continue
                 df_[loc1] = np.dot(w.T, seriesF.loc[loc0:loc1])[0, 0]
 
@@ -144,6 +150,6 @@ class FeatureEngineer:
         # Combine all columns into a DataFrame
         df = pd.concat(df, axis=1)
 
-        self.features_df = df
+        features_df = df
 
-        return self.features_df
+        return features_df

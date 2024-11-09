@@ -101,7 +101,7 @@ class Labeller:
             min_value = pd.Timestamp(0)
         return row[['pt', 'sl']].idxmin() if min_value <= row['vb'] else row[['pt', 'sl', 'vb']].idxmin()
 
-    def triple_barrier_method(self, close: pd.Series = None, t_events: pd.DatetimeIndex = None, scale_pt_sl: bool = False, pt_sl: int = 1, scale_lookback: int = 1, n_days: int = 1):
+    def triple_barrier_method(self, close: pd.Series = None, t_events: pd.DatetimeIndex = None, scale_pt_sl: bool = False, pt_sl: int = 1, scale_lookback: int = 1, n_days: int = 1, meta_labelling: bool = True):
 
         if close is None:
             close = self.series
@@ -152,4 +152,65 @@ class Labeller:
         exits['bin'] = np.sign(exits['returns'])
         exits.loc[exits['barrier_hit'] == 'vb', 'bin'] = 0
 
-        return exits[['bin', 'returns', 'hit_date']]
+        if meta_labelling:
+            # Create the 'bin_1' column based on the sign of the 'return' column
+            exits['bin_1'] = exits['returns'].apply(
+                lambda x: 1 if x >= 0 else -1)
+
+            # Create the 'bin_2' column based on the values in the original 'bin' column
+            exits['bin_2'] = exits['bin'].apply(lambda x: 0 if x == 0 else 1)
+
+            # Return the transformed dataframe with only the specified columns
+            return exits[['bin_1', 'bin_2', 'returns', 'hit_date']]
+        else:
+            return exits[['bin', 'returns', 'hit_date']]
+
+    @staticmethod
+    def num_co_events(close_idx, t_exits):
+        '''
+        Compute the number of concurrent events per bar across the entire `closeIdx` range.
+
+        Any event that starts before the maximum of `t1` impacts the count.
+        '''
+        # 1) Handle unclosed events (events with NaN end date)
+        t_exits.fillna(close_idx[-1])
+        # unclosed events affect the count
+
+        # 2) Find the relevant range of events
+        # events that end after the first closeIdx time
+        t_exits = t_exits[t_exits >= close_idx[0]]
+        # events that start at or before the latest event in t1
+        t_exits = t_exits.loc[:t_exits.max()]
+
+        # 3) Initialize a count series covering the entire closeIdx range
+        iloc = close_idx.searchsorted(
+            np.array([t_exits.index[0], t_exits.max()]))
+        count = pd.Series(0, index=close_idx[iloc[0]:iloc[1] + 1])
+
+        # 4) Count events that span each bar in closeIdx
+        for t_in, t_out in t_exits.items():
+            count.loc[t_in:t_out] += 1
+
+        return count
+
+    @staticmethod
+    def average_uniqueness(t_exits, co_events):
+        wght = pd.Series(index=t_exits.index)
+        for t_in, t_out in t_exits.items():
+            wght.loc[t_in] = (1./co_events.loc[t_in:t_out]).mean()
+
+        return wght
+
+    def get_sample_weights(self, close, t_exits):
+
+        if close is None:
+            close = self.series
+
+        co_events = self.num_co_events(close.index, t_exits)
+        # Derive sample weight by return attribution
+        ret = np.log(close).diff()  # log-returns, so that they are additive
+        wght = pd.Series(index=t_exits.index)
+        for t_in, t_out in t_exits.loc[wght.index].items():
+            wght.loc[t_in] = (ret.loc[t_in:t_out] /
+                              co_events.loc[t_in:t_out]).sum()
+        return wght.abs()

@@ -5,7 +5,7 @@ from sklearn.metrics import log_loss, accuracy_score
 from sklearn.model_selection._split import _BaseKFold
 
 
-class purged_k_fold(_BaseKFold):
+class PurgedKFold(_BaseKFold):
     """
     Custom KFold class to handle overlapping label intervals in time-series data.
 
@@ -257,7 +257,7 @@ class FeatureEngineer:
 
         # Initialize purged cross-validation generator if not provided
         if cv_gen is None:
-            cv_gen = purged_k_fold(n_splits=cv, t1=t1, pct_embargo=pct_embargo)
+            cv_gen = PurgedKFold(n_splits=cv, t1=t1, pct_embargo=pct_embargo)
 
         scores = []  # List to store scores for each fold
 
@@ -359,7 +359,7 @@ class FeatureEngineer:
                 "Scoring method must be 'neg_log_loss' or 'accuracy'.")
 
         # Initialize purged cross-validation generator
-        cv_generator = purged_k_fold(
+        cv_generator = PurgedKFold(
             n_splits=cv, t1=t1, pct_embargo=pct_embargo)
         base_scores = pd.Series()  # scores for the original, unpermuted model
         # scores for each permuted feature

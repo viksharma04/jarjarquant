@@ -4,14 +4,12 @@ import scipy
 import pandas as pd
 import numpy as np
 import concurrent.futures
-from sklearn.metrics import log_loss, accuracy_score
-from sklearn.model_selection._split import _BaseKFold
 
 
 class FeatureEngineer:
     """Class to implement common featrue engineering transformations"""
 
-    def __init__(self, features_df):
+    def __init__(self, features_df: pd.DataFrame = None):
         """Initialize Featureengineering
 
         Args:

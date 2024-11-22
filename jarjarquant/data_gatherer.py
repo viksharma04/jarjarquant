@@ -55,6 +55,7 @@ class DataGatherer:
         tickers = random.sample(tickers, num_tickers_to_sample)
 
         # Function to get random start and end dates
+        # TODO: Implement accepting a ticker and select start and end dates based on available price history
         def get_random_date():
             random_start = start_limit + \
                 timedelta(days=np.random.randint(

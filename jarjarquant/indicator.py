@@ -3,7 +3,7 @@ Indicator evaluator accepts an object of class Indicator"""
 
 import numpy as np
 import pandas as pd
-from data_analyst import DataAnalyst
+from .data_analyst import DataAnalyst
 
 
 class Indicator:
@@ -37,7 +37,8 @@ class Indicator:
         """
         values = self.calculate()
         if self.indicator_type == 'c':
-            d_values = self.discretize_array(values, n_bins_to_discretize)
+            d_values = self.data_analyst.discretize_array(
+                values, n_bins_to_discretize)
         else:
             d_values = values
 

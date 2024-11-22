@@ -1,7 +1,9 @@
-"""Indicator class - each indicator in jarjarquant is an instance of the Indicator class. Indicator evaluator accepts an object of class Indicator"""
-from typing import Optional
+"""Indicator class - each indicator in jarjarquant is an instance of the Indicator class.
+Indicator evaluator accepts an object of class Indicator"""
+
 import numpy as np
 import pandas as pd
+from data_analyst import DataAnalyst
 
 
 class Indicator:
@@ -9,20 +11,44 @@ class Indicator:
 
     def __init__(self, ohlcv_df: pd.DataFrame):
         if ohlcv_df is None or ohlcv_df.empty:
-            raise ValueError("Please provide a valid OHLCV dataframe!")
+            raise ValueError("Please provide a valid OHLCV DataFrame!")
 
-        self.df = ohlcv_df
+        self.df = ohlcv_df.copy()
+        self.indicator_type = None
+        self.data_analyst = DataAnalyst()
 
     def calculate(self):
+        """Placeholder - to be implemented in derived classes
+
+        Raises:
+            NotImplementedError
+        """
         raise NotImplementedError(
             "Derived classes must implement the calculate method.")
 
-    def visual_stationary_test():
-        """Plots a line graph of self.value for any class that extends indicator. Draws a top and bottom horizontal threshold above/below which 15% of observations lie
+    def indicator_evaluation_report(self, n_bins_to_discretize: int = 10):
+        """Runs a set of statistical tests to examine various properties of the 
+        indicator series, such as, stationarity, normality, entropy, mutual
+        information, etc.
 
-        Returns:
-            _type_: _description_
+        Args:
+            n_bins_to_discretize (int, optional): number of bins to use if indicator
+            is continous. Used for mutual information calculation. Defaults to 10.
         """
+        values = self.calculate()
+        if self.indicator_type == 'c':
+            d_values = self.discretize_array(values, n_bins_to_discretize)
+        else:
+            d_values = values
+
+        self.data_analyst.visual_stationary_test(values)
+        self.data_analyst.adf_test(values)
+        self.data_analyst.jb_normality_test(values, plot_dist=True)
+        print(f"Relative entropy = {
+              self.data_analyst.relative_entropy(values)}")
+        print(f"Range IQR Ratio = {self.data_analyst.range_iqr_ratio(values)}")
+        print(f"Mutual information at lag 1 = {
+              self.data_analyst.mutual_information(d_values, 1)}")
 
 
 class RSI(Indicator):
@@ -31,10 +57,10 @@ class RSI(Indicator):
     def __init__(self, ohlcv_df: pd.DataFrame, period: int = 14):
         super().__init__(ohlcv_df)
         self.period = period
-        self.value = self.calculate()
+        self.indicator_type = 'c'  # 'c' for continuous, 'd' for discrete
 
-    def calculate(self):
-        close = self.df['Close']
+    def calculate(self) -> np.ndarray:
+        close = self.df['Close'].values
         n = len(close)
         front_bad = self.period
         output = np.full(n, 50.0)  # Default RSI of 50.0 for undefined values

@@ -1,3 +1,4 @@
+"""The labeller specializes in transforming raw price data into labels for ML using various methods"""
 # Imports
 import numpy as np
 import pandas as pd

@@ -1,3 +1,4 @@
+"""The data gatherer minimizes code duplication and simplifies gathering samples for experimentation."""
 from typing import Optional
 from datetime import datetime, timedelta
 import random

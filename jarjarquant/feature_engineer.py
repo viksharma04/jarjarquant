@@ -1,4 +1,5 @@
-"""Feature engineering class to manipulate features df"""
+"""Feature engineer specializes in engineering features, it transforms and augments raw data/price series to extract more information.
+Unlike an indicator, these transformations are repeatable and non-specific to a market hypothesis"""
 from typing import Optional
 import scipy
 import pandas as pd

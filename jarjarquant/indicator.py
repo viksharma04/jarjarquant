@@ -1,5 +1,5 @@
 """Indicator class - each indicator in jarjarquant is an instance of the Indicator class.
-Indicator evaluator accepts an object of class Indicator"""
+Each indicator is a specific calculation on market data with an underlying market hypothesis"""
 
 import numpy as np
 import pandas as pd

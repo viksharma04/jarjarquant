@@ -1,4 +1,4 @@
-"""feature evaluator clas to test indicator hypothesis"""
+"""The feature evaluator specializes in calculating the efficacy of one or many indicators given a matrix of features X and a target label/series y"""
 import pandas as pd
 import numpy as np
 from sklearn.metrics import log_loss, accuracy_score

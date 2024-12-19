@@ -3,6 +3,7 @@ Indicator evaluator accepts an object of class Indicator"""
 
 import numpy as np
 import pandas as pd
+from scipy.stats import norm
 from .data_analyst import DataAnalyst
 
 
@@ -43,11 +44,15 @@ class Indicator:
             d_values = values
 
         self.data_analyst.visual_stationary_test(values)
+        print("/n")
         self.data_analyst.adf_test(values)
+        print("/n")
         self.data_analyst.jb_normality_test(values, plot_dist=True)
+        print("/n")
         print(f"Relative entropy = {
-              self.data_analyst.relative_entropy(values)}")
-        print(f"Range IQR Ratio = {self.data_analyst.range_iqr_ratio(values)}")
+              self.data_analyst.relative_entropy(values, True)}")
+        print(f"Range IQR Ratio = {
+              self.data_analyst.range_iqr_ratio(values, True)}")
         print(f"Mutual information at lag 1 = {
               self.data_analyst.mutual_information(d_values, 1)}")
 
@@ -91,4 +96,57 @@ class RSI(Indicator):
             # RSI calculation
             output[i] = 100.0 * upsum / (upsum + dnsum)
 
+        return output
+
+
+class CMMA(Indicator):
+
+    def __init__(self, ohlcv_df: pd.DataFrame, lookback: int = 21, atr_length: int = 21):
+        super().__init__(ohlcv_df)
+        self.lookback = lookback
+        self.atr_length = atr_length
+        self.indicator_type = 'c'  # 'c' for continuous, 'd' for discrete
+
+    def calculate(self) -> np.ndarray:
+        """
+        Calculate the Cumulative Moving Mean Average (CMMA) indicator.
+
+        Parameters:
+        lookback: The number of periods for calculating the rolling mean.
+        atr_length: The length of the rolling window for the ATR calculation.
+        df: A pandas DataFrame containing 'Close', 'Open', 'Low', and 'High' columns.
+
+        Returns:
+        A pandas Series with the CMMA values.
+        """
+
+        # Extract the relevant columns from the DataFrame
+        Close = self.df['Close']
+        Open = self.df['Open']
+        Low = self.df['Low']
+        High = self.df['High']
+
+        # Compute the natural logarithm of the close prices
+        log_close = np.log(Close)
+
+        # Calculate the rolling mean of the log of close prices over the lookback period
+        rolling_mean = log_close.shift(1).rolling(
+            window=self.lookback).ewm.mean()
+
+        # Calculate the denominator using the ATR function and adjust by the sqrt of (lookback + 1)
+        denom = self.data_analyst.atr(self.atr_length, Open, High, Low, Close) * \
+            np.sqrt(self.lookback + 1)
+
+        # Normalize the output by dividing the difference between log_close and rolling_mean by denom
+        # If denom is 0 or negative, set the normalized output to 0
+        normalized_output = np.where(
+            denom > 0,
+            (log_close - rolling_mean) / denom,
+            0
+        )
+
+        # Transform the normalized output using the cumulative distribution function (CDF) of the normal distribution
+        output = 100 * norm.cdf(normalized_output) - 50
+
+        # Return the final CMMA values as a pandas Series with the same index as the input DataFrame
         return output

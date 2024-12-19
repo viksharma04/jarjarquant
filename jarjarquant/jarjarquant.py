@@ -3,7 +3,7 @@ from .data_gatherer import DataGatherer
 from .feature_engineer import FeatureEngineer
 from .labeller import Labeller
 
-from .indicator import Indicator, RSI
+from .indicator import Indicator, RSI, CMMA
 
 
 class Jarjarquant:
@@ -89,3 +89,17 @@ class Jarjarquant:
     def add_rsi(self, period: int = 14):
         self._df = self._df.assign(RSI=self.rsi(
             ohlcv_df=self._df, period=period))
+
+    @staticmethod
+    def cmma(ohlcv_df: pd.DataFrame, lookback: int = 21, atr_length: int = 21):
+        _df = ohlcv_df.copy()
+        if 'Close' not in _df.columns:
+            raise ValueError(
+                "The input dataframe must contain a 'Close' column for CMMA calculation")
+        cmma_indicator = CMMA(_df, lookback, atr_length)
+
+        return cmma_indicator
+
+    def add_cmma(self, lookback: int = 21, atr_length: int = 21):
+        self._df = self._df.assign(CMMA=self.cmma(
+            ohlcv_df=self._df, lookback=lookback, atr_length=atr_length))

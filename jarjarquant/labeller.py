@@ -76,20 +76,20 @@ class Labeller:
 
     # Getting dates for the vertical barrier
     @staticmethod
-    def get_vertical_barrier(t_events, close, num_days=1):
+    def get_vertical_barrier(t_events, Close, num_days=1):
         """Get a datetime index of dates for the vertical barrier
 
         Args:
             tEvents (datetime index): dates when the algorithm should look for trades
-            close (pd.Series): series of prices
+            Close (pd.Series): series of prices
             numDays (int, optional): vertical barrier limit. Defaults to 1.
 
         Returns:
             pd.Series: series of datetime values
         """
-        t1 = close.index.searchsorted(t_events+pd.Timedelta(days=num_days))
-        t1 = t1[t1 < close.shape[0]]
-        t1 = (pd.Series(close.index[t1], index=t_events[:t1.shape[0]]))
+        t1 = Close.index.searchsorted(t_events+pd.Timedelta(days=num_days))
+        t1 = t1[t1 < Close.shape[0]]
+        t1 = (pd.Series(Close.index[t1], index=t_events[:t1.shape[0]]))
         return t1
 
     @staticmethod
@@ -101,28 +101,28 @@ class Labeller:
             min_value = pd.Timestamp(0)
         return row[['pt', 'sl']].idxmin() if min_value <= row['vb'] else row[['pt', 'sl', 'vb']].idxmin()
 
-    def triple_barrier_method(self, close: pd.Series = None, t_events: pd.DatetimeIndex = None, scale_pt_sl: bool = False, pt_sl: int = 1, scale_lookback: int = 1, n_days: int = 1, thresh_labelling: bool = True):
+    def triple_barrier_method(self, Close: pd.Series = None, t_events: pd.DatetimeIndex = None, scale_pt_sl: bool = False, pt_sl: int = 1, scale_lookback: int = 1, n_days: int = 1, thresh_labelling: bool = True):
 
-        if close is None:
-            close = self.series
+        if Close is None:
+            Close = self.series
 
         if t_events is None:
-            t_events = close.index
+            t_events = Close.index
 
         # If scale pt_sl is True pt_sl is multiplied by the average period volatility over the scale_lookback period
         if scale_pt_sl:
-            returns = close.pct_change()
+            returns = Close.pct_change()
             vol = returns.rolling(
                 window=scale_lookback).std()*np.sqrt(scale_lookback)
             trgt = vol[vol.index.isin(t_events)]
-            close = close.iloc[scale_lookback:]
+            Close = Close.iloc[scale_lookback:]
         # If scale pt_sl is False pt_sl is used as absolute return i.e 1 = 1% return
         else:
             trgt = pd.Series(0.01, index=t_events)
 
-        t_events = t_events[t_events.isin(close.index)]
+        t_events = t_events[t_events.isin(Close.index)]
 
-        v_bars = self.get_vertical_barrier(t_events, close, n_days)
+        v_bars = self.get_vertical_barrier(t_events, Close, n_days)
         pt_sl = [pt_sl, -pt_sl]
 
         events = pd.concat({'vb': v_bars, 'trgt': trgt},
@@ -133,10 +133,10 @@ class Labeller:
         pt = pt_sl[0]*events['trgt']
         sl = pt_sl[1]*events['trgt']
 
-        for event, vb in events['vb'].fillna(close.index[-1]).items():
+        for event, vb in events['vb'].fillna(Close.index[-1]).items():
 
-            price_path = close[event:vb]
-            return_path = (price_path/close[event]-1)
+            price_path = Close[event:vb]
+            return_path = (price_path/Close[event]-1)
             exits.loc[event, 'sl'] = return_path[return_path <
                                                  # earliest stop loss
                                                  sl[event]].index.min()
@@ -144,11 +144,11 @@ class Labeller:
                                                  # earliest profit taking
                                                  pt[event]].index.min()
 
-        exits['vb'] = exits['vb'].fillna(close.index[-1])
+        exits['vb'] = exits['vb'].fillna(Close.index[-1])
         exits['barrier_hit'] = exits.apply(self.find_min_column, axis=1)
         exits['hit_date'] = exits[['vb', 'sl', 'pt']].min(axis=1)
-        exits['returns'] = close[exits['hit_date']
-                                 ].values/close[t_events].values - 1
+        exits['returns'] = Close[exits['hit_date']
+                                 ].values/Close[t_events].values - 1
         exits['bin'] = np.sign(exits['returns'])
         exits.loc[exits['barrier_hit'] == 'vb', 'bin'] = 0
 
@@ -201,14 +201,14 @@ class Labeller:
 
         return wght
 
-    def get_sample_weights(self, close, t_exits):
+    def get_sample_weights(self, Close, t_exits):
 
-        if close is None:
-            close = self.series
+        if Close is None:
+            Close = self.series
 
-        co_events = self.num_co_events(close.index, t_exits)
+        co_events = self.num_co_events(Close.index, t_exits)
         # Derive sample weight by return attribution
-        ret = np.log(close).diff()  # log-returns, so that they are additive
+        ret = np.log(Close).diff()  # log-returns, so that they are additive
         wght = pd.Series(index=t_exits.index)
         for t_in, t_out in t_exits.loc[wght.index].items():
             wght.loc[t_in] = (ret.loc[t_in:t_out] /

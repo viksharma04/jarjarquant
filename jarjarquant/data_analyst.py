@@ -1,3 +1,4 @@
+import pandas as pd
 import numpy as np
 from statsmodels.tsa.stattools import adfuller
 from scipy.stats import jarque_bera, norm
@@ -114,9 +115,10 @@ class DataAnalyst:
             plt.legend()
             plt.grid(True)
             plt.show()
+            print("\n")
 
     @staticmethod
-    def relative_entropy(values: np.ndarray) -> np.float64:
+    def relative_entropy(values: np.ndarray, print_desc: bool = False) -> np.float64:
         # Convert values to numpy array for efficient computation
         values = np.array(values)
         n = len(values)
@@ -143,10 +145,13 @@ class DataAnalyst:
         # Normalize entropy by log of number of bins
         normalized_entropy = entropy / np.log(nbins)
 
+        if print_desc:
+            print("The underlying idea for relative entropy is that valuable discriminatory information is nearly as likely to lie within clumps as it is in broad, thin regions. If the indicator's values lie within a few concentrated regions surrounded by broad swaths of emptiness, most models will focus on the wide spreads of the range while putting little effort into studying what's going on inside the clumps. \n The entropy of an indicator is an upper limit on the amount of infornmation it can carry. Anything above 0.8 is plenty, an even somewhat lower is usually fine. Anything below 0.5 is concerning and below 0.2 is very concerning. \n ---------------------------------------- \n")
+
         return normalized_entropy
 
     @staticmethod
-    def range_iqr_ratio(values: np.ndarray) -> np.float64:
+    def range_iqr_ratio(values: np.ndarray, print_desc: bool = True) -> np.float64:
         """Returns the range/interquartile range ratio for an indicator
 
         Args:
@@ -157,6 +162,8 @@ class DataAnalyst:
         """
         range_iqr_ratio = (np.max(values) - np.min(values)) / \
             (np.quantile(values, 0.75) - np.quantile(values, 0.25))
+        if print_desc:
+            print("Presence of outliers can greatly reduce the performance of an algorithm. The most obvious reason is that the presence of an outlier reduces entropy, causing the 'normal' observations to form a compact cluster and hence reducing the information carrying capacity of the indicator. \n Ratios of 2 and 3 are reasonable and upto 5 is usually not excessive. But iof the indicator has a range IQR ratio of more than 5, the tails should be tamed. \n ----------------------------- \n")
         return range_iqr_ratio
 
     @staticmethod
@@ -211,3 +218,19 @@ class DataAnalyst:
     @staticmethod
     def mutual_information_with_time():
         pass
+
+    @staticmethod
+    def atr(atr_length: int, open_series: pd.Series, high_series: pd.Series, low_series: pd.Series, close_series: pd.Series):
+        """
+        Calculate the Average True Range (ATR) for a given period.
+        """
+        # Calculate the true range for each row in the data
+        true_ranges = np.maximum(
+            high_series - low_series,
+            np.maximum(
+                np.abs(high_series - close_series.shift(1)),
+                np.abs(low_series - close_series.shift(1))
+            )
+        )
+        # Compute the rolling mean of the true ranges over the specified atr_length
+        return true_ranges.shift(1).rolling(window=atr_length).mean()

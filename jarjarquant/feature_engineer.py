@@ -231,3 +231,85 @@ class FeatureEngineer:
         df['top_avwap'] = pd.concat(vwap_s).ffill()
 
         return df
+
+    @staticmethod
+    def simple_root(series, power=2):
+        """
+        Apply a simple root transformation to the series.
+        For negative values, take the root of the absolute value and reapply the sign.
+
+        Parameters:
+        - series: pd.Series
+        - power: float, the root to apply (e.g., 2 for square root)
+
+        Returns:
+        - pd.Series with root applied
+        """
+        signs = np.sign(series)
+        roots = np.abs(series) ** (1 / power)
+        return signs * roots
+
+    @staticmethod
+    def log_transform(series):
+        """
+        Apply a logarithmic transformation to the series.
+        Handles non-positive values by shifting the data if necessary.
+
+        Parameters:
+        - series: pd.Series
+
+        Returns:
+        - pd.Series with log applied
+        """
+        min_val = series.min()
+        if min_val <= 0:
+            shifted = series + abs(min_val) + 1
+            print(f"\nSeries shifted by {
+                  abs(min_val) + 1} to make all values positive for log transformation.")
+        else:
+            shifted = series
+        return np.log(shifted)
+
+    @staticmethod
+    def sigmoid_transform(series: np.ndarray, transform_type: str = 'tanh', center: bool = False) -> np.ndarray:
+        """
+        Apply a sigmoid transformation using the hyperbolic tangent function.
+
+        Parameters:
+        - series: np.ndarray
+
+        Returns:
+        - np.ndarray with tanh applied
+        """
+        transformed = series
+        if transform_type == 'tanh':
+            # Center the data around 0
+            if center:
+                series -= np.median(series)
+            # Scale the values to be between -1.5 and 1.5 using the 15 and 85 percentiles
+            series /= (np.percentile(series, 85) -
+                       np.percentile(series, 15)) * 1.5
+            # Apply the tanh function
+            transformed = np.tanh(series)
+
+        return transformed
+
+    def transform(self, series: pd.Series, method: str, power: Optional[float] = 2, center: Optional[bool] = False) -> pd.Series:
+        """
+        Apply a specified transformation to the series.
+
+        Parameters:
+        - series: pd.Series
+        - method: str, the transformation method to apply ('simple_root', 'log', 'sigmoid')
+
+        Returns:
+        - pd.Series with the specified transformation applied
+        """
+        if method == 'root':
+            return self.simple_root(series, power)
+        elif method == 'log':
+            return self.log_transform(series)
+        elif method == 'tanh':
+            return self.sigmoid_transform(series, 'tanh', center)
+        else:
+            raise ValueError(f"Unknown transformation method: {method}")

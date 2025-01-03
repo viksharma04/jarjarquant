@@ -1,6 +1,7 @@
 """The data analyst specializes in performing and contextualizing common statistical tests on one or many data series"""
 import pandas as pd
 import numpy as np
+from scipy.special import legendre
 from statsmodels.tsa.stattools import adfuller
 from scipy.stats import jarque_bera, norm
 from sklearn.metrics import normalized_mutual_info_score
@@ -223,7 +224,15 @@ class DataAnalyst:
     @staticmethod
     def atr(atr_length: int, open_series: pd.Series, high_series: pd.Series, low_series: pd.Series, close_series: pd.Series):
         """
-        Calculate the Average True Range (ATR) for a given period.
+            Parameters:
+            atr_length (int): The period over which to calculate the ATR.
+            open_series (pd.Series): Series of open prices.
+            high_series (pd.Series): Series of high prices.
+            low_series (pd.Series): Series of low prices.
+            close_series (pd.Series): Series of close prices.
+
+            Returns:
+            pd.Series: The ATR values for the given period.
         """
         # Calculate the true range for each row in the data
         true_ranges = np.maximum(
@@ -235,3 +244,45 @@ class DataAnalyst:
         )
         # Compute the rolling mean of the true ranges over the specified atr_length
         return true_ranges.shift(1).rolling(window=atr_length).mean()
+
+    @staticmethod
+    def compute_legendre_coefficients(lookback, degree):
+        """
+        Compute the Legendre polynomial coefficients over a given lookback window.
+
+        Parameters:
+        - lookback (int): The number of points in the window.
+        - degree (int): The degree of the Legendre polynomial (1, 2, or 3).
+
+        Returns:
+        - numpy.ndarray: The coefficients of the Legendre polynomial for the given degree.
+        """
+        if degree not in [1, 2, 3]:
+            raise ValueError("Only degrees 1, 2, or 3 are supported.")
+
+        # Normalize x-values to the range [-1, 1]
+        x = np.linspace(-1, 1, lookback)
+
+        # Generate the Legendre polynomial of the specified degree
+        legendre_poly = legendre(degree)
+
+        # Evaluate the polynomial at the normalized x-values
+        coefficients = legendre_poly(x)
+
+        return coefficients
+
+    @staticmethod
+    def calculate_regression_coefficient(prices: np.ndarray, legendre_coeffs: np.ndarray) -> float:
+        """
+        Calculate the linear regression coefficient using the dot product method.
+
+        Parameters:
+        - prices (numpy.ndarray): The series of prices (e.g., log prices).
+        - legendre_coeffs (numpy.ndarray): The precomputed Legendre coefficients.
+
+        Returns:
+        - float: The slope of the least squares line.
+        """
+        norm_coeffs_squared = np.sum(legendre_coeffs ** 2)
+        slope = np.dot(legendre_coeffs, prices) / norm_coeffs_squared
+        return slope

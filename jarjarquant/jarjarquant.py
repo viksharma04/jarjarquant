@@ -3,8 +3,9 @@ import pandas as pd
 from .data_gatherer import DataGatherer
 from .feature_engineer import FeatureEngineer
 from .labeller import Labeller
+from .data_analyst import DataAnalyst
 
-from .indicator import RSI, DetrendedRSI, Stochastic, StochasticRSI, CMMA
+from .indicator import RSI, DetrendedRSI, Stochastic, StochasticRSI, CMMA, MovingAverageDifference, MACD, RegressionTrend, PriceIntensity
 
 
 class Jarjarquant:
@@ -25,6 +26,7 @@ class Jarjarquant:
             self._df = ohlcv_df
         self.labeller = Labeller(self._df)
         self.feature_engineer = FeatureEngineer()
+        self.data_analyst = DataAnalyst()
 
     @classmethod
     def from_random_normal(cls, loc: float = 0.005, volatility: float = 0.05, periods: int = 252, **kwargs):
@@ -263,6 +265,48 @@ class Jarjarquant:
             ohlcv_df=self._df, rsi_period=rsi_period, stochastic_period=stochastic_period, n_smooth=n_smooth))
 
     @staticmethod
+    def moving_average_difference(ohlcv_df: pd.DataFrame, short_period: int = 5, long_period: int = 20):
+        """
+        Calculate the Moving Average Difference for the given OHLCV DataFrame.
+
+        Parameters:
+            ohlcv_df (pd.DataFrame): A pandas DataFrame containing OHLCV data. 
+                                 Must include a 'Close' column.
+            short_period (int): The short moving average window. Default is 5.
+            long_period (int): The long moving average window. Default is 20.
+
+        Returns:
+            pd.Series: A pandas Series containing the Moving Average Difference values.
+
+        Raises:
+            ValueError: If the input DataFrame does not contain a 'Close' column.
+        """
+        if short_period >= long_period:
+            raise ValueError("short_window must be less than long_window")
+
+        _df = ohlcv_df.copy()
+        if 'Close' not in _df.columns:
+            raise ValueError(
+                "The input dataframe must contain a 'Close' column for Moving Average Difference calculation")
+        mad_indicator = MovingAverageDifference(_df, short_period, long_period)
+
+        return mad_indicator
+
+    def add_moving_average_difference(self, short_period: int = 5, long_period: int = 20):
+        """
+        Adds the Moving Average Difference column to the DataFrame.
+
+        Parameters:
+            short_period (int): The short moving average window. Default is 5.
+            long_period (int): The long moving average window. Default is 20.
+
+        Returns:
+            None: The method modifies the DataFrame in place by adding a new column 'Moving_Average_Difference'.
+        """
+        self._df = self._df.assign(Moving_Average_Difference=self.moving_average_difference(
+            ohlcv_df=self._df, short_period=short_period, long_period=long_period))
+
+    @staticmethod
     def cmma(ohlcv_df: pd.DataFrame, lookback: int = 21, atr_length: int = 21):
         """
         Calculate the Custom Moving Average (CMMA) for the given OHLCV DataFrame.
@@ -300,3 +344,46 @@ class Jarjarquant:
         """
         self._df = self._df.assign(CMMA=self.cmma(
             ohlcv_df=self._df, lookback=lookback, atr_length=atr_length))
+
+    @staticmethod
+    def macd(ohlcv_df: pd.DataFrame, short_period: int = 5, long_period: int = 20, smoothing_factor: int = 2):
+        _df = ohlcv_df.copy()
+        if 'Close' not in _df.columns:
+            raise ValueError(
+                "The input dataframe must contain a 'Close' column for MACD calculation")
+        macd_indicator = MACD(_df, short_period, long_period, smoothing_factor)
+
+        return macd_indicator
+
+    def add_macd(self, short_period: int = 5, long_period: int = 20, smoothing_factor: int = 2):
+        self._df = self._df.assign(MACD=self.macd(
+            ohlcv_df=self._df, short_period=short_period, long_period=long_period, smoothing_factor=smoothing_factor))
+
+    @staticmethod
+    def regression_trend(ohlcv_df: pd.DataFrame, lookback: int = 21, atr_length_mult: int = 3, degree: int = 1):
+        _df = ohlcv_df.copy()
+        if 'Close' not in _df.columns:
+            raise ValueError(
+                "The input dataframe must contain a 'Close' column for Regression Trend calculation")
+        regression_trend_indicator = RegressionTrend(
+            _df, lookback, atr_length_mult, degree)
+
+        return regression_trend_indicator
+
+    def add_regression_trend(self, lookback: int = 21, atr_length_mult: int = 3, degree: int = 1):
+        self._df = self._df.assign(Regression_Trend=self.regression_trend(
+            ohlcv_df=self._df, lookback=lookback, atr_length_mult=atr_length_mult, degree=degree))
+
+    @staticmethod
+    def price_intensity(ohlcv_df: pd.DataFrame, smoothing_factor: int = 2):
+        _df = ohlcv_df.copy()
+        if 'Close' not in _df.columns:
+            raise ValueError(
+                "The input dataframe must contain a 'Close' column for Price Intensity calculation")
+        price_intensity_indicator = PriceIntensity(_df, smoothing_factor)
+
+        return price_intensity_indicator
+
+    def add_price_intensity(self, smoothing_factor: int = 2):
+        self._df = self._df.assign(Price_Intensity=self.price_intensity(
+            ohlcv_df=self._df, smoothing_factor=smoothing_factor))

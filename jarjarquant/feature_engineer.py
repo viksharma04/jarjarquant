@@ -313,3 +313,25 @@ class FeatureEngineer:
             return self.sigmoid_transform(series, 'tanh', center)
         else:
             raise ValueError(f"Unknown transformation method: {method}")
+
+    @staticmethod
+    def exp_smoothing(series: np.ndarray, degree: int = 2) -> np.ndarray:
+        """
+        Apply exponential smoothing to the series.
+
+        Parameters:
+        - series: np.ndarray
+        - degree: int, the degree of exponential smoothing to apply
+
+        Returns:
+        - np.ndarray with exponential smoothing applied
+        """
+
+        alpha = 2 / (degree + 1)
+        smoothed = np.full(len(series), np.nan)
+        smoothed[0] = series[0]
+
+        for i in range(1, len(series)):
+            smoothed[i] = alpha * series[i] + (1 - alpha) * smoothed[i - 1]
+
+        return smoothed

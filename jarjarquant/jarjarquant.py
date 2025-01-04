@@ -5,7 +5,7 @@ from .feature_engineer import FeatureEngineer
 from .labeller import Labeller
 from .data_analyst import DataAnalyst
 
-from .indicator import RSI, DetrendedRSI, Stochastic, StochasticRSI, CMMA, MovingAverageDifference, MACD, RegressionTrend, PriceIntensity
+from .indicator import RSI, DetrendedRSI, Stochastic, StochasticRSI, CMMA, MovingAverageDifference, MACD, RegressionTrend, PriceIntensity, ADX, Aroon
 
 
 class Jarjarquant:
@@ -387,3 +387,31 @@ class Jarjarquant:
     def add_price_intensity(self, smoothing_factor: int = 2):
         self._df = self._df.assign(Price_Intensity=self.price_intensity(
             ohlcv_df=self._df, smoothing_factor=smoothing_factor))
+
+    @staticmethod
+    def adx(ohlcv_df: pd.DataFrame, lookback: int = 14):
+        _df = ohlcv_df.copy()
+        if 'Close' not in _df.columns:
+            raise ValueError(
+                "The input dataframe must contain a 'Close' column for Price Intensity calculation")
+        adx_indicator = ADX(_df, lookback)
+
+        return adx_indicator
+
+    def add_adx(self, lookback: int = 14):
+        self._df = self._df.assign(ADX=self.adx(
+            ohlcv_df=self._df, lookback=lookback))
+
+    @staticmethod
+    def aroon(ohlcv_df: pd.DataFrame, lookback: int = 14):
+        _df = ohlcv_df.copy()
+        if 'Close' not in _df.columns:
+            raise ValueError(
+                "The input dataframe must contain a 'Close' column for Aroon calculation")
+        aroon_indicator = Aroon(_df, lookback)
+
+        return aroon_indicator
+
+    def add_aroon(self, lookback: int = 14):
+        self._df = self._df.assign(Aroon=self.aroon(
+            ohlcv_df=self._df, lookback=lookback))

@@ -5,7 +5,7 @@ from .feature_engineer import FeatureEngineer
 from .labeller import Labeller
 from .data_analyst import DataAnalyst
 
-from .indicator import RSI, DetrendedRSI, RegressionTrendDeviation, Stochastic, StochasticRSI, CMMA, MovingAverageDifference, MACD, RegressionTrend, PriceIntensity, ADX, Aroon
+from .indicator import RSI, DetrendedRSI, PriceChangeOscillator, RegressionTrendDeviation, Stochastic, StochasticRSI, CMMA, MovingAverageDifference, MACD, RegressionTrend, PriceIntensity, ADX, Aroon
 
 
 class Jarjarquant:
@@ -430,3 +430,18 @@ class Jarjarquant:
     def add_regression_trend_deviation(self, lookback: int = 14, fit_degree: int = 1):
         self._df = self._df.assign(Regression_Trend_Deviation=self.regression_trend_deviation(
             ohlcv_df=self._df, lookback=lookback, fit_degree=fit_degree))
+
+    @staticmethod
+    def pco(ohlcv_df: pd.DataFrame, short_lookback: int = 5, long_lookback_multiplier: int = 3):
+        _df = ohlcv_df.copy()
+        if 'Close' not in _df.columns:
+            raise ValueError(
+                "The input dataframe must contain a 'Close' column for Price Channel Oscillator calculation")
+        pco_indicator = PriceChangeOscillator(
+            _df, short_lookback, long_lookback_multiplier)
+
+        return pco_indicator
+
+    def add_pco(self, short_lookback: int = 5, long_lookback_multiplier: int = 3):
+        self._df = self._df.assign(PCO=self.pco(
+            ohlcv_df=self._df, short_lookback=short_lookback, long_lookback_multiplier=long_lookback_multiplier))

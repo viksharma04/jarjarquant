@@ -5,7 +5,7 @@ from .feature_engineer import FeatureEngineer
 from .labeller import Labeller
 from .data_analyst import DataAnalyst
 
-from .indicator import RSI, DetrendedRSI, Stochastic, StochasticRSI, CMMA, MovingAverageDifference, MACD, RegressionTrend, PriceIntensity, ADX, Aroon
+from .indicator import RSI, DetrendedRSI, RegressionTrendDeviation, Stochastic, StochasticRSI, CMMA, MovingAverageDifference, MACD, RegressionTrend, PriceIntensity, ADX, Aroon
 
 
 class Jarjarquant:
@@ -415,3 +415,18 @@ class Jarjarquant:
     def add_aroon(self, lookback: int = 14):
         self._df = self._df.assign(Aroon=self.aroon(
             ohlcv_df=self._df, lookback=lookback))
+
+    @staticmethod
+    def regression_trend_deviation(ohlcv_df: pd.DataFrame, lookback: int = 14, fit_degree: int = 1):
+        _df = ohlcv_df.copy()
+        if 'Close' not in _df.columns:
+            raise ValueError(
+                "The input dataframe must contain a 'Close' column for Regression Trend Deviation calculation")
+        regression_trend_deviation_indicator = RegressionTrendDeviation(
+            _df, lookback, fit_degree)
+
+        return regression_trend_deviation_indicator
+
+    def add_regression_trend_deviation(self, lookback: int = 14, fit_degree: int = 1):
+        self._df = self._df.assign(Regression_Trend_Deviation=self.regression_trend_deviation(
+            ohlcv_df=self._df, lookback=lookback, fit_degree=fit_degree))

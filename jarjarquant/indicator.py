@@ -21,6 +21,12 @@ class Indicator:
         self.data_analyst = DataAnalyst()
         self.feature_engineer = FeatureEngineer()
 
+        self.relative_entropy = None
+        self.mutual_information = None
+        self.range_iqr_ratio = None
+        self.adf_test = None
+        self.jb_normality_test = None
+
     def calculate(self):
         """Placeholder - to be implemented in derived classes
 
@@ -30,7 +36,7 @@ class Indicator:
         raise NotImplementedError(
             "Derived classes must implement the calculate method.")
 
-    def indicator_evaluation_report(self, transform: Optional[str] = None, n_bins_to_discretize: Optional[int] = 10, **kwargs):
+    def indicator_evaluation_report(self, verbose: bool = False, transform: Optional[str] = None, n_bins_to_discretize: Optional[int] = 10, **kwargs):
         """Runs a set of statistical tests to examine various properties of the 
         indicator series, such as stationarity, normality, entropy, mutual
         information, etc.
@@ -45,24 +51,23 @@ class Indicator:
             values = self.feature_engineer.transform(
                 values, transform, **kwargs)
 
-        if self.indicator_type == 'continuous':
-            d_values = self.data_analyst.discretize_array(
-                values, n_bins_to_discretize)
-        else:
-            d_values = values
-
         self.data_analyst.visual_stationary_test(values)
-        print("/n")
-        self.data_analyst.adf_test(values)
-        print("/n")
-        self.data_analyst.jb_normality_test(values, plot_dist=True)
-        print("/n")
-        print(f"Relative entropy = {
-              self.data_analyst.relative_entropy(values, True)}")
-        print(f"Range IQR Ratio = {
-              self.data_analyst.range_iqr_ratio(values, True)}")
-        print(f"Mutual information at lag 1 = {
-              self.data_analyst.mutual_information(d_values, 1)}")
+        self.adf_test = self.data_analyst.adf_test(values, verbose)
+        self.jb_normality_test = self.data_analyst.jb_normality_test(
+            values, verbose)
+        self.relative_entropy = self.data_analyst.relative_entropy(
+            values, verbose)
+        self.range_iqr_ratio = self.data_analyst.range_iqr_ratio(
+            values, verbose)
+        if self.indicator_type == 'continuous':
+            self.mutual_information = self.data_analyst.mutual_information(
+                array=values, lag=10, n_bins=n_bins_to_discretize, is_discrete=False, verbose=verbose)
+        else:
+            self.mutual_information = self.data_analyst.mutual_information(
+                array=values, lag=10, n_bins=None, is_discrete=True, verbose=verbose)
+
+        for i in range(1, 11):
+            print(f"NMI @ lag {i} = {self.mutual_information[i-1]}")
 
 
 class RSI(Indicator):
@@ -249,7 +254,7 @@ class MovingAverageDifference(Indicator):
 
         # See pg 116 eq. 4.7 and 4.8 of Statistically Sound Indicators
         atr_values = self.data_analyst.atr(
-            self.short_period+self.long_period, self.df['Open'], self.df['High'], self.df['Low'], self.df['Close']).values
+            self.short_period+self.long_period, self.df['High'], self.df['Low'], self.df['Close']).values
 
         denom = atr_values * \
             np.sqrt((0.5*(self.long_period-1)+self.short_period) -
@@ -283,7 +288,7 @@ class MACD(Indicator):
             span=self.long_period, adjust=False).mean().values
 
         atr_values = self.data_analyst.atr(
-            self.short_period+self.long_period, self.df['Open'], self.df['High'], self.df['Low'], self.df['Close']).values
+            self.short_period+self.long_period, self.df['High'], self.df['Low'], self.df['Close']).values
 
         denom = atr_values * \
             np.sqrt((0.5*(self.long_period-1)+self.short_period) -
@@ -305,7 +310,7 @@ class MACD(Indicator):
 
 
 class CMMA(Indicator):
-    """Cumulative Moving Mean Average (CMMA) Indicator
+    """Close Minus Moving Average (CMMA) Indicator
     This class calculates the CMMA indicator, which is a normalized measure of the 
     logarithmic difference between the closing prices and their rolling mean, adjusted 
     by the Average True Range (ATR).
@@ -320,11 +325,12 @@ class CMMA(Indicator):
             Calculate the CMMA values.
                 np.ndarray: A numpy array with the CMMA values."""
 
-    def __init__(self, ohlcv_df: pd.DataFrame, lookback: int = 21, atr_length: int = 21):
+    def __init__(self, ohlcv_df: pd.DataFrame, lookback: int = 21, atr_length: int = 21, transform=None):
         super().__init__(ohlcv_df)
         self.lookback = lookback
         self.atr_length = atr_length
         self.indicator_type = 'continuous'
+        self.transform = transform
 
     def calculate(self) -> np.ndarray:
         """
@@ -349,10 +355,10 @@ class CMMA(Indicator):
         log_close = np.log(Close)
 
         # Calculate the rolling mean of the log of close prices over the lookback period
-        rolling_mean = log_close.shift(1).ewm(span=self.lookback).mean()
+        rolling_mean = log_close.ewm(span=self.lookback).mean()
 
         # Calculate the denominator using the ATR function and adjust by the sqrt of (lookback + 1)
-        denom = self.data_analyst.atr(self.atr_length, Open, High, Low, Close) * \
+        denom = self.data_analyst.atr(self.atr_length, High, Low, Close, ema=True) * \
             np.sqrt(self.lookback + 1)
 
         # Normalize the output by dividing the difference between log_close and rolling_mean by denom
@@ -367,6 +373,9 @@ class CMMA(Indicator):
         output = 100 * norm.cdf(normalized_output) - 50
 
         # Return the final CMMA values as a pandas Series with the same index as the input DataFrame
+        if self.transform is not None:
+            output = self.feature_engineer.transform(output, self.transform)
+
         return output
 
 
@@ -392,7 +401,7 @@ class RegressionTrend(Indicator):
         lgdre = self.data_analyst.compute_legendre_coefficients(
             self.lookback, self.degree)
         atr = self.data_analyst.atr(
-            self.atr_length, self.df['Open'], self.df['High'], self.df['Low'], self.df['Close']).values
+            self.atr_length, self.df['High'], self.df['Low'], self.df['Close']).values
         COMPRESSION_FACTOR = 1.5
 
         for i in range(self.atr_length+1, n):
@@ -451,7 +460,7 @@ class PriceIntensity(Indicator):
 
         # Smooth the Price Intensity values
         output = pd.Series(output).ewm(
-            span=self.smoothing_factor).mean().values
+            span=self.smoothing_factor, adjust=False).mean().values
 
         # Normalize the Price Intensity values
         output = 100 * norm.cdf(0.8*np.sqrt(self.smoothing_factor)*output) - 50
@@ -691,7 +700,7 @@ class PriceChangeOscillator(Indicator):
 
         # Calculate ATR over the long lookback period
         atr = self.data_analyst.atr(
-            long_lookback, self.df['Open'], self.df['High'], self.df['Low'], self.df['Close']).values
+            long_lookback, self.df['High'], self.df['Low'], self.df['Close']).values
 
         for i in range(long_lookback, n):
             # Calculate the short-term and long-term mean

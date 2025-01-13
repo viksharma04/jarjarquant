@@ -271,7 +271,7 @@ class FeatureEngineer:
         return np.log(shifted)
 
     @staticmethod
-    def sigmoid_transform(series: np.ndarray, transform_type: str = 'tanh', center: bool = False) -> np.ndarray:
+    def sigmoid_transform(series: np.ndarray, transform_type: str = 'tanh', center: bool = True) -> np.ndarray:
         """
         Apply a sigmoid transformation using the hyperbolic tangent function.
 
@@ -285,13 +285,19 @@ class FeatureEngineer:
         if transform_type == 'tanh':
             # Center the data around 0
             if center:
-                series -= np.median(series)
+                series -= pd.Series(series).expanding().median()
+            # Extract the 15th and 85th percentiles
+            p15 = pd.Series(series).expanding().apply(
+                lambda x: np.percentile(x, 15))
+            p85 = pd.Series(series).expanding().apply(
+                lambda x: np.percentile(x, 85))
             # Scale the values to be between -1.5 and 1.5 using the 15 and 85 percentiles
-            series /= (np.percentile(series, 85) -
-                       np.percentile(series, 15)) * 1.5
+            series /= (p85 - p15) * 1.5
+            series = series.values
             # Apply the tanh function
             transformed = np.tanh(series)
 
+        transformed = np.where(np.isnan(transformed), 0, transformed)
         return transformed
 
     def transform(self, series: pd.Series, method: str, power: Optional[float] = 2, center: Optional[bool] = False) -> pd.Series:

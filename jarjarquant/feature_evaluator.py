@@ -1,8 +1,12 @@
 """The feature evaluator specializes in calculating the efficacy of one or many indicators given a matrix of features X and a target label/series y"""
 import pandas as pd
 import numpy as np
+from typing import Callable
 from sklearn.metrics import log_loss, accuracy_score
 from sklearn.model_selection._split import _BaseKFold
+import concurrent.futures
+
+from .data_gatherer import DataGatherer
 
 # Define the PurgedKFold class for feature importance scores
 
@@ -317,3 +321,105 @@ class FeatureEvaluator:
             ) * feature_scores.shape[0]**-0.5
 
         return importance_scores
+
+    @staticmethod
+    def indicator_threshold_search(indicator_values: pd.Series, associated_returns: pd.Series, n_thresholds: int):
+        """
+        Evaluate profit factors for different thresholds of an indicator.
+
+        Parameters:
+        indicator_values (pd.Series): Series of indicator values.
+        associated_returns (pd.Series): Series of returns associated with the indicator values.
+        n_thresholds (int): Number of thresholds to evaluate.
+
+        Returns:
+        pd.DataFrame: DataFrame with thresholds and profit factors for long/short positions above/below the thresholds.
+        """
+        # Calculate threshold values
+        min_val, max_val = indicator_values.min(), indicator_values.max()
+        # Exclude min and max values
+        thresholds = np.linspace(min_val, max_val, n_thresholds + 2)[1:-1]
+
+        results = []
+
+        for threshold in thresholds:
+            # Calculate profit factors for long/short positions above/below the threshold
+            above_threshold = indicator_values > threshold
+            below_threshold = indicator_values < threshold
+
+            pf_long_above = associated_returns[above_threshold & (associated_returns > 0)].sum() / \
+                -associated_returns[above_threshold &
+                                    (associated_returns < 0)].sum()
+            pf_short_above = -associated_returns[above_threshold & (associated_returns < 0)].sum() / \
+                associated_returns[above_threshold &
+                                   (associated_returns > 0)].sum()
+
+            pf_long_below = associated_returns[below_threshold & (associated_returns > 0)].sum() / \
+                -associated_returns[below_threshold &
+                                    (associated_returns < 0)].sum()
+            pf_short_below = -associated_returns[below_threshold & (associated_returns < 0)].sum() / \
+                associated_returns[below_threshold &
+                                   (associated_returns > 0)].sum()
+
+            results.append({
+                'Threshold': threshold,
+                '% values > threshold': above_threshold.mean(),
+                'PF Long above threshold': pf_long_above,
+                'PF Short above threshold': pf_short_above,
+                '% values < threshold': below_threshold.mean(),
+                'PF Long below threshold': pf_long_below,
+                'PF Short below threshold': pf_short_below
+            })
+
+        return pd.DataFrame(results)
+
+    # TODO: Implement parallel threshold search
+
+    @staticmethod
+    def single_indicator_evaluation(inputs: dict):
+
+        outputs = []
+
+        indicator_func = inputs["indicator_func"]
+        kwargs = inputs["kwargs"]
+
+        data_gatherer = DataGatherer()
+        ohlcv_df = data_gatherer.get_random_price_samples(
+            num_tickers_to_sample=1)[0]
+        if kwargs is not None:
+            indicator_instance = indicator_func(ohlcv_df, **kwargs)
+        else:
+            indicator_instance = indicator_func(ohlcv_df)
+
+        indicator_instance.indicator_evaluation_report()
+
+        outputs.append(
+            True if indicator_instance.adf_test == "passed" else False)
+        outputs.append(True if indicator_instance.jb_normality_test ==
+                       "passed" else False)
+        outputs.append(indicator_instance.relative_entropy)
+        outputs.append(indicator_instance.range_iqr_ratio)
+
+        return outputs
+
+    @staticmethod
+    def parallel_indicator_evaluation(indicator_func: Callable, n: int = 10, **kwargs):
+
+        inputs_list = []
+
+        # Create multiple instances of the indicator with a different data sample each time
+        for i in range(n):
+            inputs = {
+                "indicator_func": indicator_func,
+                "kwargs": kwargs
+            }
+            inputs_list.append(inputs)
+
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            results = list(executor.map(
+                FeatureEvaluator.single_indicator_evaluation, inputs_list))
+
+        # results is a list of lists - average across the lists to get the final results
+        results = np.mean(results, axis=0)
+
+        return {'ADF Test': results[0], 'Jarque-Bera Test': results[1], 'Relative Entropy': results[2], 'Range-IQR Ratio': results[3]}

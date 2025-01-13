@@ -41,7 +41,7 @@ class DataAnalyst:
         plt.show()
 
     @staticmethod
-    def adf_test(values: np.ndarray):
+    def adf_test(values: np.ndarray, verbose: bool = False):
         """
         Performs the Augmented Dickey-Fuller test to check if the time series is stationary.
 
@@ -52,29 +52,34 @@ class DataAnalyst:
         test_statistic, p_value, _, _, critical_values, _ = result
 
         # Print test results
-        print("Augmented Dickey-Fuller Test Results:")
-        print(f"Test Statistic: {test_statistic}")
-        print(f"P-Value: {p_value}")
-        print("Critical Values:")
-        for key, value in critical_values.items():
-            print(f"\t{key}: {value}")
+        if verbose:
+            print("Augmented Dickey-Fuller Test Results:")
+            print(f"Test Statistic: {test_statistic}")
+            print(f"P-Value: {p_value}")
+            print("Critical Values:")
+            for key, value in critical_values.items():
+                print(f"\t{key}: {value}")
 
         # Interpretation
-        print("\nInterpretation:")
         if p_value < 0.05:
-            print("The p-value is less than 0.05, indicating that we can reject the null hypothesis.\n"
-                  "The time series is likely stationary.")
+            print("STATIONARY @ 5% CONFIDENCE LEVEL")
         else:
-            print("The p-value is greater than or equal to 0.05, indicating that we cannot reject the null hypothesis.\n"
-                  "The time series is likely non-stationary.")
+            print("NON-STATIONARY @ 5% CONFIDENCE LEVEL")
 
-        if test_statistic < min(critical_values.values()):
-            print("The test statistic is less than the critical value at all levels, indicating strong evidence of stationarity.")
+        if test_statistic < critical_values['1%']:
+            print("STRONG EVIDENCE OF STATIONARITY")
         else:
-            print("The test statistic is not less than the critical value at all levels, suggesting weaker evidence of stationarity.")
+            print("WEAK EVIDENCE OF STATIONARITY")
+
+        print("----------------------------------------")
+
+        if p_value < 0.05:
+            return "passed"
+        else:
+            return "failed"
 
     @staticmethod
-    def jb_normality_test(values: np.ndarray, plot_dist=False):
+    def jb_normality_test(values: np.ndarray, verbose=False):
         """
         Performs the Jarque-Bera test to check if the time series is normally distributed.
 
@@ -87,21 +92,19 @@ class DataAnalyst:
         jb_statistic, p_value = jarque_bera(values)
 
         # Print test results
-        print("Jarque-Bera Test Results:")
-        print(f"JB Statistic: {jb_statistic}")
-        print(f"P-Value: {p_value}")
+        if verbose:
+            print("Jarque-Bera Test Results:")
+            print(f"JB Statistic: {jb_statistic}")
+            print(f"P-Value: {p_value}")
 
         # Interpretation
-        print("\nInterpretation:")
         if p_value < 0.05:
-            print("The p-value is less than 0.05, indicating that we can reject the null hypothesis.\n"
-                  "The time series is likely not normally distributed.")
+            print("NOT NORMAL @ 5% CONFIDENCE LEVEL")
         else:
-            print("The p-value is greater than or equal to 0.05, indicating that we cannot reject the null hypothesis.\n"
-                  "The time series is likely normally distributed.")
+            print("NORMAL @ 5% CONFIDENCE LEVEL")
 
         # Plot distribution if requested
-        if plot_dist:
+        if verbose:
             plt.figure(figsize=(10, 6))
             plt.hist(values, bins=30, density=True, color='blue',
                      alpha=0.6, label='Indicator Value Distribution')
@@ -119,10 +122,17 @@ class DataAnalyst:
             plt.show()
             print("\n")
 
+        print("----------------------------------------")
+
+        if p_value < 0.05:
+            return "failed"
+        else:
+            return "passed"
+
     @staticmethod
-    def relative_entropy(values: np.ndarray, print_desc: bool = False) -> np.float64:
+    def relative_entropy(values: np.ndarray, verbose: bool = False) -> np.float64:
         # Convert values to numpy array for efficient computation
-        values = np.array(values)
+        values = values
         n = len(values)
 
         # Determine the number of bins based on sample size
@@ -147,13 +157,25 @@ class DataAnalyst:
         # Normalize entropy by log of number of bins
         normalized_entropy = entropy / np.log(nbins)
 
-        if print_desc:
+        if verbose:
             print("The underlying idea for relative entropy is that valuable discriminatory information is nearly as likely to lie within clumps as it is in broad, thin regions. If the indicator's values lie within a few concentrated regions surrounded by broad swaths of emptiness, most models will focus on the wide spreads of the range while putting little effort into studying what's going on inside the clumps. \n The entropy of an indicator is an upper limit on the amount of infornmation it can carry. Anything above 0.8 is plenty, an even somewhat lower is usually fine. Anything below 0.5 is concerning and below 0.2 is very concerning. \n ---------------------------------------- \n")
+
+        print(f"Relative Entropy: {normalized_entropy}")
+        if normalized_entropy < 0.2:
+            print("VERY CONCERNING")
+        elif normalized_entropy < 0.5:
+            print("CONCERNING")
+        elif normalized_entropy < 0.8:
+            print("FINE")
+        elif normalized_entropy >= 0.8:
+            print("EXCELLENT")
+
+        print("----------------------------------------")
 
         return normalized_entropy
 
     @staticmethod
-    def range_iqr_ratio(values: np.ndarray, print_desc: bool = True) -> np.float64:
+    def range_iqr_ratio(values: np.ndarray, verbose: bool = False) -> np.float64:
         """Returns the range/interquartile range ratio for an indicator
 
         Args:
@@ -164,36 +186,64 @@ class DataAnalyst:
         """
         range_iqr_ratio = (np.max(values) - np.min(values)) / \
             (np.quantile(values, 0.75) - np.quantile(values, 0.25))
-        if print_desc:
+
+        print(range_iqr_ratio)
+        if verbose:
             print("Presence of outliers can greatly reduce the performance of an algorithm. The most obvious reason is that the presence of an outlier reduces entropy, causing the 'normal' observations to form a compact cluster and hence reducing the information carrying capacity of the indicator. \n Ratios of 2 and 3 are reasonable and upto 5 is usually not excessive. But iof the indicator has a range IQR ratio of more than 5, the tails should be tamed. \n ----------------------------- \n")
+        else:
+            if range_iqr_ratio <= 3:
+                print("GREAT DISTRIBUTION - MINIMAL OUTLIERS")
+            elif range_iqr_ratio <= 5:
+                print("PASSABLE DISTRIBUTION - SOME OUTLIERS - INSPECT VISUALLY")
+            elif range_iqr_ratio > 5:
+                print("CONCERNING AMOUNT OF OUTLIER - CONSIDER TRANSFORMATIONS")
+
+        print("----------------------------------------")
+
         return range_iqr_ratio
 
     @staticmethod
-    def mutual_information(array: np.ndarray, lag: int, n_bins: int = 10, is_discrete: bool = False) -> float:
+    def mutual_information(array: np.ndarray, lag: int, n_bins: int = None, is_discrete: bool = False, verbose: bool = False) -> np.ndarray:
         """
         Calculates the mutual information of the array with a specified time lag.
 
         Args:
             array (np.ndarray): A numpy array representing the time series data.
-            lag (int): Time lag to use for calculating mutual information.
+            lag (int): NMI to calculated upto lag.
 
         Returns:
             float: The mutual information score.
         """
+        nmi_scores = np.full(lag, np.nan)\
+
         if not is_discrete:
+            n = len(array)
+            if n_bins is None:
+                #  Determine the number of bins based on sample size
+                if n >= 10000:
+                    nbins = 20
+                elif n >= 1000:
+                    nbins = 10
+                elif n >= 100:
+                    nbins = 5
+                else:
+                    nbins = 3
             array = DataAnalyst.discretize_array(array, n_bins=n_bins)
 
-        # Create lagged array
-        if lag >= len(array):
-            raise ValueError(
-                "Lag is greater than or equal to the length of the array.")
+        for i in range(1, lag + 1):
+            # Create lagged array
+            if i >= len(array):
+                raise ValueError(
+                    "Lag is greater than or equal to the length of the array.")
 
-        array_lagged = array[:-lag]
-        array_future = array[lag:]
+            array_lagged = array[:-i]
+            array_future = array[i:]
 
-        # Calculate mutual information
-        mi = normalized_mutual_info_score(array_lagged, array_future)
-        return mi
+            # Calculate mutual information
+            nmi_scores[i -
+                       1] = normalized_mutual_info_score(array_lagged, array_future)
+
+        return nmi_scores
 
     @staticmethod
     def discretize_array(array: np.ndarray, n_bins: int) -> np.ndarray:
@@ -222,7 +272,7 @@ class DataAnalyst:
         pass
 
     @staticmethod
-    def atr(atr_length: int, open_series: pd.Series, high_series: pd.Series, low_series: pd.Series, close_series: pd.Series):
+    def atr(atr_length: int, high_series: pd.Series, low_series: pd.Series, close_series: pd.Series, ema: bool = False) -> pd.Series:
         """
             Parameters:
             atr_length (int): The period over which to calculate the ATR.
@@ -243,7 +293,10 @@ class DataAnalyst:
             )
         )
         # Compute the rolling mean of the true ranges over the specified atr_length
-        return true_ranges.shift(1).rolling(window=atr_length).mean()
+        if ema:
+            return true_ranges.ewm(span=atr_length, adjust=False).mean()
+        else:
+            return true_ranges.rolling(window=atr_length).mean()
 
     @staticmethod
     def compute_legendre_coefficients(lookback, degree):

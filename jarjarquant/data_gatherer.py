@@ -36,11 +36,10 @@ class DataGatherer:
 
         return series
 
-    def get_random_price_samples(self, years_back: int = 30, years_in_sample: int = 10, tickers: Optional[list] = None, num_tickers_to_sample: Optional[int] = 30, persist: Optional[bool] = False):
+    def get_random_price_samples(self, years_in_sample: int = 10, tickers: Optional[list] = None, num_tickers_to_sample: Optional[int] = 30, persist: Optional[bool] = False):
 
         # Set today's date (October 23, 2024) and the time range for the last 30 years
         today = datetime.today()
-        start_limit = today - timedelta(days=years_back*365)
         num_years = timedelta(days=years_in_sample*365)
 
         # List of 30 stock tickers with replacements for problematic ones
@@ -56,20 +55,36 @@ class DataGatherer:
         tickers = random.sample(tickers, num_tickers_to_sample)
 
         # Function to get random start and end dates
-        # TODO: Implement accepting a ticker and select start and end dates based on available price history
-        def get_random_date():
-            random_start = start_limit + \
-                timedelta(days=np.random.randint(
-                    0, years_back*365 - years_in_sample*365))
-            random_end = random_start + num_years
-            return random_start.strftime('%Y-%m-%d'), random_end.strftime('%Y-%m-%d')
+        def get_random_date(ticker):
+            ticker = yf.Ticker(ticker)
+            ticker_metadata = ticker.history_metadata
+
+            start_limit = datetime.fromtimestamp(
+                np.abs(ticker_metadata['firstTradeDate']))
+
+            # If today - start limit is less than years to sample, then we can't sample that far back
+            if int((today - start_limit).days) < years_in_sample*365:
+                print(f"WARNING: {ticker} does not have enough data to sample {
+                      years_in_sample} years back. Sampling all available data")
+                start_date = start_limit
+                end_date = today
+
+            else:
+                random_start = start_limit + \
+                    timedelta(days=np.random.randint(
+                        0, (today - start_limit).days - years_in_sample*365))
+                random_end = random_start + num_years
+                start_date = random_start
+                end_date = random_end
+
+            return start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d')
 
         # List to store the DataFrames
         dataframes = []
 
         # Loop over each ticker and fetch 2 years of data with random start dates
         for ticker in tickers:
-            start_date, end_date = get_random_date()
+            start_date, end_date = get_random_date(ticker)
             df = self.get_yf_ticker(ticker, start=start_date, end=end_date)
             dataframes.append(df)
 

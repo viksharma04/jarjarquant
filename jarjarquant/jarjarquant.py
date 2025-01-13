@@ -1,11 +1,11 @@
 """Main module for jarjarquant package."""
+from .indicator import RSI, DetrendedRSI, PriceChangeOscillator, RegressionTrendDeviation, Stochastic, StochasticRSI, CMMA, MovingAverageDifference, MACD, RegressionTrend, PriceIntensity, ADX, Aroon
 import pandas as pd
 from .data_gatherer import DataGatherer
 from .feature_engineer import FeatureEngineer
 from .labeller import Labeller
 from .data_analyst import DataAnalyst
-
-from .indicator import RSI, DetrendedRSI, PriceChangeOscillator, RegressionTrendDeviation, Stochastic, StochasticRSI, CMMA, MovingAverageDifference, MACD, RegressionTrend, PriceIntensity, ADX, Aroon
+from .feature_evaluator import FeatureEvaluator
 
 
 class Jarjarquant:
@@ -27,6 +27,7 @@ class Jarjarquant:
         self.labeller = Labeller(self._df)
         self.feature_engineer = FeatureEngineer()
         self.data_analyst = DataAnalyst()
+        self.feature_evaluator = FeatureEvaluator()
 
     @classmethod
     def from_random_normal(cls, loc: float = 0.005, volatility: float = 0.05, periods: int = 252, **kwargs):
@@ -139,7 +140,7 @@ class Jarjarquant:
         None: The method modifies the DataFrame in place by adding a new column 'RSI'.
         """
         self._df = self._df.assign(RSI=self.rsi(
-            ohlcv_df=self._df, period=period))
+            ohlcv_df=self._df, period=period).calculate())
 
     @staticmethod
     def detrended_rsi(ohlcv_df, short_period: int = 2, long_period: int = 21, regression_length: int = 120):
@@ -183,7 +184,7 @@ class Jarjarquant:
         None
         """
         self._df = self._df.assign(Detrended_RSI=self.detrended_rsi(
-            ohlcv_df=self._df, short_period=short_period, long_period=long_period, regression_length=regression_length))
+            ohlcv_df=self._df, short_period=short_period, long_period=long_period, regression_length=regression_length).calculate())
 
     @staticmethod
     def stochastic(ohlcv_df: pd.DataFrame, period: int = 14, n_smooth: int = 2):
@@ -221,7 +222,7 @@ class Jarjarquant:
             None: The method modifies the DataFrame in place by adding a 'Stochastic' column.
         """
         self._df = self._df.assign(Stochastic=self.stochastic(
-            ohlcv_df=self._df, period=period, n_smooth=n_smooth))
+            ohlcv_df=self._df, period=period, n_smooth=n_smooth).calculate())
 
     @staticmethod
     def stochastic_rsi(ohlcv_df: pd.DataFrame, rsi_period: int = 14, stochastic_period: int = 14, n_smooth: int = 2):
@@ -262,7 +263,7 @@ class Jarjarquant:
         None: The method modifies the DataFrame in place by adding a new column 'Stochastic_RSI'.
         """
         self._df = self._df.assign(Stochastic_RSI=self.stochastic_rsi(
-            ohlcv_df=self._df, rsi_period=rsi_period, stochastic_period=stochastic_period, n_smooth=n_smooth))
+            ohlcv_df=self._df, rsi_period=rsi_period, stochastic_period=stochastic_period, n_smooth=n_smooth).calculate())
 
     @staticmethod
     def moving_average_difference(ohlcv_df: pd.DataFrame, short_period: int = 5, long_period: int = 20):
@@ -304,10 +305,10 @@ class Jarjarquant:
             None: The method modifies the DataFrame in place by adding a new column 'Moving_Average_Difference'.
         """
         self._df = self._df.assign(Moving_Average_Difference=self.moving_average_difference(
-            ohlcv_df=self._df, short_period=short_period, long_period=long_period))
+            ohlcv_df=self._df, short_period=short_period, long_period=long_period).calculate())
 
     @staticmethod
-    def cmma(ohlcv_df: pd.DataFrame, lookback: int = 21, atr_length: int = 21):
+    def cmma(ohlcv_df: pd.DataFrame, lookback: int = 21, atr_length: int = 21, transform=None):
         """
         Calculate the Custom Moving Average (CMMA) for the given OHLCV DataFrame.
 
@@ -327,7 +328,7 @@ class Jarjarquant:
         if 'Close' not in _df.columns:
             raise ValueError(
                 "The input dataframe must contain a 'Close' column for CMMA calculation")
-        cmma_indicator = CMMA(_df, lookback, atr_length)
+        cmma_indicator = CMMA(_df, lookback, atr_length, transform)
 
         return cmma_indicator
 
@@ -343,7 +344,8 @@ class Jarjarquant:
         None: The method modifies the DataFrame in place by adding a new column 'CMMA'.
         """
         self._df = self._df.assign(CMMA=self.cmma(
-            ohlcv_df=self._df, lookback=lookback, atr_length=atr_length))
+            ohlcv_df=self._df, lookback=lookback, atr_length=atr_length).calculate())
+        self.cmma_indicator = self._df['CMMA']
 
     @staticmethod
     def macd(ohlcv_df: pd.DataFrame, short_period: int = 5, long_period: int = 20, smoothing_factor: int = 2):
@@ -357,7 +359,7 @@ class Jarjarquant:
 
     def add_macd(self, short_period: int = 5, long_period: int = 20, smoothing_factor: int = 2):
         self._df = self._df.assign(MACD=self.macd(
-            ohlcv_df=self._df, short_period=short_period, long_period=long_period, smoothing_factor=smoothing_factor))
+            ohlcv_df=self._df, short_period=short_period, long_period=long_period, smoothing_factor=smoothing_factor).calculate())
 
     @staticmethod
     def regression_trend(ohlcv_df: pd.DataFrame, lookback: int = 21, atr_length_mult: int = 3, degree: int = 1):
@@ -372,7 +374,7 @@ class Jarjarquant:
 
     def add_regression_trend(self, lookback: int = 21, atr_length_mult: int = 3, degree: int = 1):
         self._df = self._df.assign(Regression_Trend=self.regression_trend(
-            ohlcv_df=self._df, lookback=lookback, atr_length_mult=atr_length_mult, degree=degree))
+            ohlcv_df=self._df, lookback=lookback, atr_length_mult=atr_length_mult, degree=degree).calculate())
 
     @staticmethod
     def price_intensity(ohlcv_df: pd.DataFrame, smoothing_factor: int = 2):
@@ -386,7 +388,7 @@ class Jarjarquant:
 
     def add_price_intensity(self, smoothing_factor: int = 2):
         self._df = self._df.assign(Price_Intensity=self.price_intensity(
-            ohlcv_df=self._df, smoothing_factor=smoothing_factor))
+            ohlcv_df=self._df, smoothing_factor=smoothing_factor).calculate())
 
     @staticmethod
     def adx(ohlcv_df: pd.DataFrame, lookback: int = 14):
@@ -400,7 +402,7 @@ class Jarjarquant:
 
     def add_adx(self, lookback: int = 14):
         self._df = self._df.assign(ADX=self.adx(
-            ohlcv_df=self._df, lookback=lookback))
+            ohlcv_df=self._df, lookback=lookback).calculate())
 
     @staticmethod
     def aroon(ohlcv_df: pd.DataFrame, lookback: int = 14):
@@ -414,7 +416,7 @@ class Jarjarquant:
 
     def add_aroon(self, lookback: int = 14):
         self._df = self._df.assign(Aroon=self.aroon(
-            ohlcv_df=self._df, lookback=lookback))
+            ohlcv_df=self._df, lookback=lookback).calculate())
 
     @staticmethod
     def regression_trend_deviation(ohlcv_df: pd.DataFrame, lookback: int = 14, fit_degree: int = 1):
@@ -429,7 +431,7 @@ class Jarjarquant:
 
     def add_regression_trend_deviation(self, lookback: int = 14, fit_degree: int = 1):
         self._df = self._df.assign(Regression_Trend_Deviation=self.regression_trend_deviation(
-            ohlcv_df=self._df, lookback=lookback, fit_degree=fit_degree))
+            ohlcv_df=self._df, lookback=lookback, fit_degree=fit_degree).calculate())
 
     @staticmethod
     def pco(ohlcv_df: pd.DataFrame, short_lookback: int = 5, long_lookback_multiplier: int = 3):
@@ -444,4 +446,4 @@ class Jarjarquant:
 
     def add_pco(self, short_lookback: int = 5, long_lookback_multiplier: int = 3):
         self._df = self._df.assign(PCO=self.pco(
-            ohlcv_df=self._df, short_lookback=short_lookback, long_lookback_multiplier=long_lookback_multiplier))
+            ohlcv_df=self._df, short_lookback=short_lookback, long_lookback_multiplier=long_lookback_multiplier).calculate())

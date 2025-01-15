@@ -7,6 +7,7 @@ import pandas as pd
 from scipy.stats import norm
 from .data_analyst import DataAnalyst
 from .feature_engineer import FeatureEngineer
+from .feature_evaluator import FeatureEvaluator
 
 
 class Indicator:
@@ -20,6 +21,7 @@ class Indicator:
         self.indicator_type = None
         self.data_analyst = DataAnalyst()
         self.feature_engineer = FeatureEngineer()
+        self.feature_evaluator = FeatureEvaluator()
 
         self.relative_entropy = None
         self.mutual_information = None
@@ -37,7 +39,7 @@ class Indicator:
             "Derived classes must implement the calculate method.")
 
     def indicator_evaluation_report(self, verbose: bool = False, transform: Optional[str] = None, n_bins_to_discretize: Optional[int] = 10, **kwargs):
-        """Runs a set of statistical tests to examine various properties of the 
+        """Runs a set of statistical tests to examine various properties of the
         indicator series, such as stationarity, normality, entropy, mutual
         information, etc.
 
@@ -69,14 +71,17 @@ class Indicator:
         for i in range(1, 11):
             print(f"NMI @ lag {i} = {self.mutual_information[i-1]}")
 
+    # TODO: Implement a robust indicator evaluation report method which creates multiple instances of the indicator and averages the results
+
 
 class RSI(Indicator):
     """Class to calculate the Relative Strength Index (RSI)"""
 
-    def __init__(self, ohlcv_df: pd.DataFrame, period: int = 14):
+    def __init__(self, ohlcv_df: pd.DataFrame, period: int = 14, transform=None):
         super().__init__(ohlcv_df)
         self.period = period
         self.indicator_type = 'continuous'  # continuous or discrete
+        self.transform = transform
 
     def calculate(self) -> np.ndarray:
         close = self.df['Close'].values
@@ -112,18 +117,21 @@ class RSI(Indicator):
             else:
                 output[i] = 100.0 * upsum / (upsum + dnsum)
 
+        if self.transform is not None:
+            output = self.feature_engineer.transform(output, self.transform)
         return output
 
 
 class DetrendedRSI(Indicator):
     """Class to calculate the Detrended RSI"""
 
-    def __init__(self, ohlcv_df: pd.DataFrame, short_period: int = 2, long_period: int = 21, regression_length: int = 120):
+    def __init__(self, ohlcv_df: pd.DataFrame, short_period: int = 2, long_period: int = 21, regression_length: int = 120, transform=None):
         super().__init__(ohlcv_df)
         self.short_period = short_period
         self.long_period = long_period
         self.regression_length = regression_length
         self.indicator_type = 'continuous'
+        self.transform = transform
 
     def calculate(self) -> np.ndarray:
         close = self.df['Close'].values
@@ -152,17 +160,20 @@ class DetrendedRSI(Indicator):
 
             output[i] = (y[-1] - y_mean) - coef * (x[-1] - x_mean)
 
+        if self.transform is not None:
+            output = self.feature_engineer.transform(output, self.transform)
         return output
 
 
 class Stochastic(Indicator):
     """Class to calculate the stochastic oscillator"""
 
-    def __init__(self, ohlcv_df, lookback: int = 14, n_smooth: int = 2):
+    def __init__(self, ohlcv_df, lookback: int = 14, n_smooth: int = 2, transform=None):
         super().__init__(ohlcv_df)
         self.lookback = lookback
         self.n_smooth = n_smooth
         self.indicator_type = 'continuous'
+        self.transform = transform
 
     def calculate(self) -> np.ndarray:
         close = self.df['Close'].values
@@ -195,18 +206,21 @@ class Stochastic(Indicator):
                         sto_1 = 0.33333 * sto_0 + 0.66667 * output[i - 1]
                         output[i] = 0.33333 * sto_1 + 0.66667 * output[i - 2]
 
+        if self.transform is not None:
+            output = self.feature_engineer.transform(output, self.transform)
         return output
 
 
 class StochasticRSI(Indicator):
     """Class to calculate the Stochastic RSI indicator"""
 
-    def __init__(self, ohlcv_df: pd.DataFrame, rsi_period: int = 14, stochastic_period: int = 14, n_smooth: int = 2):
+    def __init__(self, ohlcv_df: pd.DataFrame, rsi_period: int = 14, stochastic_period: int = 14, n_smooth: int = 2, transform=None):
         super().__init__(ohlcv_df)
         self.rsi_period = rsi_period
         self.stochastic_period = stochastic_period
         self.n_smooth = n_smooth
         self.indicator_type = 'continuous'
+        self.transform = transform
 
     def calculate(self) -> np.ndarray:
         rsi = RSI(self.df, self.rsi_period).calculate()
@@ -215,6 +229,8 @@ class StochasticRSI(Indicator):
         sto_rsi = Stochastic(rsi_df, self.stochastic_period,
                              self.n_smooth).calculate()
 
+        if self.transform is not None:
+            sto_rsi = self.feature_engineer.transform(sto_rsi, self.transform)
         return sto_rsi
 
 
@@ -235,11 +251,12 @@ class MovingAverageDifference(Indicator):
                 np.ndarray: The calculated MAD values.
     """
 
-    def __init__(self, ohlcv_df: pd.DataFrame, short_period: int = 5, long_period: int = 20):
+    def __init__(self, ohlcv_df: pd.DataFrame, short_period: int = 5, long_period: int = 20, transform=None):
         super().__init__(ohlcv_df)
         self.short_period = short_period
         self.long_period = long_period
         self.indicator_type = 'continuous'
+        self.transform = transform
 
     def calculate(self) -> np.ndarray:
         close = self.df['Close'].values
@@ -267,18 +284,21 @@ class MovingAverageDifference(Indicator):
         # Replace nan values with 0
         mad = np.where(np.isnan(mad), 0, mad)
 
+        if self.transform is not None:
+            mad = self.feature_engineer.transform(mad, self.transform)
         return mad
 
 
 class MACD(Indicator):
 
-    def __init__(self, ohlcv_df: pd.DataFrame, short_period: int = 5, long_period: int = 20, smoothing_factor: int = 2, return_raw_macd: bool = False):
+    def __init__(self, ohlcv_df: pd.DataFrame, short_period: int = 5, long_period: int = 20, smoothing_factor: int = 2, return_raw_macd: bool = False, transform=None):
         super().__init__(ohlcv_df)
         self.short_period = short_period
         self.long_period = long_period
         self.smoothing_factor = smoothing_factor
         self.indicator_type = 'continuous'
         self.return_raw_macd = return_raw_macd
+        self.transform = transform
 
     def calculate(self) -> np.ndarray:
         close = self.df['Close'].values
@@ -301,6 +321,9 @@ class MACD(Indicator):
         # Replace nan values with 0
         macd = np.where(np.isnan(macd), 0, macd)
 
+        if self.transform is not None:
+            macd = self.feature_engineer.transform(macd, self.transform)
+
         if self.return_raw_macd:
             return macd
         else:
@@ -311,11 +334,11 @@ class MACD(Indicator):
 
 class CMMA(Indicator):
     """Close Minus Moving Average (CMMA) Indicator
-    This class calculates the CMMA indicator, which is a normalized measure of the 
-    logarithmic difference between the closing prices and their rolling mean, adjusted 
+    This class calculates the CMMA indicator, which is a normalized measure of the
+    logarithmic difference between the closing prices and their rolling mean, adjusted
     by the Average True Range (ATR).
     Attributes:
-        ohlcv_df (pd.DataFrame): A pandas DataFrame containing 'Close', 'Open', 'Low', 
+        ohlcv_df (pd.DataFrame): A pandas DataFrame containing 'Close', 'Open', 'Low',
                                  and 'High' columns.
         lookback (int): The number of periods for calculating the rolling mean. Default is 21.
         atr_length (int): The length of the rolling window for the ATR calculation. Default is 21.
@@ -381,12 +404,13 @@ class CMMA(Indicator):
 
 class RegressionTrend(Indicator):
 
-    def __init__(self, ohlcv_df: pd.DataFrame, lookback: int = 21, atr_length_mult: int = 3, degree: int = 1):
+    def __init__(self, ohlcv_df: pd.DataFrame, lookback: int = 21, atr_length_mult: int = 3, degree: int = 1, transform=None):
         super().__init__(ohlcv_df)
         self.lookback = lookback
         self.degree = degree
         self.atr_length = atr_length_mult * lookback
         self.indicator_type = 'continuous'
+        self.transform = transform
 
     def calculate(self) -> np.ndarray:
         close = self.df['Close'].values
@@ -427,18 +451,18 @@ class RegressionTrend(Indicator):
             norm_coeff = reg_coeff * r_squared
             output[i] = 100 * norm.cdf(COMPRESSION_FACTOR*norm_coeff) - 50
 
-        # Replace nan and inf values with 0
-        output = np.where(np.isnan(output), 0, output)
-
+        if self.transform is not None:
+            output = self.feature_engineer.transform(output, self.transform)
         return output
 
 
 class PriceIntensity(Indicator):
 
-    def __init__(self, ohlcv_df: pd.DataFrame, smoothing_factor: int = 2):
+    def __init__(self, ohlcv_df: pd.DataFrame, smoothing_factor: int = 2, transform=None):
         super().__init__(ohlcv_df)
         self.smoothing_factor = smoothing_factor
         self.indicator_type = 'continuous'
+        self.transform = transform
 
     def calculate(self) -> np.ndarray:
         close = self.df['Close'].values
@@ -468,15 +492,18 @@ class PriceIntensity(Indicator):
         # Replace nan and inf values with 0
         output = np.where(np.isnan(output), 0, output)
 
+        if self.transform is not None:
+            output = self.feature_engineer.transform(output, self.transform)
         return output
 
 
 class ADX(Indicator):
 
-    def __init__(self, ohlcv_df: pd.DataFrame, lookback: int = 14):
+    def __init__(self, ohlcv_df: pd.DataFrame, lookback: int = 14, transform=None):
         super().__init__(ohlcv_df)
         self.lookback = lookback
         self.indicator_type = 'continuous'
+        self.transform = transform
 
     def calculate(self) -> np.ndarray:
         close = self.df['Close'].values
@@ -591,16 +618,19 @@ class ADX(Indicator):
         # Replace any nan values with 0
         output = np.where(np.isnan(output), 0, output)
 
+        if self.transform is not None:
+            output = self.feature_engineer.transform(output, self.transform)
         return output
 
 
 class Aroon(Indicator):
     """Class to calculate the Aroon indicator"""
 
-    def __init__(self, ohlcv_df: pd.DataFrame, lookback: int = 25):
+    def __init__(self, ohlcv_df: pd.DataFrame, lookback: int = 25, transform=None):
         super().__init__(ohlcv_df)
         self.lookback = lookback
         self.indicator_type = 'continuous'
+        self.transform = transform
 
     def calculate(self) -> np.ndarray:
         high = self.df['High'].values
@@ -617,16 +647,19 @@ class Aroon(Indicator):
 
             output[i] = aroon_up - aroon_down
 
+        if self.transform is not None:
+            output = self.feature_engineer.transform(output, self.transform)
         return output
 
 
 class RegressionTrendDeviation(Indicator):
 
-    def __init__(self, ohlcv_df: pd.DataFrame, lookback: int = 14, fit_degree: int = 1):
+    def __init__(self, ohlcv_df: pd.DataFrame, lookback: int = 14, fit_degree: int = 1, transform=None):
         super().__init__(ohlcv_df)
         self.lookback = lookback
         self.fit_degree = fit_degree
         self.indicator_type = 'continuous'
+        self.transform = transform
 
     def calculate(self) -> np.ndarray:
 
@@ -678,16 +711,19 @@ class RegressionTrendDeviation(Indicator):
                 error_contribution = (prices[-1] - _predictions[-1])/rms
                 output[i] = 100 * norm.cdf(0.6 * error_contribution) - 50
 
+        if self.transform is not None:
+            output = self.feature_engineer.transform(output, self.transform)
         return output
 
 
 class PriceChangeOscillator(Indicator):
 
-    def __init__(self, ohlcv_df: pd.DataFrame, short_lookback: int = 5, long_lookback_multiplier: int = 5):
+    def __init__(self, ohlcv_df: pd.DataFrame, short_lookback: int = 5, long_lookback_multiplier: int = 5, transform=None):
         super().__init__(ohlcv_df)
         self.short_lookback = short_lookback
         self.long_lookback_multiplier = long_lookback_multiplier
         self.indicator_type = 'continuous'
+        self.transform = transform
 
     def calculate(self) -> np.ndarray:
 
@@ -719,5 +755,67 @@ class PriceChangeOscillator(Indicator):
 
         # Replace nan and inf values with 0
         output = np.where(np.isnan(output), 0, output)
+
+        if self.transform is not None:
+            output = self.feature_engineer.transform(output, self.transform)
+        return output
+
+
+class ChaikinMoneyFlow(Indicator):
+
+    def __init__(self, ohlcv_df: pd.DataFrame, smoothing_lookback: int = 21, volume_lookback: int = 21, return_cmf: bool = False, transform=None):
+        super().__init__(ohlcv_df)
+        self.smoothing_lookback = smoothing_lookback
+        self.volume_lookback = volume_lookback
+        self.return_cmf = return_cmf
+        self.transform = transform
+        self.indicator_type = 'continuous'
+
+    def calculate(self) -> np.ndarray:
+
+        Close = self.df['Close'].values
+        High = self.df['High'].values
+        Low = self.df['Low'].values
+        Volume = self.df['Volume'].values
+
+        output = np.full(len(Close), 0.0)
+
+        # Look for first bar with non-zero volume
+        first_non_zero_vol = np.argmax(Volume > 0)
+
+        # Calculate the intraday intensity of each bar after the first non-zero volume bar
+        # Handle case if high and low are equal
+        for i in range(first_non_zero_vol, len(Close)):
+            if High[i] == Low[i]:
+                output[i] = 0
+            else:
+                output[i] = 100 * ((2 * Close[i] - High[i] -
+                                   Low[i]) / (High[i] - Low[i])) * Volume[i]
+
+        # Calculate the SMA of output using the smoothing lookback period
+        output = pd.Series(output).rolling(
+            window=self.smoothing_lookback).mean().values
+
+        if self.return_cmf:
+            # Calculate the SMA of Volume values using the volume lookback period
+            sma_volume = pd.Series(Volume).rolling(
+                window=self.volume_lookback).mean().values
+
+            # Calculate the Chaikin Money Flow by dividing the SMA of output by the SMA of Volume and handling division by zero
+            output = np.where(sma_volume != 0, output / sma_volume, 0)
+
+        else:
+            # Finally smooth the indicator values by dividing the output by the EMA of volume calculated using n_smooth
+            ema_volume = pd.Series(Volume).ewm(
+                span=self.volume_lookback).mean().values
+
+            # Normalized output
+            output = np.where(ema_volume != 0, output / ema_volume, 0)
+
+        # Replace nan and inf values with 0
+        output = np.where(np.isnan(output), 0, output)
+
+        if self.transform is not None:
+            output = self.feature_engineer.transform(output, self.transform)
 
         return output

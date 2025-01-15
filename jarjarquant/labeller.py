@@ -102,7 +102,7 @@ class Labeller:
             min_value = pd.Timestamp(0)
         return row[['pt', 'sl']].idxmin() if min_value <= row['vb'] else row[['pt', 'sl', 'vb']].idxmin()
 
-    def triple_barrier_method(self, Close: pd.Series = None, t_events: pd.DatetimeIndex = None, scale_pt_sl: bool = False, pt_sl: int = 1, scale_lookback: int = 1, n_days: int = 1, thresh_labelling: bool = True):
+    def triple_barrier_method(self, Close: pd.Series = None, t_events: pd.DatetimeIndex = None, scale_pt_sl: bool = False, pt_sl: int = 1, scale_lookback: int = 1, n_days: int = 1, thresh_labelling: bool = False):
 
         if Close is None:
             Close = self.series

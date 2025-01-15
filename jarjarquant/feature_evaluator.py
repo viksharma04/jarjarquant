@@ -323,22 +323,27 @@ class FeatureEvaluator:
         return importance_scores
 
     @staticmethod
-    def indicator_threshold_search(indicator_values: pd.Series, associated_returns: pd.Series, n_thresholds: int):
+    def indicator_threshold_search(indicator_values: pd.Series, associated_returns: pd.Series, n_thresholds: int = None, thresholds: list = None):
         """
         Evaluate profit factors for different thresholds of an indicator.
 
         Parameters:
         indicator_values (pd.Series): Series of indicator values.
         associated_returns (pd.Series): Series of returns associated with the indicator values.
-        n_thresholds (int): Number of thresholds to evaluate.
+        n_thresholds (int, optional): Number of thresholds to evaluate.
+        thresholds (list, optional): List of predefined threshold values.
 
         Returns:
         pd.DataFrame: DataFrame with thresholds and profit factors for long/short positions above/below the thresholds.
         """
-        # Calculate threshold values
-        min_val, max_val = indicator_values.min(), indicator_values.max()
-        # Exclude min and max values
-        thresholds = np.linspace(min_val, max_val, n_thresholds + 2)[1:-1]
+        if thresholds is None:
+            if n_thresholds is None:
+                raise ValueError(
+                    "Either n_thresholds or thresholds must be provided.")
+            # Calculate threshold values
+            min_val, max_val = indicator_values.min(), indicator_values.max()
+            # Exclude min and max values
+            thresholds = np.linspace(min_val, max_val, n_thresholds + 2)[1:-1]
 
         results = []
 
@@ -364,16 +369,70 @@ class FeatureEvaluator:
             results.append({
                 'Threshold': threshold,
                 '% values > threshold': above_threshold.mean(),
-                'PF Long above threshold': pf_long_above,
-                'PF Short above threshold': pf_short_above,
+                'PF Long above threshold': np.nan_to_num(pf_long_above, nan=0.0, posinf=0.0, neginf=0.0),
+                'PF Short above threshold': np.nan_to_num(pf_short_above, nan=0.0, posinf=0.0, neginf=0.0),
                 '% values < threshold': below_threshold.mean(),
-                'PF Long below threshold': pf_long_below,
-                'PF Short below threshold': pf_short_below
+                'PF Long below threshold': np.nan_to_num(pf_long_below, nan=0.0, posinf=0.0, neginf=0.0),
+                'PF Short below threshold': np.nan_to_num(pf_short_below, nan=0.0, posinf=0.0, neginf=0.0)
             })
 
         return pd.DataFrame(results)
 
-    # TODO: Implement parallel threshold search
+    @staticmethod
+    def single_indicator_threshold_search(inputs: dict):
+
+        ohlcv_df = inputs["ohlcv_df"]
+        indicator_values = inputs["indicator_values"]
+        thresholds = inputs["thresholds"]
+
+        ohlcv_df['returns'] = ohlcv_df['Open'].pct_change().shift(-1)
+        ohlcv_df['ind'] = indicator_values
+        ohlcv_df['ind'] = ohlcv_df['ind'].shift(1)
+
+        results = FeatureEvaluator.indicator_threshold_search(indicator_values=ohlcv_df['ind'].dropna(
+        ), associated_returns=ohlcv_df['returns'].dropna(), thresholds=thresholds)
+
+        return results
+
+    @staticmethod
+    def parallel_indicator_threshold_search(indicator_func: Callable, n_runs: int = 10, n_thresholds: int = 10, **kwargs):
+
+        inputs_list = []
+        indicator_values_list = []
+
+        # Generate dataframes and calculate indicator values in parallel
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            data_gatherer = DataGatherer()
+            futures = [executor.submit(
+                data_gatherer.get_random_price_samples, num_tickers_to_sample=1) for _ in range(n_runs)]
+            for future in concurrent.futures.as_completed(futures):
+                ohlcv_df = future.result()[0]
+                indicator_values = indicator_func(
+                    ohlcv_df, **kwargs).calculate() if kwargs else indicator_func(ohlcv_df).calculate()
+                indicator_values_list.append(indicator_values)
+                inputs_list.append({
+                    "ohlcv_df": ohlcv_df,
+                    "indicator_values": indicator_values
+                })
+
+        # Determine thresholds based on the entire range of indicator values across all runs
+        all_indicator_values = np.concatenate(indicator_values_list)
+        thresholds = np.linspace(all_indicator_values.min(
+        ), all_indicator_values.max(), n_thresholds + 2)[1:-1]
+
+        # Update inputs with calculated thresholds
+        for inputs in inputs_list:
+            inputs["thresholds"] = thresholds
+
+        # Run threshold search in parallel
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            results = list(executor.map(
+                FeatureEvaluator.single_indicator_threshold_search, inputs_list))
+
+        # Concatenate results and average across runs
+        results = pd.concat(results).groupby('Threshold').mean().reset_index()
+
+        return results
 
     @staticmethod
     def single_indicator_evaluation(inputs: dict):
@@ -403,12 +462,12 @@ class FeatureEvaluator:
         return outputs
 
     @staticmethod
-    def parallel_indicator_evaluation(indicator_func: Callable, n: int = 10, **kwargs):
+    def parallel_indicator_evaluation(indicator_func: Callable, n_runs: int = 10, **kwargs):
 
         inputs_list = []
 
         # Create multiple instances of the indicator with a different data sample each time
-        for i in range(n):
+        for i in range(n_runs):
             inputs = {
                 "indicator_func": indicator_func,
                 "kwargs": kwargs

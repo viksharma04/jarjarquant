@@ -1,11 +1,15 @@
 """Main module for jarjarquant package."""
-from .indicator import RSI, DetrendedRSI, PriceChangeOscillator, RegressionTrendDeviation, Stochastic, StochasticRSI, CMMA, MovingAverageDifference, MACD, RegressionTrend, PriceIntensity, ADX, Aroon
 import pandas as pd
+
+from .data_analyst import DataAnalyst
 from .data_gatherer import DataGatherer
 from .feature_engineer import FeatureEngineer
-from .labeller import Labeller
-from .data_analyst import DataAnalyst
 from .feature_evaluator import FeatureEvaluator
+from .indicator import (ADX, CMMA, MACD, RSI, Aroon, ChaikinMoneyFlow,
+                        DetrendedRSI, MovingAverageDifference,
+                        PriceChangeOscillator, PriceIntensity, RegressionTrend,
+                        RegressionTrendDeviation, Stochastic, StochasticRSI)
+from .labeller import Labeller
 
 
 class Jarjarquant:
@@ -107,7 +111,7 @@ class Jarjarquant:
 
     # Add any additional methods or functionality here
     @staticmethod
-    def rsi(ohlcv_df, period: int = 14):
+    def rsi(ohlcv_df, period: int = 14, transform=None):
         """
         Calculate the Relative Strength Index (RSI) for a given OHLCV DataFrame.
 
@@ -126,10 +130,10 @@ class Jarjarquant:
         if 'Close' not in _df.columns:
             raise ValueError(
                 "The input DataFrame must contain a 'Close' column for RSI calculation.")
-        rsi_indicator = RSI(_df, period)
+        rsi_indicator = RSI(_df, period, transform)
         return rsi_indicator
 
-    def add_rsi(self, period: int = 14):
+    def add_rsi(self, period: int = 14, transform=None):
         """
         Adds the Relative Strength Index (RSI) to the DataFrame.
 
@@ -139,11 +143,11 @@ class Jarjarquant:
         Returns:
         None: The method modifies the DataFrame in place by adding a new column 'RSI'.
         """
-        self._df = self._df.assign(RSI=self.rsi(
-            ohlcv_df=self._df, period=period).calculate())
+        self._df = self._df.assign(rsi=self.rsi(
+            ohlcv_df=self._df, period=period, transform=transform).calculate())
 
     @staticmethod
-    def detrended_rsi(ohlcv_df, short_period: int = 2, long_period: int = 21, regression_length: int = 120):
+    def detrended_rsi(ohlcv_df, short_period: int = 2, long_period: int = 21, regression_length: int = 120, transform=None):
         """
         Calculate the Detrended Relative Strength Index (RSI) for a given OHLCV DataFrame.
 
@@ -164,10 +168,10 @@ class Jarjarquant:
             raise ValueError(
                 "The input DataFrame must contain a 'Close' column for Detrended RSI calculation.")
         detrended_rsi_indicator = DetrendedRSI(
-            _df, short_period, long_period, regression_length)
+            _df, short_period, long_period, regression_length, transform)
         return detrended_rsi_indicator
 
-    def add_detrended_rsi(self, short_period: int = 2, long_period: int = 21, regression_length: int = 120):
+    def add_detrended_rsi(self, short_period: int = 2, long_period: int = 21, regression_length: int = 120, transform=None):
         """
         Adds the Detrended RSI (Relative Strength Index) to the DataFrame.
 
@@ -183,11 +187,11 @@ class Jarjarquant:
         Returns:
         None
         """
-        self._df = self._df.assign(Detrended_RSI=self.detrended_rsi(
-            ohlcv_df=self._df, short_period=short_period, long_period=long_period, regression_length=regression_length).calculate())
+        self._df = self._df.assign(detrended_rsi=self.detrended_rsi(
+            ohlcv_df=self._df, short_period=short_period, long_period=long_period, regression_length=regression_length, transform=transform).calculate())
 
     @staticmethod
-    def stochastic(ohlcv_df: pd.DataFrame, period: int = 14, n_smooth: int = 2):
+    def stochastic(ohlcv_df: pd.DataFrame, period: int = 14, n_smooth: int = 2, transform=None):
         """
         Calculate the Stochastic indicator for the given OHLCV DataFrame.
         Parameters:
@@ -203,11 +207,11 @@ class Jarjarquant:
         if 'Close' not in _df.columns:
             raise ValueError(
                 "The input dataframe must contain a 'Close' column for Stochastic calculation")
-        stochastic_indicator = Stochastic(_df, period, n_smooth)
+        stochastic_indicator = Stochastic(_df, period, n_smooth, transform)
 
         return stochastic_indicator
 
-    def add_stochastic(self, period: int = 14, n_smooth: int = 2):
+    def add_stochastic(self, period: int = 14, n_smooth: int = 2, transform=None):
         """
         Adds the Stochastic indicator to the DataFrame.
 
@@ -221,11 +225,11 @@ class Jarjarquant:
         Returns:
             None: The method modifies the DataFrame in place by adding a 'Stochastic' column.
         """
-        self._df = self._df.assign(Stochastic=self.stochastic(
-            ohlcv_df=self._df, period=period, n_smooth=n_smooth).calculate())
+        self._df = self._df.assign(stochastic=self.stochastic(
+            ohlcv_df=self._df, period=period, n_smooth=n_smooth, transform=transform).calculate())
 
     @staticmethod
-    def stochastic_rsi(ohlcv_df: pd.DataFrame, rsi_period: int = 14, stochastic_period: int = 14, n_smooth: int = 2):
+    def stochastic_rsi(ohlcv_df: pd.DataFrame, rsi_period: int = 14, stochastic_period: int = 14, n_smooth: int = 2, transform=None):
         """
         Calculate the Stochastic RSI (Relative Strength Index) for a given OHLCV (Open, High, Low, Close, Volume) DataFrame.
 
@@ -246,11 +250,11 @@ class Jarjarquant:
             raise ValueError(
                 "The input dataframe must contain a 'Close' column for Stochastic RSI calculation")
         stochastic_rsi_indicator = StochasticRSI(
-            ohlcv_df, rsi_period, stochastic_period, n_smooth)
+            ohlcv_df, rsi_period, stochastic_period, n_smooth, transform)
 
         return stochastic_rsi_indicator
 
-    def add_stochastic_rsi(self, rsi_period: int = 14, stochastic_period: int = 14, n_smooth: int = 2):
+    def add_stochastic_rsi(self, rsi_period: int = 14, stochastic_period: int = 14, n_smooth: int = 2, transform=None):
         """
         Adds the Stochastic RSI indicator to the DataFrame.
 
@@ -262,11 +266,11 @@ class Jarjarquant:
         Returns:
         None: The method modifies the DataFrame in place by adding a new column 'Stochastic_RSI'.
         """
-        self._df = self._df.assign(Stochastic_RSI=self.stochastic_rsi(
-            ohlcv_df=self._df, rsi_period=rsi_period, stochastic_period=stochastic_period, n_smooth=n_smooth).calculate())
+        self._df = self._df.assign(stochastic_rsi=self.stochastic_rsi(
+            ohlcv_df=self._df, rsi_period=rsi_period, stochastic_period=stochastic_period, n_smooth=n_smooth, transform=transform).calculate())
 
     @staticmethod
-    def moving_average_difference(ohlcv_df: pd.DataFrame, short_period: int = 5, long_period: int = 20):
+    def moving_average_difference(ohlcv_df: pd.DataFrame, short_period: int = 5, long_period: int = 20, transform=None):
         """
         Calculate the Moving Average Difference for the given OHLCV DataFrame.
 
@@ -289,11 +293,12 @@ class Jarjarquant:
         if 'Close' not in _df.columns:
             raise ValueError(
                 "The input dataframe must contain a 'Close' column for Moving Average Difference calculation")
-        mad_indicator = MovingAverageDifference(_df, short_period, long_period)
+        mad_indicator = MovingAverageDifference(
+            _df, short_period, long_period, transform)
 
         return mad_indicator
 
-    def add_moving_average_difference(self, short_period: int = 5, long_period: int = 20):
+    def add_moving_average_difference(self, short_period: int = 5, long_period: int = 20, transform=None):
         """
         Adds the Moving Average Difference column to the DataFrame.
 
@@ -304,8 +309,8 @@ class Jarjarquant:
         Returns:
             None: The method modifies the DataFrame in place by adding a new column 'Moving_Average_Difference'.
         """
-        self._df = self._df.assign(Moving_Average_Difference=self.moving_average_difference(
-            ohlcv_df=self._df, short_period=short_period, long_period=long_period).calculate())
+        self._df = self._df.assign(moving_average_difference=self.moving_average_difference(
+            ohlcv_df=self._df, short_period=short_period, long_period=long_period, transform=transform).calculate())
 
     @staticmethod
     def cmma(ohlcv_df: pd.DataFrame, lookback: int = 21, atr_length: int = 21, transform=None):
@@ -332,7 +337,7 @@ class Jarjarquant:
 
         return cmma_indicator
 
-    def add_cmma(self, lookback: int = 21, atr_length: int = 21):
+    def add_cmma(self, lookback: int = 21, atr_length: int = 21, transform=None):
         """
         Adds the CMMA (Custom Moving Average) column to the DataFrame.
 
@@ -343,107 +348,123 @@ class Jarjarquant:
         Returns:
         None: The method modifies the DataFrame in place by adding a new column 'CMMA'.
         """
-        self._df = self._df.assign(CMMA=self.cmma(
-            ohlcv_df=self._df, lookback=lookback, atr_length=atr_length).calculate())
-        self.cmma_indicator = self._df['CMMA']
+        self._df = self._df.assign(cmma=self.cmma(
+            ohlcv_df=self._df, lookback=lookback, atr_length=atr_length, transform=transform).calculate())
 
     @staticmethod
-    def macd(ohlcv_df: pd.DataFrame, short_period: int = 5, long_period: int = 20, smoothing_factor: int = 2):
+    def macd(ohlcv_df: pd.DataFrame, short_period: int = 5, long_period: int = 20, smoothing_factor: int = 2, transform=None):
         _df = ohlcv_df.copy()
         if 'Close' not in _df.columns:
             raise ValueError(
                 "The input dataframe must contain a 'Close' column for MACD calculation")
-        macd_indicator = MACD(_df, short_period, long_period, smoothing_factor)
+        macd_indicator = MACD(_df, short_period, long_period,
+                              smoothing_factor, transform)
 
         return macd_indicator
 
-    def add_macd(self, short_period: int = 5, long_period: int = 20, smoothing_factor: int = 2):
-        self._df = self._df.assign(MACD=self.macd(
-            ohlcv_df=self._df, short_period=short_period, long_period=long_period, smoothing_factor=smoothing_factor).calculate())
+    def add_macd(self, short_period: int = 5, long_period: int = 20, smoothing_factor: int = 2, transform=None):
+        self._df = self._df.assign(macd=self.macd(
+            ohlcv_df=self._df, short_period=short_period, long_period=long_period, smoothing_factor=smoothing_factor, transform=transform).calculate())
 
     @staticmethod
-    def regression_trend(ohlcv_df: pd.DataFrame, lookback: int = 21, atr_length_mult: int = 3, degree: int = 1):
+    def regression_trend(ohlcv_df: pd.DataFrame, lookback: int = 21, atr_length_mult: int = 3, degree: int = 1, transform=None):
         _df = ohlcv_df.copy()
         if 'Close' not in _df.columns:
             raise ValueError(
                 "The input dataframe must contain a 'Close' column for Regression Trend calculation")
         regression_trend_indicator = RegressionTrend(
-            _df, lookback, atr_length_mult, degree)
+            _df, lookback, atr_length_mult, degree, transform)
 
         return regression_trend_indicator
 
-    def add_regression_trend(self, lookback: int = 21, atr_length_mult: int = 3, degree: int = 1):
-        self._df = self._df.assign(Regression_Trend=self.regression_trend(
-            ohlcv_df=self._df, lookback=lookback, atr_length_mult=atr_length_mult, degree=degree).calculate())
+    def add_regression_trend(self, lookback: int = 21, atr_length_mult: int = 3, degree: int = 1, transform=None):
+        self._df = self._df.assign(regression_trend=self.regression_trend(
+            ohlcv_df=self._df, lookback=lookback, atr_length_mult=atr_length_mult, degree=degree, transform=transform).calculate())
 
     @staticmethod
-    def price_intensity(ohlcv_df: pd.DataFrame, smoothing_factor: int = 2):
+    def price_intensity(ohlcv_df: pd.DataFrame, smoothing_factor: int = 2, transform=None):
         _df = ohlcv_df.copy()
         if 'Close' not in _df.columns:
             raise ValueError(
                 "The input dataframe must contain a 'Close' column for Price Intensity calculation")
-        price_intensity_indicator = PriceIntensity(_df, smoothing_factor)
+        price_intensity_indicator = PriceIntensity(
+            _df, smoothing_factor, transform)
 
         return price_intensity_indicator
 
-    def add_price_intensity(self, smoothing_factor: int = 2):
-        self._df = self._df.assign(Price_Intensity=self.price_intensity(
-            ohlcv_df=self._df, smoothing_factor=smoothing_factor).calculate())
+    def add_price_intensity(self, smoothing_factor: int = 2, transform=None):
+        self._df = self._df.assign(price_intensity=self.price_intensity(
+            ohlcv_df=self._df, smoothing_factor=smoothing_factor, transform=transform).calculate())
 
     @staticmethod
-    def adx(ohlcv_df: pd.DataFrame, lookback: int = 14):
+    def adx(ohlcv_df: pd.DataFrame, lookback: int = 14, transform=None):
         _df = ohlcv_df.copy()
         if 'Close' not in _df.columns:
             raise ValueError(
                 "The input dataframe must contain a 'Close' column for Price Intensity calculation")
-        adx_indicator = ADX(_df, lookback)
+        adx_indicator = ADX(_df, lookback, transform)
 
         return adx_indicator
 
-    def add_adx(self, lookback: int = 14):
-        self._df = self._df.assign(ADX=self.adx(
-            ohlcv_df=self._df, lookback=lookback).calculate())
+    def add_adx(self, lookback: int = 14, transform=None):
+        self._df = self._df.assign(adx=self.adx(
+            ohlcv_df=self._df, lookback=lookback, transform=transform).calculate())
 
     @staticmethod
-    def aroon(ohlcv_df: pd.DataFrame, lookback: int = 14):
+    def aroon(ohlcv_df: pd.DataFrame, lookback: int = 14, transform=None):
         _df = ohlcv_df.copy()
         if 'Close' not in _df.columns:
             raise ValueError(
                 "The input dataframe must contain a 'Close' column for Aroon calculation")
-        aroon_indicator = Aroon(_df, lookback)
+        aroon_indicator = Aroon(_df, lookback, transform)
 
         return aroon_indicator
 
-    def add_aroon(self, lookback: int = 14):
-        self._df = self._df.assign(Aroon=self.aroon(
-            ohlcv_df=self._df, lookback=lookback).calculate())
+    def add_aroon(self, lookback: int = 14, transform=None):
+        self._df = self._df.assign(aroon=self.aroon(
+            ohlcv_df=self._df, lookback=lookback, transform=transform).calculate())
 
     @staticmethod
-    def regression_trend_deviation(ohlcv_df: pd.DataFrame, lookback: int = 14, fit_degree: int = 1):
+    def regression_trend_deviation(ohlcv_df: pd.DataFrame, lookback: int = 14, fit_degree: int = 1, transform=None):
         _df = ohlcv_df.copy()
         if 'Close' not in _df.columns:
             raise ValueError(
                 "The input dataframe must contain a 'Close' column for Regression Trend Deviation calculation")
         regression_trend_deviation_indicator = RegressionTrendDeviation(
-            _df, lookback, fit_degree)
+            _df, lookback, fit_degree, transform)
 
         return regression_trend_deviation_indicator
 
-    def add_regression_trend_deviation(self, lookback: int = 14, fit_degree: int = 1):
-        self._df = self._df.assign(Regression_Trend_Deviation=self.regression_trend_deviation(
-            ohlcv_df=self._df, lookback=lookback, fit_degree=fit_degree).calculate())
+    def add_regression_trend_deviation(self, lookback: int = 14, fit_degree: int = 1, transform=None):
+        self._df = self._df.assign(regression_trend_deviation=self.regression_trend_deviation(
+            ohlcv_df=self._df, lookback=lookback, fit_degree=fit_degree, transform=transform).calculate())
 
     @staticmethod
-    def pco(ohlcv_df: pd.DataFrame, short_lookback: int = 5, long_lookback_multiplier: int = 3):
+    def pco(ohlcv_df: pd.DataFrame, short_lookback: int = 5, long_lookback_multiplier: int = 3, transform=None):
         _df = ohlcv_df.copy()
         if 'Close' not in _df.columns:
             raise ValueError(
                 "The input dataframe must contain a 'Close' column for Price Channel Oscillator calculation")
         pco_indicator = PriceChangeOscillator(
-            _df, short_lookback, long_lookback_multiplier)
+            _df, short_lookback, long_lookback_multiplier, transform)
 
         return pco_indicator
 
-    def add_pco(self, short_lookback: int = 5, long_lookback_multiplier: int = 3):
-        self._df = self._df.assign(PCO=self.pco(
-            ohlcv_df=self._df, short_lookback=short_lookback, long_lookback_multiplier=long_lookback_multiplier).calculate())
+    def add_pco(self, short_lookback: int = 5, long_lookback_multiplier: int = 3, transform=None):
+        self._df = self._df.assign(pco=self.pco(
+            ohlcv_df=self._df, short_lookback=short_lookback, long_lookback_multiplier=long_lookback_multiplier, transform=transform).calculate())
+
+    @staticmethod
+    def chaikin_money_flow(ohlcv_df: pd.DataFrame, smoothing_lookback: int = 21, volume_lookback: int = 21, return_cmf: bool = False, transform=None):
+        _df = ohlcv_df.copy()
+        if 'Close' not in _df.columns:
+            raise ValueError(
+                "The input dataframe must contain a 'Close' column for Chaikin Money Flow calculation")
+        cmf_indicator = ChaikinMoneyFlow(
+            _df, smoothing_lookback, volume_lookback, return_cmf, transform)
+
+        return cmf_indicator
+
+    def add_chaikin_money_flow(self, smoothing_lookback: int = 21, volume_lookback: int = 21, return_cmf: bool = False, transform=None):
+        self._df = self._df.assign(chaikin_money_flow=self.chaikin_money_flow(
+            ohlcv_df=self._df, smoothing_lookback=smoothing_lookback, volume_lookback=volume_lookback, return_cmf=return_cmf, transform=transform).calculate())

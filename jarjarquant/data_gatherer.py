@@ -86,6 +86,7 @@ class DataGatherer:
         for ticker in tickers:
             start_date, end_date = get_random_date(ticker)
             df = self.get_yf_ticker(ticker, start=start_date, end=end_date)
+            df.index = df.index.tz_localize(None)
             dataframes.append(df)
 
         if persist:

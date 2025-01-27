@@ -339,3 +339,22 @@ class DataAnalyst:
         norm_coeffs_squared = np.sum(legendre_coeffs ** 2)
         slope = np.dot(legendre_coeffs, prices) / norm_coeffs_squared
         return slope
+
+    @staticmethod
+    def get_daily_vol(close: pd.Series, span: int = 100) -> pd.Series:
+        # Find the index of each previous day in the close series
+        df0 = close.index.searchsorted(close.index - pd.Timedelta(days=1))
+        # If a day does not fit in the series, exclude it
+        df0 = df0[df0 > 0]
+        # Create a series which stores the previous date for each date in the close series
+        df0 = pd.Series(
+            close.index[df0-1], index=close.index[close.shape[0]-df0.shape[0]:])
+        # Calculate the return by dividing current close by previous close -1
+        df0 = close.loc[df0.index] / close.loc[df0.values].values - 1
+        # Calculate the EMA(100) of the standard deviation of the return series
+        df0 = df0.ewm(span=span).std()
+        # Reindex to match the original close series index and fill missing values
+        df0 = df0.reindex(close.index)
+        df0.fillna(0.01, inplace=True)
+
+        return df0

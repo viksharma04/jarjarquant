@@ -117,6 +117,8 @@ class RSI(Indicator):
             else:
                 output[i] = 100.0 * upsum / (upsum + dnsum)
 
+        output = (output-50)/10
+
         if self.transform is not None:
             output = self.feature_engineer.transform(output, self.transform)
         return output

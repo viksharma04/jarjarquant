@@ -1,10 +1,12 @@
 """The feature evaluator specializes in calculating the efficacy of one or many indicators given a matrix of features X and a target label/series y"""
-import pandas as pd
-import numpy as np
-from typing import Callable
-from sklearn.metrics import log_loss, accuracy_score
-from sklearn.model_selection._split import _BaseKFold
 import concurrent.futures
+from typing import Callable
+
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, log_loss
+from sklearn.model_selection._split import _BaseKFold
 
 from .data_gatherer import DataGatherer
 
@@ -87,10 +89,11 @@ class PurgedKFold(_BaseKFold):
 class FeatureEvaluator:
     """Class to implement common feature evaluation and indicator testing methods"""
 
-    def __init__(self, X=None, y=None):
+    def __init__(self, X=None, y=None, sw=None):
 
         self.X = X
         self.y = y
+        self.sw = sw
 
     @staticmethod
     def cv_score(clf, X, y, sample_weight, scoring='neg_log_loss', t1=None, cv=None, cv_gen=None, pct_embargo=None):
@@ -121,6 +124,11 @@ class FeatureEvaluator:
         # Initialize purged cross-validation generator if not provided
         if cv_gen is None:
             cv_gen = PurgedKFold(n_splits=cv, t1=t1, pct_embargo=pct_embargo)
+
+        # Use a RandomForestClasifier if clf is None
+        if clf is None:
+            clf = RandomForestClassifier(
+                n_estimators=100, max_features='sqrt', random_state=42)
 
         scores = []  # List to store scores for each fold
 
@@ -196,7 +204,7 @@ class FeatureEvaluator:
 
         return importance_stats
 
-    def feature_importance_MDA(self, clf, X, y, cv, sample_weight, t1, pct_embargo, scoring='neg_log_loss'):
+    def feature_importance_MDA(self, X, y, sample_weight, t1, cv: int = 4,  clf=None,  pct_embargo=0.04, scoring='neg_log_loss'):
         """
         Calculate feature importance using Mean Decrease Accuracy (MDA) with purged cross-validation.
 
@@ -220,6 +228,10 @@ class FeatureEvaluator:
         if scoring not in ['neg_log_loss', 'accuracy']:
             raise ValueError(
                 "Scoring method must be 'neg_log_loss' or 'accuracy'.")
+
+        # Use a RandomForestClasifier if clf is None
+        if clf is None:
+            clf = RandomForestClassifier(n_estimators=100, max_features='sqrt')
 
         # Initialize purged cross-validation generator
         cv_generator = PurgedKFold(
@@ -279,7 +291,7 @@ class FeatureEvaluator:
 
         return importance_summary, base_scores.mean()
 
-    def feature_importance_SFI(self, feature_names, clf, X, y, sw, t1, cv, pct_embargo, cv_gen=None, scoring='accuracy'):
+    def feature_importance_SFI(self, feature_names, X, y, sw, t1, cv: int = 4, pct_embargo: float = 0.04, clf=None, cv_gen=None, scoring='accuracy'):
         """
         Calculate Single Feature Importance (SFI) scores for each feature using cross-validation.
 
@@ -368,10 +380,10 @@ class FeatureEvaluator:
 
             results.append({
                 'Threshold': threshold,
-                '% values > threshold': above_threshold.mean(),
+                '% values > threshold': above_threshold.mean()*100,
                 'PF Long above threshold': np.nan_to_num(pf_long_above, nan=0.0, posinf=0.0, neginf=0.0),
                 'PF Short above threshold': np.nan_to_num(pf_short_above, nan=0.0, posinf=0.0, neginf=0.0),
-                '% values < threshold': below_threshold.mean(),
+                '% values < threshold': below_threshold.mean()*100,
                 'PF Long below threshold': np.nan_to_num(pf_long_below, nan=0.0, posinf=0.0, neginf=0.0),
                 'PF Short below threshold': np.nan_to_num(pf_short_below, nan=0.0, posinf=0.0, neginf=0.0)
             })

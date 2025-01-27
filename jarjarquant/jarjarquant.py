@@ -12,12 +12,14 @@ from .indicator import (ADX, CMMA, MACD, RSI, Aroon, ChaikinMoneyFlow,
 from .labeller import Labeller
 
 
-class Jarjarquant:
+class Jarjarquant(Labeller):
     """
     Jarjarquant integrates data gathering, labeling, and feature engineering for financial time series.
     """
 
     def __init__(self, ohlcv_df=None):
+        # Super init
+        super().__init__(ohlcv_df)
         self.data_gatherer = DataGatherer()
         if ohlcv_df is None:
             samples = self.data_gatherer.get_random_price_samples(
@@ -28,7 +30,6 @@ class Jarjarquant:
             self._df = samples[0]
         else:
             self._df = ohlcv_df
-        self.labeller = Labeller(self._df)
         self.feature_engineer = FeatureEngineer()
         self.data_analyst = DataAnalyst()
         self.feature_evaluator = FeatureEvaluator()
@@ -50,6 +51,25 @@ class Jarjarquant:
         series = data_gatherer.generate_random_normal(
             loc=loc, volatility=volatility, periods=periods, **kwargs)
         return cls(series)
+
+    @classmethod
+    def from_random_sample(cls, num_tickers_to_sample: int = 1, years_in_sample: int = 10, **kwargs):
+        """
+        Create a random price series using a random sample of tickers.
+
+        Args:
+            num_tickers_to_sample (int): Number of tickers to sample. Defaults to 1.
+
+        Returns:
+            Jarjarquant: Instance of Jarjarquant with generated series.
+        """
+        data_gatherer = DataGatherer()
+        samples = data_gatherer.get_random_price_samples(
+            num_tickers_to_sample=num_tickers_to_sample, years_in_sample=years_in_sample, **kwargs)
+        if not samples:
+            raise ValueError(
+                "No price samples were returned. Please check the data source.")
+        return cls(samples[0])
 
     @classmethod
     def from_yf_ticker(cls, ticker: str = "SPY", **kwargs):
@@ -109,6 +129,7 @@ class Jarjarquant:
         """
         del self._df
 
+    # Indicator methods
     # Add any additional methods or functionality here
     @staticmethod
     def rsi(ohlcv_df, period: int = 14, transform=None):

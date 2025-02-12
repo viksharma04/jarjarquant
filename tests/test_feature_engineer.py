@@ -1,7 +1,7 @@
 import unittest
 import pandas as pd
 import numpy as np
-from jarjarquant import BarPermute, PricePermute
+from jarjarquant.feature_engineer import BarPermute, PricePermute
 
 
 class TestPricePermute(unittest.TestCase):

@@ -341,3 +341,159 @@ class FeatureEngineer:
             smoothed[i] = alpha * series[i] + (1 - alpha) * smoothed[i - 1]
 
         return smoothed
+
+
+class BarPermute:
+    def __init__(self, ohlc_df_list: list):
+
+        self.n_markets = len(ohlc_df_list)
+        if self.n_markets < 1:
+            raise ValueError("Need at least one market")
+
+        # Ensure that all dataframes have the same length
+        if not all(len(df) == len(ohlc_df_list[0]) for df in ohlc_df_list):
+            raise ValueError("All dataframes must have the same length")
+
+        # Store the index to reassign later
+        self.original_index = ohlc_df_list[0].index
+
+        self.ohlc_df_list = []
+
+        # Drop the index for simplicity of permutation
+        for df in ohlc_df_list:
+            self.ohlc_df_list.append(df.reset_index(drop=True))
+
+        self.basis_prices = {i: {'Open': self.ohlc_df_list[i]['Open'].iloc[0],
+                                 'High': self.ohlc_df_list[i]['High'].iloc[0],
+                                 'Low': self.ohlc_df_list[i]['Low'].iloc[0],
+                                 'Close': self.ohlc_df_list[i]['Close'].iloc[0]}
+                             for i in range(self.n_markets)}
+
+        self.rel_prices = []
+        for df in self.ohlc_df_list:
+            rel_df = pd.DataFrame({
+                'rel_open': df['Open'] - df['Close'].shift(1),
+                'rel_high': df['High'] - df['Open'],
+                'rel_low': df['Low'] - df['Open'],
+                'rel_close': df['Close'] - df['Open']
+            })
+            self.rel_prices.append(rel_df.dropna())
+
+    def permute(self):
+
+        index_array = np.array(self.rel_prices[0].index)
+
+        # Shuffle each relative high/low/close series using the same permutation
+        shuffled_indices_hlc = np.random.choice(
+            index_array, len(index_array), replace=True)
+        shuffled_indices_open = np.random.choice(
+            index_array, len(index_array), replace=True)
+
+        shuffled_rel_prices = [
+            pd.DataFrame({
+                # Need to subtract 1 as .to_numpy() resets the index
+                'rel_open': rel_prices['rel_open'].to_numpy()[shuffled_indices_open-1],
+                'rel_high': rel_prices['rel_high'].to_numpy()[shuffled_indices_hlc-1],
+                'rel_low': rel_prices['rel_low'].to_numpy()[shuffled_indices_hlc-1],
+                'rel_close': rel_prices['rel_close'].to_numpy()[shuffled_indices_hlc-1]
+            })
+            for rel_prices in self.rel_prices
+        ]
+
+        shuffled_df_list = []
+
+        # Reconstruct the shuffled OHLC dataframes using the basis prices
+        for i in range(self.n_markets):
+            temp_open = []
+            temp_high = []
+            temp_low = []
+            temp_close = []
+
+            temp_open.append(self.basis_prices[i]['Open'])
+            temp_high.append(self.basis_prices[i]['High'])
+            temp_low.append(self.basis_prices[i]['Low'])
+            temp_close.append(self.basis_prices[i]['Close'])
+
+            rel_price_df = shuffled_rel_prices[i]
+
+            for j in range(len(rel_price_df.index)):
+
+                temp_open.append(
+                    temp_close[j] + rel_price_df['rel_open'].iloc[j])
+                temp_high.append(temp_open[j+1] +
+                                 rel_price_df['rel_high'].iloc[j])
+                temp_low.append(temp_open[j+1] +
+                                rel_price_df['rel_low'].iloc[j])
+                temp_close.append(
+                    temp_open[j+1] + rel_price_df['rel_close'].iloc[j])
+
+            ohlc_df = pd.DataFrame({
+                'Open': temp_open,
+                'High': temp_high,
+                'Low': temp_low,
+                'Close': temp_close
+            })
+
+            if len(self.original_index) == len(ohlc_df):
+                ohlc_df.set_index(self.original_index, inplace=True)
+            else:
+                raise ValueError(
+                    "Length of self.original_index does not match DataFrame length")
+
+            shuffled_df_list.append(ohlc_df)
+
+        return shuffled_df_list
+
+
+class PricePermute:
+    def __init__(self, price_series_list: list):
+        self.n_markets = len(price_series_list)
+        if self.n_markets < 1:
+            raise ValueError("Need at least one market")
+
+        # Ensure that all series have the same length
+        if not all(len(series) == len(price_series_list[0]) for series in price_series_list):
+            raise ValueError("All series must have the same length")
+
+        # Store the index to reassign later
+        self.original_index = price_series_list[0].index
+
+        self.price_series_list = [series.reset_index(
+            drop=True) for series in price_series_list]
+
+        self.basis_prices = {
+            i: self.price_series_list[i].iloc[0] for i in range(self.n_markets)}
+
+        self.rel_prices = [series.diff().dropna()
+                           for series in self.price_series_list]
+
+    def permute(self):
+        index_array = np.array(self.rel_prices[0].index)
+
+        # Shuffle each relative price series using the same permutation
+        shuffled_indices = np.random.choice(
+            index_array, len(index_array), replace=True)
+
+        shuffled_rel_prices = [rel_prices.to_numpy()[shuffled_indices-1]
+                               for rel_prices in self.rel_prices]
+
+        shuffled_series_list = []
+
+        # Reconstruct the shuffled price series using the basis prices
+        for i in range(self.n_markets):
+            temp_prices = [self.basis_prices[i]]
+
+            for j in range(len(shuffled_rel_prices[i])):
+                temp_prices.append(temp_prices[j] + shuffled_rel_prices[i][j])
+
+            price_series = pd.Series(temp_prices)
+
+            if len(self.original_index) == len(price_series):
+                price_series.index = self.original_index
+            else:
+                raise ValueError(
+                    "Length of self.original_index does not match Series length")
+
+            shuffled_series_list.append(price_series)
+
+        return shuffled_series_list

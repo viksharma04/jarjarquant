@@ -2,6 +2,8 @@
 import concurrent.futures
 from typing import Callable, Optional
 
+from jarjarquant.cython_utils.opt_threshold import optimize_threshold_cython
+
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
@@ -543,11 +545,12 @@ class FeatureEvaluator:
         work_signal = work_signal[sort_index]
         work_return = work_return[sort_index]
 
+        best_high_index, best_low_index, best_high_pf, best_low_pf = optimize_threshold_cython(
+            work_signal, work_return, min_kept)
+
         # Initialize accumulators for wins and losses.
         win_above = 0.0
         lose_above = 0.0
-        win_below = 0.0
-        lose_below = 0.0
 
         # Compute total wins and losses for the complete dataset.
         # For a "long" position, positive returns are wins and negative returns are losses.
@@ -561,49 +564,49 @@ class FeatureEvaluator:
         # Compute profit factor for the entire dataset.
         pf_all = win_above / (lose_above + 1.e-30)
 
-        # Initialize best profit factor for the high group with the overall pf.
-        best_high_pf = pf_all
-        # A threshold below the smallest value implies using all cases.
-        best_high_index = 0
+        # # Initialize best profit factor for the high group with the overall pf.
+        # best_high_pf = pf_all
+        # # A threshold below the smallest value implies using all cases.
+        # best_high_index = 0
 
-        # Initialize best profit factor for the low group.
-        best_low_pf = -1.0
-        # Default (should be updated if any legitimate threshold is found)
-        best_low_index = n - 1
+        # # Initialize best profit factor for the low group.
+        # best_low_pf = -1.0
+        # # Default (should be updated if any legitimate threshold is found)
+        # best_low_index = n - 1
 
-        # Loop over possible thresholds. Each candidate threshold is at index i+1.
-        for i in range(n - 1):
-            r = work_return[i]
+        # # Loop over possible thresholds. Each candidate threshold is at index i+1.
+        # for i in range(n - 1):
+        #     r = work_return[i]
 
-            # Remove this case from the "above" (long) set.
-            if r > 0.0:
-                win_above -= r
-            else:
-                lose_above += r  # r is negative, so this reduces lose_above.
+        #     # Remove this case from the "above" (long) set.
+        #     if r > 0.0:
+        #         win_above -= r
+        #     else:
+        #         lose_above += r  # r is negative, so this reduces lose_above.
 
-            # Add this case to the "below" (short) set.
-            if r > 0.0:
-                lose_below += r
-            else:
-                win_below -= r
+        #     # Add this case to the "below" (short) set.
+        #     if r > 0.0:
+        #         lose_below += r
+        #     else:
+        #         win_below -= r
 
-            # Only consider a new threshold if the next signal value differs.
-            if work_signal[i + 1] == work_signal[i]:
-                continue
+        #     # Only consider a new threshold if the next signal value differs.
+        #     if work_signal[i + 1] == work_signal[i]:
+        #         continue
 
-            # Check if the "above" set (i+1 to n-1) has at least min_kept cases.
-            if (n - i - 1) >= min_kept:
-                current_high_pf = win_above / (lose_above + 1.e-30)
-                if current_high_pf > best_high_pf:
-                    best_high_pf = current_high_pf
-                    best_high_index = i + 1
+        #     # Check if the "above" set (i+1 to n-1) has at least min_kept cases.
+        #     if (n - i - 1) >= min_kept:
+        #         current_high_pf = win_above / (lose_above + 1.e-30)
+        #         if current_high_pf > best_high_pf:
+        #             best_high_pf = current_high_pf
+        #             best_high_index = i + 1
 
-            # Check if the "below" set (0 to i) has at least min_kept cases.
-            if (i + 1) >= min_kept:
-                current_low_pf = win_below / (lose_below + 1.e-30)
-                if current_low_pf > best_low_pf:
-                    best_low_pf = current_low_pf
-                    best_low_index = i + 1
+        #     # Check if the "below" set (0 to i) has at least min_kept cases.
+        #     if (i + 1) >= min_kept:
+        #         current_low_pf = win_below / (lose_below + 1.e-30)
+        #         if current_low_pf > best_low_pf:
+        #             best_low_pf = current_low_pf
+        #             best_low_index = i + 1
 
         # The best thresholds are the signal values at the recorded indices.
         high_thresh = work_signal[best_high_index]

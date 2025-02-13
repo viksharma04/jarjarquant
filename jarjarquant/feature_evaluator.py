@@ -1,6 +1,6 @@
 """The feature evaluator specializes in calculating the efficacy of one or many indicators given a matrix of features X and a target label/series y"""
 import concurrent.futures
-from typing import Callable
+from typing import Callable, Optional
 
 import numpy as np
 import pandas as pd
@@ -457,10 +457,7 @@ class FeatureEvaluator:
         data_gatherer = DataGatherer()
         ohlcv_df = data_gatherer.get_random_price_samples(
             num_tickers_to_sample=1)[0]
-        if kwargs is not None:
-            indicator_instance = indicator_func(ohlcv_df, **kwargs)
-        else:
-            indicator_instance = indicator_func(ohlcv_df)
+        indicator_instance = indicator_func(ohlcv_df, **kwargs)
 
         indicator_instance.indicator_evaluation_report()
 
@@ -494,3 +491,124 @@ class FeatureEvaluator:
         results = np.mean(results, axis=0)
 
         return {'ADF Test': results[0], 'Jarque-Bera Test': results[1], 'Relative Entropy': results[2], 'Range-IQR Ratio': results[3]}
+
+    @staticmethod
+    def optimize_threshold(indicator_values, return_values, min_kept=1, flip_sign=0):
+        """
+        Find optimal thresholds that maximize profit factors for "long" and "short" trades.
+
+        Parameters:
+        indicator_values : numpy array of indicator values.
+        return_values    : numpy array of associated returns.
+        min_kept         : minimum number of cases that must remain in a group (default 1).
+        flip_sign      : if nonzero, the indicator values are negated (default 0).
+
+        Returns:
+        pf_all    : profit factor for the entire dataset.
+        high_thresh : optimal threshold for long trades.
+        pf_high   : profit factor for the "above threshold" (long) set.
+        low_thresh  : optimal threshold for short trades.
+        pf_low    : profit factor for the "below threshold" (short) set.
+        """
+
+        # Ensure the inputs are numpy arrays.
+        indicator_values = np.asarray(indicator_values)
+        return_values = np.asarray(return_values)
+
+        n = len(indicator_values)
+        if n == 0:
+            raise ValueError("Input arrays must have at least one element.")
+
+        # Enforce that min_kept is at least 1.
+        if min_kept < 1:
+            min_kept = 1
+
+        # Copy signals and returns into work arrays.
+        # Optionally flip the sign of indicator values.
+        if flip_sign:
+            work_signal = -indicator_values.copy()
+        else:
+            work_signal = indicator_values.copy()
+        work_return = return_values.copy()
+
+        # Find the indices of NaN values in either array and drop them from both arrays
+        nan_indices = np.isnan(work_signal) | np.isnan(work_return)
+        work_signal = work_signal[~nan_indices]
+        work_return = work_return[~nan_indices]
+
+        n = len(work_signal)
+
+        # Sort the work arrays based on work_signal.
+        sort_index = np.argsort(work_signal)
+        work_signal = work_signal[sort_index]
+        work_return = work_return[sort_index]
+
+        # Initialize accumulators for wins and losses.
+        win_above = 0.0
+        lose_above = 0.0
+        win_below = 0.0
+        lose_below = 0.0
+
+        # Compute total wins and losses for the complete dataset.
+        # For a "long" position, positive returns are wins and negative returns are losses.
+        for i in range(n):
+            r = work_return[i]
+            if r > 0.0:
+                win_above += r
+            else:
+                lose_above -= r  # subtracting a negative adds its magnitude
+
+        # Compute profit factor for the entire dataset.
+        pf_all = win_above / (lose_above + 1.e-30)
+
+        # Initialize best profit factor for the high group with the overall pf.
+        best_high_pf = pf_all
+        # A threshold below the smallest value implies using all cases.
+        best_high_index = 0
+
+        # Initialize best profit factor for the low group.
+        best_low_pf = -1.0
+        # Default (should be updated if any legitimate threshold is found)
+        best_low_index = n - 1
+
+        # Loop over possible thresholds. Each candidate threshold is at index i+1.
+        for i in range(n - 1):
+            r = work_return[i]
+
+            # Remove this case from the "above" (long) set.
+            if r > 0.0:
+                win_above -= r
+            else:
+                lose_above += r  # r is negative, so this reduces lose_above.
+
+            # Add this case to the "below" (short) set.
+            if r > 0.0:
+                lose_below += r
+            else:
+                win_below -= r
+
+            # Only consider a new threshold if the next signal value differs.
+            if work_signal[i + 1] == work_signal[i]:
+                continue
+
+            # Check if the "above" set (i+1 to n-1) has at least min_kept cases.
+            if (n - i - 1) >= min_kept:
+                current_high_pf = win_above / (lose_above + 1.e-30)
+                if current_high_pf > best_high_pf:
+                    best_high_pf = current_high_pf
+                    best_high_index = i + 1
+
+            # Check if the "below" set (0 to i) has at least min_kept cases.
+            if (i + 1) >= min_kept:
+                current_low_pf = win_below / (lose_below + 1.e-30)
+                if current_low_pf > best_low_pf:
+                    best_low_pf = current_low_pf
+                    best_low_index = i + 1
+
+        # The best thresholds are the signal values at the recorded indices.
+        high_thresh = work_signal[best_high_index]
+        low_thresh = work_signal[best_low_index]
+        pf_high = best_high_pf
+        pf_low = best_low_pf
+
+        return {'pf_all': pf_all, 'optimal_long_thresh': high_thresh, 'optimal_long_pf': pf_high, 'optimal_short_thresh': low_thresh, 'optimal_short_pf': pf_low}

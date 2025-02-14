@@ -4,7 +4,9 @@ import numpy as np
 
 extensions = [
     Extension("jarjarquant.cython_utils.opt_threshold", [
-              "jarjarquant/cython_utils/opt_threshold.pyx"])
+              "jarjarquant/cython_utils/opt_threshold.pyx"]),
+    Extension("jarjarquant.cython_utils.bar_permute", [
+              "jarjarquant/cython_utils/bar_permute.pyx"])
 ]
 
 setup(

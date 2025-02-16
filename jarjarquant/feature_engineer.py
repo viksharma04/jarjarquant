@@ -387,23 +387,23 @@ class BarPermute:
             })
             self.rel_prices.append(rel_df.dropna())
 
+    def permute(self):
+
         index_array = np.array(self.rel_prices[0].index)
 
         # Shuffle each relative high/low/close series using the same permutation
-        self.shuffled_indices_hlc = np.random.choice(
+        shuffled_indices_hlc = np.random.choice(
             index_array, len(index_array), replace=True)
-        self.shuffled_indices_open = np.random.choice(
+        shuffled_indices_open = np.random.choice(
             index_array, len(index_array), replace=True)
-
-    def permute(self):
 
         shuffled_rel_prices = np.array([
             [
                 rel_prices['rel_open'].to_numpy(
-                )[self.shuffled_indices_open-1],
-                rel_prices['rel_high'].to_numpy()[self.shuffled_indices_hlc-1],
-                rel_prices['rel_low'].to_numpy()[self.shuffled_indices_hlc-1],
-                rel_prices['rel_close'].to_numpy()[self.shuffled_indices_hlc-1]
+                )[shuffled_indices_open-1],
+                rel_prices['rel_high'].to_numpy()[shuffled_indices_hlc-1],
+                rel_prices['rel_low'].to_numpy()[shuffled_indices_hlc-1],
+                rel_prices['rel_close'].to_numpy()[shuffled_indices_hlc-1]
             ]
             for rel_prices in self.rel_prices
         ]).transpose(0, 2, 1)

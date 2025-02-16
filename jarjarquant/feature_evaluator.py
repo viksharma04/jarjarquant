@@ -496,7 +496,7 @@ class FeatureEvaluator:
         return {'ADF Test': results[0], 'Jarque-Bera Test': results[1], 'Relative Entropy': results[2], 'Range-IQR Ratio': results[3]}
 
     @staticmethod
-    def optimize_threshold(indicator_values, return_values, min_kept: float = 0.1, flip_sign: bool = False):
+    def optimize_threshold(indicator_values, return_values, min_kept: float = 0.1, flip_sign: bool = False, return_pval: bool = True):
         """
         Optimize the threshold for a given indicator to maximize the performance factor (PF).
         Parameters:
@@ -566,17 +566,21 @@ class FeatureEvaluator:
         best_overall_pf = max(pf_high, pf_low)
 
         # Calculate the p-value for the best performance factor.
-        i = 0
+        if return_pval:
+            i = 0
 
-        for _ in range(1000):
-            permuted_returns = np.random.choice(
-                work_return, size=len(work_return), replace=True)
-            _, _, high_pf, low_pf = optimize_threshold_cython(
-                work_signal, permuted_returns, int(min_kept))
-            permuted_pf = max(high_pf, low_pf)
-            if permuted_pf >= best_overall_pf:
-                i += 1
+            for _ in range(1000):
+                permuted_returns = np.random.choice(
+                    work_return, size=len(work_return), replace=True)
+                _, _, high_pf, low_pf = optimize_threshold_cython(
+                    work_signal, permuted_returns, int(min_kept))
+                permuted_pf = max(high_pf, low_pf)
+                if permuted_pf >= best_overall_pf:
+                    i += 1
 
-        best_pf_pval = i / 1000
+            best_pf_pval = i / 1000
+
+        else:
+            best_pf_pval = None
 
         return {'spearman_corr': spearman_corr, 'optimal_long_thresh': high_thresh, 'optimal_long_pf': pf_high, 'optimal_short_thresh': low_thresh, 'optimal_short_pf': pf_low, 'best_bf': best_overall_pf, 'best_pf_pval': best_pf_pval}

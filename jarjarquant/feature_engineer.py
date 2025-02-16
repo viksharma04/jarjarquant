@@ -6,6 +6,8 @@ import pandas as pd
 import numpy as np
 import concurrent.futures
 
+from jarjarquant.cython_utils.bar_permute import permute_cython, permute_cython_single
+
 
 class FeatureEngineer:
     """Class to implement common featrue engineering transformations"""
@@ -345,6 +347,20 @@ class FeatureEngineer:
 
 class BarPermute:
     def __init__(self, ohlc_df_list: list):
+        """
+        Initialize the feature engineer with a list of OHLC dataframes.
+        Parameters:
+        ohlc_df_list (list): A list of pandas DataFrames, each containing OHLC (Open, High, Low, Close) data for a market.
+        Raises:
+        ValueError: If the list is empty or if the dataframes do not have the same length.
+        Attributes:
+        n_markets (int): The number of markets (dataframes) provided.
+        original_index (Index): The original index of the dataframes to reassign later.
+        ohlc_df_list (list): A list of dataframes with reset index for simplicity of permutation.
+        basis_prices (dict): A dictionary containing the basis prices (Open, High, Low, Close) for each market.
+        basis_price_array (np.array): A numpy array containing the basis prices for each market.
+        rel_prices (list): A list of dataframes containing relative prices (rel_open, rel_high, rel_low, rel_close) for each market.
+        """
 
         self.n_markets = len(ohlc_df_list)
         if self.n_markets < 1:
@@ -369,6 +385,12 @@ class BarPermute:
                                  'Close': self.ohlc_df_list[i]['Close'].iloc[0]}
                              for i in range(self.n_markets)}
 
+        self.basis_price_array = np.array([[self.ohlc_df_list[i]['Open'].iloc[0],
+                                            self.ohlc_df_list[i]['High'].iloc[0],
+                                            self.ohlc_df_list[i]['Low'].iloc[0],
+                                            self.ohlc_df_list[i]['Close'].iloc[0]]
+                                           for i in range(self.n_markets)])
+
         self.rel_prices = []
         for df in self.ohlc_df_list:
             rel_df = pd.DataFrame({
@@ -389,63 +411,55 @@ class BarPermute:
         shuffled_indices_open = np.random.choice(
             index_array, len(index_array), replace=True)
 
-        shuffled_rel_prices = [
-            pd.DataFrame({
-                # Need to subtract 1 as .to_numpy() resets the index
-                'rel_open': rel_prices['rel_open'].to_numpy()[shuffled_indices_open-1],
-                'rel_high': rel_prices['rel_high'].to_numpy()[shuffled_indices_hlc-1],
-                'rel_low': rel_prices['rel_low'].to_numpy()[shuffled_indices_hlc-1],
-                'rel_close': rel_prices['rel_close'].to_numpy()[shuffled_indices_hlc-1]
-            })
+        shuffled_rel_prices = np.array([
+            [
+                rel_prices['rel_open'].to_numpy(
+                )[shuffled_indices_open-1],
+                rel_prices['rel_high'].to_numpy()[shuffled_indices_hlc-1],
+                rel_prices['rel_low'].to_numpy()[shuffled_indices_hlc-1],
+                rel_prices['rel_close'].to_numpy()[shuffled_indices_hlc-1]
+            ]
             for rel_prices in self.rel_prices
-        ]
+        ]).transpose(0, 2, 1)
 
-        shuffled_df_list = []
+        permuted = permute_cython(self.basis_price_array, shuffled_rel_prices)
 
-        # Reconstruct the shuffled OHLC dataframes using the basis prices
+        shuffled_dfs_list = []
         for i in range(self.n_markets):
-            temp_open = []
-            temp_high = []
-            temp_low = []
-            temp_close = []
 
-            temp_open.append(self.basis_prices[i]['Open'])
-            temp_high.append(self.basis_prices[i]['High'])
-            temp_low.append(self.basis_prices[i]['Low'])
-            temp_close.append(self.basis_prices[i]['Close'])
+            df = pd.DataFrame(permuted[i], index=self.original_index, columns=[
+                              'Open', 'High', 'Low', 'Close'])
 
-            rel_price_df = shuffled_rel_prices[i]
+            shuffled_dfs_list.append(df)
 
-            for j in range(len(rel_price_df.index)):
-
-                temp_open.append(
-                    temp_close[j] + rel_price_df['rel_open'].iloc[j])
-                temp_high.append(temp_open[j+1] +
-                                 rel_price_df['rel_high'].iloc[j])
-                temp_low.append(temp_open[j+1] +
-                                rel_price_df['rel_low'].iloc[j])
-                temp_close.append(
-                    temp_open[j+1] + rel_price_df['rel_close'].iloc[j])
-
-            ohlc_df = pd.DataFrame({
-                'Open': temp_open,
-                'High': temp_high,
-                'Low': temp_low,
-                'Close': temp_close
-            })
-
-            if len(self.original_index) == len(ohlc_df):
-                ohlc_df.set_index(self.original_index, inplace=True)
-            else:
-                raise ValueError(
-                    "Length of self.original_index does not match DataFrame length")
-
-            shuffled_df_list.append(ohlc_df)
-
-        return shuffled_df_list
+        return shuffled_dfs_list
 
 
 class PricePermute:
+    """
+    A class to permute price series while maintaining the relative price changes.
+    Attributes:
+    ----------
+    n_markets : int
+        Number of markets (price series) provided.
+    original_index : pd.Index
+        The original index of the price series to reassign later.
+    price_series_list : list
+        List of price series with reset index.
+    basis_prices : dict
+        Dictionary storing the initial prices of each market.
+    basis_price_array : np.ndarray
+        Array storing the initial prices of each market in a specific format.
+    rel_prices : list
+        List of relative price changes for each series.
+    Methods:
+    -------
+    __init__(price_series_list: list):
+        Initializes the PricePermute object with a list of price series.
+    permute():
+        Permutes the price series while maintaining the relative price changes and returns the permuted series.
+    """
+
     def __init__(self, price_series_list: list):
         self.n_markets = len(price_series_list)
         if self.n_markets < 1:
@@ -456,13 +470,27 @@ class PricePermute:
             raise ValueError("All series must have the same length")
 
         # Store the index to reassign later
-        self.original_index = price_series_list[0].index
+        if isinstance(price_series_list[0], pd.Series):
+            self.original_index = price_series_list[0].index
+        else:
+            self.original_index = pd.RangeIndex(
+                start=0, stop=len(price_series_list[0]), step=1)
 
-        self.price_series_list = [series.reset_index(
-            drop=True) for series in price_series_list]
+        if isinstance(price_series_list[0], pd.Series):
+            self.price_series_list = [series.reset_index(
+                drop=True) for series in price_series_list]
+        else:
+            self.price_series_list = [
+                pd.Series(series, index=self.original_index) for series in price_series_list]
 
         self.basis_prices = {
             i: self.price_series_list[i].iloc[0] for i in range(self.n_markets)}
+
+        self.basis_price_array = np.array([[self.price_series_list[i].iloc[0],
+                                            self.price_series_list[i].iloc[0],
+                                            self.price_series_list[i].iloc[0],
+                                            self.price_series_list[i].iloc[0]]
+                                           for i in range(self.n_markets)])
 
         self.rel_prices = [series.diff().dropna()
                            for series in self.price_series_list]
@@ -474,26 +502,16 @@ class PricePermute:
         shuffled_indices = np.random.choice(
             index_array, len(index_array), replace=True)
 
-        shuffled_rel_prices = [rel_prices.to_numpy()[shuffled_indices-1]
-                               for rel_prices in self.rel_prices]
+        shuffled_rel_prices = np.array([rel_prices.to_numpy()[shuffled_indices-1].reshape(-1, 1)
+                                        for rel_prices in self.rel_prices])
+
+        permuted = permute_cython_single(
+            self.basis_price_array, shuffled_rel_prices)
 
         shuffled_series_list = []
 
-        # Reconstruct the shuffled price series using the basis prices
         for i in range(self.n_markets):
-            temp_prices = [self.basis_prices[i]]
-
-            for j in range(len(shuffled_rel_prices[i])):
-                temp_prices.append(temp_prices[j] + shuffled_rel_prices[i][j])
-
-            price_series = pd.Series(temp_prices)
-
-            if len(self.original_index) == len(price_series):
-                price_series.index = self.original_index
-            else:
-                raise ValueError(
-                    "Length of self.original_index does not match Series length")
-
-            shuffled_series_list.append(price_series)
+            ser = pd.Series(permuted[i].flatten(), index=self.original_index)
+            shuffled_series_list.append(ser)
 
         return shuffled_series_list

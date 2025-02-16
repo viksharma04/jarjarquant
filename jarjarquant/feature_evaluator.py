@@ -566,11 +566,11 @@ class FeatureEvaluator:
         best_overall_pf = max(pf_high, pf_low)
 
         # Calculate the p-value for the best performance factor.
-        pp = PricePermute([work_return])
         i = 0
 
         for _ in range(1000):
-            permuted_returns = pp.permute()[0]
+            permuted_returns = np.random.choice(
+                work_return, size=len(work_return), replace=True)
             _, _, high_pf, low_pf = optimize_threshold_cython(
                 work_signal, permuted_returns, int(min_kept))
             permuted_pf = max(high_pf, low_pf)

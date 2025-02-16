@@ -2,13 +2,14 @@
 import concurrent.futures
 from typing import Callable, Optional
 
-from jarjarquant.cython_utils.opt_threshold import optimize_threshold_cython
-
 import numpy as np
 import pandas as pd
+from scipy.stats import spearmanr
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, log_loss
 from sklearn.model_selection._split import _BaseKFold
+
+from jarjarquant.cython_utils.opt_threshold import optimize_threshold_cython
 
 from .data_gatherer import DataGatherer
 
@@ -495,22 +496,25 @@ class FeatureEvaluator:
         return {'ADF Test': results[0], 'Jarque-Bera Test': results[1], 'Relative Entropy': results[2], 'Range-IQR Ratio': results[3]}
 
     @staticmethod
-    def optimize_threshold(indicator_values, return_values, min_kept=1, flip_sign=0):
+    def optimize_threshold(indicator_values, return_values, min_kept: float = 0.1, flip_sign: bool = False):
         """
-        Find optimal thresholds that maximize profit factors for "long" and "short" trades.
-
+        Optimize the threshold for a given indicator to maximize the performance factor (PF).
         Parameters:
-        indicator_values : numpy array of indicator values.
-        return_values    : numpy array of associated returns.
-        min_kept         : minimum number of cases that must remain in a group (default 1).
-        flip_sign      : if nonzero, the indicator values are negated (default 0).
-
+        indicator_values (array-like): Array of indicator values.
+        return_values (array-like): Array of return values corresponding to the indicator values.
+        min_kept (float, optional): Minimum fraction of data points to keep. Default is 0.1.
+        flip_sign (bool, optional): Whether to flip the sign of the indicator values. Default is False.
         Returns:
-        pf_all    : profit factor for the entire dataset.
-        high_thresh : optimal threshold for long trades.
-        pf_high   : profit factor for the "above threshold" (long) set.
-        low_thresh  : optimal threshold for short trades.
-        pf_low    : profit factor for the "below threshold" (short) set.
+        dict: A dictionary containing the following keys:
+            - 'spearman_corr': Spearman rank correlation between the indicator and returns.
+            - 'optimal_long_thresh': Optimal threshold for long positions.
+            - 'optimal_long_pf': Performance factor for the optimal long threshold.
+            - 'optimal_short_thresh': Optimal threshold for short positions.
+            - 'optimal_short_pf': Performance factor for the optimal short threshold.
+            - 'best_bf': Best performance factor between long and short positions.
+            - 'best_pf_pval': P-value of the best performance factor.
+        Raises:
+        ValueError: If the input arrays have less than one element.
         """
 
         # Ensure the inputs are numpy arrays.
@@ -522,15 +526,21 @@ class FeatureEvaluator:
             raise ValueError("Input arrays must have at least one element.")
 
         # Enforce that min_kept is at least 1.
-        if min_kept < 1:
-            min_kept = 1
+        min_kept = max(int(n*min_kept), 1)
+
+        # Calculate the spearman rank correlation between the indicator and returns.
+        spearman_corr = spearmanr(indicator_values, return_values)[0]
+        if spearman_corr < 0.0:
+            indicator_sign = -1.0
+        else:
+            indicator_sign = 1.0
 
         # Copy signals and returns into work arrays.
         # Optionally flip the sign of indicator values.
         if flip_sign:
-            work_signal = -indicator_values.copy()
+            work_signal = -indicator_sign * indicator_values.copy()
         else:
-            work_signal = indicator_values.copy()
+            work_signal = indicator_sign * indicator_values.copy()
         work_return = return_values.copy()
 
         # Find the indices of NaN values in either array and drop them from both arrays
@@ -546,72 +556,27 @@ class FeatureEvaluator:
         work_return = work_return[sort_index]
 
         best_high_index, best_low_index, best_high_pf, best_low_pf = optimize_threshold_cython(
-            work_signal, work_return, min_kept)
-
-        # Initialize accumulators for wins and losses.
-        win_above = 0.0
-        lose_above = 0.0
-
-        # Compute total wins and losses for the complete dataset.
-        # For a "long" position, positive returns are wins and negative returns are losses.
-        for i in range(n):
-            r = work_return[i]
-            if r > 0.0:
-                win_above += r
-            else:
-                lose_above -= r  # subtracting a negative adds its magnitude
-
-        # Compute profit factor for the entire dataset.
-        pf_all = win_above / (lose_above + 1.e-30)
-
-        # # Initialize best profit factor for the high group with the overall pf.
-        # best_high_pf = pf_all
-        # # A threshold below the smallest value implies using all cases.
-        # best_high_index = 0
-
-        # # Initialize best profit factor for the low group.
-        # best_low_pf = -1.0
-        # # Default (should be updated if any legitimate threshold is found)
-        # best_low_index = n - 1
-
-        # # Loop over possible thresholds. Each candidate threshold is at index i+1.
-        # for i in range(n - 1):
-        #     r = work_return[i]
-
-        #     # Remove this case from the "above" (long) set.
-        #     if r > 0.0:
-        #         win_above -= r
-        #     else:
-        #         lose_above += r  # r is negative, so this reduces lose_above.
-
-        #     # Add this case to the "below" (short) set.
-        #     if r > 0.0:
-        #         lose_below += r
-        #     else:
-        #         win_below -= r
-
-        #     # Only consider a new threshold if the next signal value differs.
-        #     if work_signal[i + 1] == work_signal[i]:
-        #         continue
-
-        #     # Check if the "above" set (i+1 to n-1) has at least min_kept cases.
-        #     if (n - i - 1) >= min_kept:
-        #         current_high_pf = win_above / (lose_above + 1.e-30)
-        #         if current_high_pf > best_high_pf:
-        #             best_high_pf = current_high_pf
-        #             best_high_index = i + 1
-
-        #     # Check if the "below" set (0 to i) has at least min_kept cases.
-        #     if (i + 1) >= min_kept:
-        #         current_low_pf = win_below / (lose_below + 1.e-30)
-        #         if current_low_pf > best_low_pf:
-        #             best_low_pf = current_low_pf
-        #             best_low_index = i + 1
+            work_signal, work_return, int(min_kept))
 
         # The best thresholds are the signal values at the recorded indices.
         high_thresh = work_signal[best_high_index]
         low_thresh = work_signal[best_low_index]
         pf_high = best_high_pf
         pf_low = best_low_pf
+        best_overall_pf = max(pf_high, pf_low)
 
-        return {'pf_all': pf_all, 'optimal_long_thresh': high_thresh, 'optimal_long_pf': pf_high, 'optimal_short_thresh': low_thresh, 'optimal_short_pf': pf_low}
+        # Calculate the p-value for the best performance factor.
+        pp = PricePermute([work_return])
+        i = 0
+
+        for _ in range(1000):
+            permuted_returns = pp.permute()[0]
+            _, _, high_pf, low_pf = optimize_threshold_cython(
+                work_signal, permuted_returns, int(min_kept))
+            permuted_pf = max(high_pf, low_pf)
+            if permuted_pf >= best_overall_pf:
+                i += 1
+
+        best_pf_pval = i / 1000
+
+        return {'spearman_corr': spearman_corr, 'optimal_long_thresh': high_thresh, 'optimal_long_pf': pf_high, 'optimal_short_thresh': low_thresh, 'optimal_short_pf': pf_low, 'best_bf': best_overall_pf, 'best_pf_pval': best_pf_pval}

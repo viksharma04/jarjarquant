@@ -1,14 +1,13 @@
 """The data gatherer minimizes code duplication and simplifies gathering samples for experimentation."""
-from typing import Optional
-from datetime import datetime, timedelta
+import asyncio
+import concurrent.futures
 import random
+from datetime import datetime, timedelta
+from typing import Optional
 
 import numpy as np
 import pandas as pd
 import yfinance as yf
-import concurrent.futures
-
-import asyncio
 from ib_async import IB, Stock, util
 
 
@@ -40,23 +39,23 @@ class DataGatherer:
         return series
 
     @staticmethod
-    async def get_tws_stock(ticker: str = '', exchange: str = 'SMART', currency: str = 'USD', duration: str = '1 M', bar_size: str = '1 day', **kwags):
+    async def get_tws_ticker(ticker: str = '', exchange: str = 'SMART', currency: str = 'USD', end_date: str = '', duration: str = '1 M', bar_size: str = '1 day', what_to_show='TRADES', **kwags):
 
         ib = IB()
 
         # Connect to the IB Gateway or TWS
         await ib.connectAsync('127.0.0.1', 7496, clientId=1)
 
-        # Define the AAPL stock contract
+        # Define the stock contract
         contract = Stock(ticker, exchange, currency)
 
         # Request historical implied volatility data
         bars = await ib.reqHistoricalDataAsync(
             contract,
-            endDateTime='',
+            endDateTime=end_date,
             durationStr=duration,  # Duration of data, e.g., '1 M' for 1 month
             barSizeSetting=bar_size,  # Bar size, e.g., '1 day'
-            whatToShow='TRADES',
+            whatToShow=what_to_show,
             useRTH=True,
             formatDate=1
         )
@@ -69,7 +68,7 @@ class DataGatherer:
 
         return df
 
-    def get_random_price_samples(self, years_in_sample: int = 10, resolution: str = '1 day', tickers: Optional[list] = None, num_tickers_to_sample: Optional[int] = 30, persist: Optional[bool] = False):
+    def get_random_price_samples_yf(self, years_in_sample: int = 10, resolution: str = '1 day', tickers: Optional[list] = None, num_tickers_to_sample: Optional[int] = 30, persist: Optional[bool] = False):
 
         # Set today's date (October 23, 2024) and the time range for the last 30 years
         today = datetime.today()
@@ -127,13 +126,17 @@ class DataGatherer:
 
         return dataframes
 
-    def get_random_price_samples(self, years_in_sample: int = 10, tickers: Optional[list] = None, num_tickers_to_sample: Optional[int] = 30, persist: Optional[bool] = False):
-
-        # Set today's date (October 23, 2024) and the time range for the last 30 years
+    async def get_random_price_samples_tws(self,
+                                           years_in_sample: int = 10,
+                                           tickers: Optional[list] = None,
+                                           num_tickers_to_sample: Optional[int] = 30,
+                                           persist: Optional[bool] = False,
+                                           bar_size: Optional[str] = '1 day'):
+        # Set today's date and compute the time delta
         today = datetime.today()
-        num_years = timedelta(days=years_in_sample*365)
+        num_years = timedelta(days=years_in_sample * 365)
 
-        # List of 30 stock tickers with replacements for problematic ones
+        # Use a default list of tickers if none provided
         if tickers is None:
             tickers = [
                 'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'KO', 'MCD', 'NVDA', 'JPM', 'DIS',
@@ -142,45 +145,59 @@ class DataGatherer:
                 'GS', 'LMT', 'ABT', 'MO', 'AXP', 'CL', 'COP', 'DOW', 'GE', 'HD',
                 'JNJ', 'TRV', 'VZ', 'WFC'
             ]
-
         tickers = random.sample(tickers, num_tickers_to_sample)
 
-        # Function to get random start and end dates
-        def get_random_date(ticker):
-            ticker = yf.Ticker(ticker)
-            ticker_metadata = ticker.history_metadata
+        # Define a synchronous helper function that fetches data for one ticker.
+        # We create a separate IB connection (with its own clientId) in each thread.
+        def fetch_data_for_ticker(ticker, client_id):
+            ib_local = IB()
+            # Connect synchronously (using a unique clientId per thread)
+            ib_local.connect('127.0.0.1', 7496, clientId=client_id)
 
-            start_limit = datetime.fromtimestamp(
-                np.abs(ticker_metadata['firstTradeDate']))
+            contract = Stock(ticker, 'SMART', 'USD')
+            # Get the start timestamp for the ticker
+            start_limit = ib_local.reqHeadTimeStamp(
+                contract=contract, whatToShow='TRADES', useRTH=True)
 
-            # If today - start limit is less than years to sample, then we can't sample that far back
-            if int((today - start_limit).days) < years_in_sample*365:
-                print(f"WARNING: {ticker} does not have enough data to sample {
-                      years_in_sample} years back. Sampling all available data")
-                start_date = start_limit
+            # Determine the end date for data sampling
+            if int((today - start_limit).days) < years_in_sample * 365:
+                print(
+                    f"WARNING: {ticker} does not have enough data to sample {years_in_sample} years back. Sampling all available data")
                 end_date = today
-
             else:
-                random_start = start_limit + \
-                    timedelta(days=np.random.randint(
-                        0, (today - start_limit).days - years_in_sample*365))
+                random_start = start_limit + timedelta(
+                    days=np.random.randint(
+                        0, (today - start_limit).days - years_in_sample * 365)
+                )
                 random_end = random_start + num_years
-                start_date = random_start
                 end_date = random_end
 
-            return start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d')
+            duration = f"{years_in_sample} Y"
+            bars = ib_local.reqHistoricalData(
+                contract,
+                endDateTime=end_date,
+                durationStr=duration,          # e.g., '10 Y'
+                barSizeSetting=bar_size,        # Bar size: '1 day'
+                whatToShow='TRADES',
+                useRTH=True,
+                formatDate=1
+            )
 
-        # List to store the DataFrames
-        dataframes = []
+            # Convert the bars to a DataFrame
+            df = util.df(bars)
+            ib_local.disconnect()
+            return df
 
-        # Loop over each ticker and fetch 2 years of data with random start dates
-        for ticker in tickers:
-            start_date, end_date = get_random_date(ticker)
-            df = self.get_yf_ticker(ticker, start=start_date, end=end_date)
-            df.index = df.index.tz_localize(None)
-            dataframes.append(df)
+        # Use a ThreadPoolExecutor to run fetch_data_for_ticker concurrently.
+        loop = asyncio.get_running_loop()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=num_tickers_to_sample) as executor:
+            tasks = [
+                loop.run_in_executor(
+                    executor, fetch_data_for_ticker, ticker, 2 + i)
+                for i, ticker in enumerate(tickers)
+            ]
+            dataframes = await asyncio.gather(*tasks)
 
         if persist:
             self.series.append(dataframes)
-
         return dataframes

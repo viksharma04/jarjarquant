@@ -131,7 +131,8 @@ class DataGatherer:
                                            tickers: Optional[list] = None,
                                            num_tickers_to_sample: Optional[int] = 30,
                                            persist: Optional[bool] = False,
-                                           bar_size: Optional[str] = '1 day'):
+                                           bar_size: Optional[str] = '1 day',
+                                           duration: Optional[str] = None):
         # Set today's date and compute the time delta
         today = datetime.today()
         num_years = timedelta(days=years_in_sample * 365)
@@ -149,7 +150,7 @@ class DataGatherer:
 
         # Define a synchronous helper function that fetches data for one ticker.
         # We create a separate IB connection (with its own clientId) in each thread.
-        def fetch_data_for_ticker(ticker, client_id):
+        def fetch_data_for_ticker(ticker, client_id, duration=None):
             ib_local = IB()
             # Connect synchronously (using a unique clientId per thread)
             ib_local.connect('127.0.0.1', 7496, clientId=client_id)
@@ -172,7 +173,9 @@ class DataGatherer:
                 random_end = random_start + num_years
                 end_date = random_end
 
-            duration = f"{years_in_sample} Y"
+            if duration is None:
+                duration = f"{years_in_sample} Y"
+
             bars = ib_local.reqHistoricalData(
                 contract,
                 endDateTime=end_date,
@@ -193,7 +196,7 @@ class DataGatherer:
         with concurrent.futures.ThreadPoolExecutor(max_workers=num_tickers_to_sample) as executor:
             tasks = [
                 loop.run_in_executor(
-                    executor, fetch_data_for_ticker, ticker, 2 + i)
+                    executor, fetch_data_for_ticker, ticker, 2 + i, duration)
                 for i, ticker in enumerate(tickers)
             ]
             dataframes = await asyncio.gather(*tasks)

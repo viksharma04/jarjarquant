@@ -1,12 +1,15 @@
 """The feature evaluator specializes in calculating the efficacy of one or many indicators given a matrix of features X and a target label/series y"""
 import concurrent.futures
-from typing import Callable
+from typing import Callable, Optional
 
 import numpy as np
 import pandas as pd
+from scipy.stats import spearmanr
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, log_loss
 from sklearn.model_selection._split import _BaseKFold
+
+from jarjarquant.cython_utils.opt_threshold import optimize_threshold_cython
 
 from .data_gatherer import DataGatherer
 
@@ -457,10 +460,7 @@ class FeatureEvaluator:
         data_gatherer = DataGatherer()
         ohlcv_df = data_gatherer.get_random_price_samples(
             num_tickers_to_sample=1)[0]
-        if kwargs is not None:
-            indicator_instance = indicator_func(ohlcv_df, **kwargs)
-        else:
-            indicator_instance = indicator_func(ohlcv_df)
+        indicator_instance = indicator_func(ohlcv_df, **kwargs)
 
         indicator_instance.indicator_evaluation_report()
 
@@ -494,3 +494,93 @@ class FeatureEvaluator:
         results = np.mean(results, axis=0)
 
         return {'ADF Test': results[0], 'Jarque-Bera Test': results[1], 'Relative Entropy': results[2], 'Range-IQR Ratio': results[3]}
+
+    @staticmethod
+    def optimize_threshold(indicator_values, return_values, min_kept: float = 0.1, flip_sign: bool = False, return_pval: bool = True):
+        """
+        Optimize the threshold for a given indicator to maximize the performance factor (PF).
+        Parameters:
+        indicator_values (array-like): Array of indicator values.
+        return_values (array-like): Array of return values corresponding to the indicator values.
+        min_kept (float, optional): Minimum fraction of data points to keep. Default is 0.1.
+        flip_sign (bool, optional): Whether to flip the sign of the indicator values. Default is False.
+        Returns:
+        dict: A dictionary containing the following keys:
+            - 'spearman_corr': Spearman rank correlation between the indicator and returns.
+            - 'optimal_long_thresh': Optimal threshold for long positions.
+            - 'optimal_long_pf': Performance factor for the optimal long threshold.
+            - 'optimal_short_thresh': Optimal threshold for short positions.
+            - 'optimal_short_pf': Performance factor for the optimal short threshold.
+            - 'best_bf': Best performance factor between long and short positions.
+            - 'best_pf_pval': P-value of the best performance factor.
+        Raises:
+        ValueError: If the input arrays have less than one element.
+        """
+
+        # Ensure the inputs are numpy arrays.
+        indicator_values = np.asarray(indicator_values)
+        return_values = np.asarray(return_values)
+
+        n = len(indicator_values)
+        if n == 0:
+            raise ValueError("Input arrays must have at least one element.")
+
+        # Enforce that min_kept is at least 1.
+        min_kept = max(int(n*min_kept), 1)
+
+        # Calculate the spearman rank correlation between the indicator and returns.
+        spearman_corr = spearmanr(indicator_values, return_values)[0]
+        if spearman_corr < 0.0:
+            indicator_sign = -1.0
+        else:
+            indicator_sign = 1.0
+
+        # Copy signals and returns into work arrays.
+        # Optionally flip the sign of indicator values.
+        if flip_sign:
+            work_signal = -indicator_sign * indicator_values.copy()
+        else:
+            work_signal = indicator_sign * indicator_values.copy()
+        work_return = return_values.copy()
+
+        # Find the indices of NaN values in either array and drop them from both arrays
+        nan_indices = np.isnan(work_signal) | np.isnan(work_return)
+        work_signal = work_signal[~nan_indices]
+        work_return = work_return[~nan_indices]
+
+        n = len(work_signal)
+
+        # Sort the work arrays based on work_signal.
+        sort_index = np.argsort(work_signal)
+        work_signal = work_signal[sort_index]
+        work_return = work_return[sort_index]
+
+        best_high_index, best_low_index, best_high_pf, best_low_pf = optimize_threshold_cython(
+            work_signal, work_return, int(min_kept))
+
+        # The best thresholds are the signal values at the recorded indices.
+        high_thresh = work_signal[best_high_index]
+        low_thresh = work_signal[best_low_index]
+        pf_high = best_high_pf
+        pf_low = best_low_pf
+        best_overall_pf = max(pf_high, pf_low)
+
+        # Calculate the p-value for the best performance factor.
+        if return_pval:
+            i = 0
+
+            for _ in range(1000):
+                permuted_returns = np.random.choice(
+                    work_return, size=len(work_return), replace=True)
+                _, _, high_pf, low_pf = optimize_threshold_cython(
+                    work_signal, permuted_returns, int(min_kept))
+                permuted_pf = max(high_pf, low_pf)
+                if permuted_pf >= best_overall_pf:
+                    i += 1
+
+            best_pf_pval = i / 1000
+
+        else:
+            best_pf_pval = None
+
+        return {'spearman_corr': spearman_corr, 'optimal_long_thresh': high_thresh, 'optimal_long_pf': pf_high, 'optimal_short_thresh': low_thresh, 'optimal_short_pf': pf_low, 'best_bf': best_overall_pf, 'best_pf_pval': best_pf_pval}

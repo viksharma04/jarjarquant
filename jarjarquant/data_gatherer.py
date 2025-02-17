@@ -192,6 +192,7 @@ class DataGatherer:
             return df
 
         # Use a ThreadPoolExecutor to run fetch_data_for_ticker concurrently.
+        util.startLoop()
         loop = asyncio.get_running_loop()
         with concurrent.futures.ThreadPoolExecutor(max_workers=num_tickers_to_sample) as executor:
             tasks = [

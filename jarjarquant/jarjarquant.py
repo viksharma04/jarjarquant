@@ -64,7 +64,7 @@ class Jarjarquant(Labeller):
             Jarjarquant: Instance of Jarjarquant with generated series.
         """
         data_gatherer = DataGatherer()
-        samples = data_gatherer.get_random_price_samples(
+        samples = data_gatherer.get_random_price_samples_yf(
             num_tickers_to_sample=num_tickers_to_sample, years_in_sample=years_in_sample, **kwargs)
         if not samples:
             raise ValueError(

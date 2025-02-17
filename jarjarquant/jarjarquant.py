@@ -22,7 +22,7 @@ class Jarjarquant(Labeller):
         super().__init__(ohlcv_df)
         self.data_gatherer = DataGatherer()
         if ohlcv_df is None:
-            samples = self.data_gatherer.get_random_price_samples(
+            samples = self.data_gatherer.get_random_price_samples_yf(
                 num_tickers_to_sample=1)
             if not samples:
                 raise ValueError(

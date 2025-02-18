@@ -203,7 +203,7 @@ class DataAnalyst:
         return range_iqr_ratio
 
     @staticmethod
-    def mutual_information(array: np.ndarray, lag: int, n_bins: int = None, is_discrete: bool = False, verbose: bool = False) -> np.ndarray:
+    def mutual_information(array: np.ndarray, lag: int, n_bins: int = 10, is_discrete: bool = False, verbose: bool = False) -> np.ndarray:
         """
         Calculates the mutual information of the array with a specified time lag.
 
@@ -252,18 +252,17 @@ class DataAnalyst:
 
         Args:
             array (np.ndarray): A numpy array representing the time series data.
-            n_bins (int): Number of bins to discretize into.
+            n_bins (int): Number of bins to discretize into using quantile-based binning.
 
         Returns:
             np.ndarray: An array of discretized values.
         """
         # Discretize the array into n_bins using np.percentile for quantile-based binning
-        percentiles = np.linspace(0, 100, n_bins + 1)
-        bins = np.percentile(array, percentiles)
-        discretized = np.digitize(array, bins, right=True) - 1
+        bins = np.percentile(array, np.linspace(0, 100, n_bins + 1))
+        discretized = np.digitize(array, bins, right=False) - 1
 
         # Ensure the discretized values are within the range [0, n_bins - 1]
-        discretized[discretized == n_bins] = n_bins - 1
+        discretized[discretized >= n_bins] = n_bins - 1
 
         return discretized
 

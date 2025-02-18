@@ -22,9 +22,9 @@ def test_indicator_threshold_search_linear():
 
     # Check if the DataFrame has the expected columns
     expected_columns = [
-        'Threshold', '% values > threshold', 'Mean return above threshold', 'Std dev return above threshold',
+        'Threshold', '% values > threshold', 'Spearman correlation above threshold', 'Mean return above threshold', 'Std dev return above threshold',
         'Median return above threshold', 'Q25 return above threshold', 'Q75 return above threshold',
-        'PF Long above threshold', 'PF Short above threshold', '% values < threshold',
+        'PF Long above threshold', 'PF Short above threshold', '% values < threshold', 'Spearman correlation below threshold',
         'Mean return below threshold', 'Std dev return below threshold', 'Median return below threshold',
         'Q25 return below threshold', 'Q75 return below threshold', 'PF Long below threshold', 'PF Short below threshold'
     ]
@@ -49,9 +49,9 @@ def test_indicator_threshold_search_percentile():
 
     # Check if the DataFrame has the expected columns
     expected_columns = [
-        'Threshold', '% values > threshold', 'Mean return above threshold', 'Std dev return above threshold',
+        'Threshold', '% values > threshold', 'Spearman correlation above threshold', 'Mean return above threshold', 'Std dev return above threshold',
         'Median return above threshold', 'Q25 return above threshold', 'Q75 return above threshold',
-        'PF Long above threshold', 'PF Short above threshold', '% values < threshold',
+        'PF Long above threshold', 'PF Short above threshold', '% values < threshold', 'Spearman correlation below threshold',
         'Mean return below threshold', 'Std dev return below threshold', 'Median return below threshold',
         'Q25 return below threshold', 'Q75 return below threshold', 'PF Long below threshold', 'PF Short below threshold'
     ]
@@ -76,9 +76,9 @@ def test_indicator_threshold_search_predefined_thresholds():
 
     # Check if the DataFrame has the expected columns
     expected_columns = [
-        'Threshold', '% values > threshold', 'Mean return above threshold', 'Std dev return above threshold',
+        'Threshold', '% values > threshold', 'Spearman correlation above threshold', 'Mean return above threshold', 'Std dev return above threshold',
         'Median return above threshold', 'Q25 return above threshold', 'Q75 return above threshold',
-        'PF Long above threshold', 'PF Short above threshold', '% values < threshold',
+        'PF Long above threshold', 'PF Short above threshold', '% values < threshold', 'Spearman correlation below threshold',
         'Mean return below threshold', 'Std dev return below threshold', 'Median return below threshold',
         'Q25 return below threshold', 'Q75 return below threshold', 'PF Long below threshold', 'PF Short below threshold'
     ]

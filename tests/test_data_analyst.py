@@ -74,7 +74,8 @@ def test_calculate_regression_coefficient():
 
 
 def test_get_daily_vol():
-    close_series = pd.Series(np.random.randn(100))
+    date_range = pd.date_range(start='2022-01-01', periods=100, freq='D')
+    close_series = pd.Series(np.random.randn(100), index=date_range)
     daily_vol = DataAnalyst.get_daily_vol(close_series)
     assert len(daily_vol) == len(close_series)
 

@@ -394,23 +394,22 @@ class FeatureEvaluator:
         return pd.DataFrame(results)
 
     @staticmethod
-    def single_indicator_threshold_search(inputs: dict):
-
-        ohlcv_df = inputs["ohlcv_df"]
-        indicator_values = inputs["indicator_values"]
-        thresholds = inputs["thresholds"]
-
-        ohlcv_df['returns'] = ohlcv_df['Open'].pct_change().shift(-1)
-        ohlcv_df['ind'] = indicator_values
-        ohlcv_df['ind'] = ohlcv_df['ind'].shift(1)
-
-        results = FeatureEvaluator.indicator_threshold_search(indicator_values=ohlcv_df['ind'].dropna(
-        ), associated_returns=ohlcv_df['returns'].dropna(), thresholds=thresholds)
-
-        return results
-
-    @staticmethod
     def parallel_indicator_threshold_search(indicator_func: Callable, n_runs: int = 10, n_thresholds: int = 10, **kwargs):
+
+        def single_indicator_threshold_search(inputs: dict):
+
+            ohlcv_df = inputs["ohlcv_df"]
+            indicator_values = inputs["indicator_values"]
+            thresholds = inputs["thresholds"]
+
+            ohlcv_df['returns'] = ohlcv_df['Open'].pct_change().shift(-1)
+            ohlcv_df['ind'] = indicator_values
+            ohlcv_df['ind'] = ohlcv_df['ind'].shift(1)
+
+            results = FeatureEvaluator.indicator_threshold_search(indicator_values=ohlcv_df['ind'].dropna(
+            ), associated_returns=ohlcv_df['returns'].dropna(), thresholds=thresholds)
+
+            return results
 
         inputs_list = []
         indicator_values_list = []
@@ -442,7 +441,7 @@ class FeatureEvaluator:
         # Run threshold search in parallel
         with concurrent.futures.ProcessPoolExecutor() as executor:
             results = list(executor.map(
-                FeatureEvaluator.single_indicator_threshold_search, inputs_list))
+                single_indicator_threshold_search, inputs_list))
 
         # Concatenate results and average across runs
         results = pd.concat(results).groupby('Threshold').mean().reset_index()
@@ -450,31 +449,30 @@ class FeatureEvaluator:
         return results
 
     @staticmethod
-    def single_indicator_evaluation(inputs: dict):
-
-        outputs = []
-
-        indicator_func = inputs["indicator_func"]
-        kwargs = inputs["kwargs"]
-
-        data_gatherer = DataGatherer()
-        ohlcv_df = data_gatherer.get_random_price_samples_yf(
-            num_tickers_to_sample=1)[0]
-        indicator_instance = indicator_func(ohlcv_df, **kwargs)
-
-        indicator_instance.indicator_evaluation_report()
-
-        outputs.append(
-            True if indicator_instance.adf_test == "passed" else False)
-        outputs.append(True if indicator_instance.jb_normality_test ==
-                       "passed" else False)
-        outputs.append(indicator_instance.relative_entropy)
-        outputs.append(indicator_instance.range_iqr_ratio)
-
-        return outputs
-
-    @staticmethod
     def parallel_indicator_evaluation(indicator_func: Callable, n_runs: int = 10, **kwargs):
+
+        def single_indicator_evaluation(inputs: dict):
+
+            outputs = []
+
+            indicator_func = inputs["indicator_func"]
+            kwargs = inputs["kwargs"]
+
+            data_gatherer = DataGatherer()
+            ohlcv_df = data_gatherer.get_random_price_samples_yf(
+                num_tickers_to_sample=1)[0]
+            indicator_instance = indicator_func(ohlcv_df, **kwargs)
+
+            indicator_instance.indicator_evaluation_report()
+
+            outputs.append(
+                True if indicator_instance.adf_test == "passed" else False)
+            outputs.append(True if indicator_instance.jb_normality_test ==
+                           "passed" else False)
+            outputs.append(indicator_instance.relative_entropy)
+            outputs.append(indicator_instance.range_iqr_ratio)
+
+            return outputs
 
         inputs_list = []
 
@@ -488,7 +486,7 @@ class FeatureEvaluator:
 
         with concurrent.futures.ProcessPoolExecutor() as executor:
             results = list(executor.map(
-                FeatureEvaluator.single_indicator_evaluation, inputs_list))
+                single_indicator_evaluation, inputs_list))
 
         # results is a list of lists - average across the lists to get the final results
         results = np.mean(results, axis=0)

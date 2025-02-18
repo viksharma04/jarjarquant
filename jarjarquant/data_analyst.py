@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from scipy.special import legendre
 from statsmodels.tsa.stattools import adfuller
-from scipy.stats import jarque_bera, norm
+from scipy.stats import jarque_bera, norm, spearmanr
 from sklearn.metrics import normalized_mutual_info_score
 import matplotlib.pyplot as plt
 
@@ -358,3 +358,40 @@ class DataAnalyst:
         df0.fillna(0.01, inplace=True)
 
         return df0
+
+    @staticmethod
+    def get_spearman_correlation(series1, series2):
+
+        # Convert to numpy arrays if pd.Series
+        if isinstance(series1, pd.Series):
+            series1 = series1.values
+        if isinstance(series2, pd.Series):
+            series2 = series2.values
+
+        # Calculate Spearman correlation
+        spearman_corr, _ = spearmanr(series1, series2)
+
+        # Co sort the series and find spearmann correlation by quantile
+        sorted_indices = np.argsort(series1)
+        sorted_series1 = series1[sorted_indices]
+        sorted_series2 = series2[sorted_indices]
+
+        n = len(sorted_series1)
+        # Define bin edges for 4 equal-sized bins
+        bin_edges = np.linspace(0, n, 5, dtype=int)
+
+        correlations = []
+        for i in range(4):
+            start = bin_edges[i]
+            end = bin_edges[i+1]
+            s1_bin = sorted_series1[start:end]
+            s2_bin = sorted_series2[start:end]
+
+            # Compute Spearman correlation if there are at least 2 data points
+            if len(s1_bin) > 1:
+                corr, _ = spearmanr(s1_bin, s2_bin)
+            else:
+                corr = np.nan
+            correlations.append(corr)
+
+        return {'spearman_corr': spearman_corr, 'spearman_corr_quartile': correlations}

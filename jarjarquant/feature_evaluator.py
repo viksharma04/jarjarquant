@@ -401,6 +401,10 @@ class FeatureEvaluator:
             q75_return_above = associated_returns[above_threshold.values].quantile(
                 0.75)
 
+            # Calculate spearman rank correlation above threshold
+            spearman_corr_above = spearmanr(
+                indicator_values[above_threshold.values], associated_returns[above_threshold.values])[0]
+
             # Below threshold
             pf_long_below = associated_returns[below_threshold & (associated_returns > 0)].sum() / \
                 -associated_returns[below_threshold &
@@ -420,9 +424,14 @@ class FeatureEvaluator:
             q75_return_below = associated_returns[below_threshold.values].quantile(
                 0.75)
 
+            # Calculate spearman rank correlation below threshold
+            spearman_corr_below = spearmanr(
+                indicator_values[below_threshold.values], associated_returns[below_threshold.values])[0]
+
             results.append({
                 'Threshold': threshold,
                 '% values > threshold': above_threshold.mean()*100,
+                'Spearman correlation above threshold': spearman_corr_above,
                 'Mean return above threshold': mean_return_above,
                 'Std dev return above threshold': std_return_above,
                 'Median return above threshold': median_return_above,
@@ -431,6 +440,7 @@ class FeatureEvaluator:
                 'PF Long above threshold': np.nan_to_num(pf_long_above, nan=0.0, posinf=0.0, neginf=0.0),
                 'PF Short above threshold': np.nan_to_num(pf_short_above, nan=0.0, posinf=0.0, neginf=0.0),
                 '% values < threshold': below_threshold.mean()*100,
+                'Spearman correlation below threshold': spearman_corr_below,
                 'Mean return below threshold': mean_return_below,
                 'Std dev return below threshold': std_return_below,
                 'Median return below threshold': median_return_below,

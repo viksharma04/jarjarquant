@@ -23,6 +23,7 @@ def test_get_yf_ticker():
                'Open', 'High', 'Low', 'Close', 'Volume'])
 
 
+@pytest.mark.skip(reason="Excluded from CI/CD pipeline due to TWS connection requirement")
 @pytest.mark.asyncio
 async def test_get_tws_ticker():
     df = await DataGatherer.get_tws_ticker(ticker='AAPL', end_date='20031126 15:59:00 US/Eastern')
@@ -39,6 +40,7 @@ def test_get_random_price_samples_yf(data_gatherer):
         assert not df.empty
 
 
+@pytest.mark.skip(reason="Excluded from CI/CD pipeline due to TWS connection requirement")
 @pytest.mark.asyncio
 async def test_get_random_price_samples_tws(data_gatherer):
     dataframes = await data_gatherer.get_random_price_samples_tws(num_tickers_to_sample=1, years_in_sample=1)

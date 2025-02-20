@@ -62,6 +62,9 @@ class DataGatherer:
 
         # Convert bars to a DataFrame and display
         df = util.df(bars)
+        # Rename 'open', 'high', 'low', 'close' columns to 'Open', 'High', 'Low', 'Close'
+        df.rename(columns={'open': 'Open', 'high': 'High',
+                  'low': 'Low', 'close': 'Close', 'volume': 'Volume'}, inplace=True)
 
         # Disconnect from IB
         ib.disconnect()
@@ -142,7 +145,7 @@ class DataGatherer:
             tickers = [
                 'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'KO', 'MCD', 'NVDA', 'JPM', 'DIS',
                 'BAC', 'CVX', 'INTC', 'CSCO', 'PEP', 'WMT', 'PG', 'ADBE', 'PFE',
-                'XOM', 'T', 'NKE', 'MRK', 'ORCL', 'IBM', 'HON', 'BA', 'MMM', 'UNH',
+                'XOM', 'T', 'NKE', 'MRK', 'IBM', 'HON', 'BA', 'MMM', 'UNH',
                 'GS', 'LMT', 'ABT', 'MO', 'AXP', 'CL', 'COP', 'DOW', 'GE', 'HD',
                 'JNJ', 'TRV', 'VZ', 'WFC'
             ]
@@ -188,6 +191,8 @@ class DataGatherer:
 
             # Convert the bars to a DataFrame
             df = util.df(bars)
+            df.rename(columns={'open': 'Open', 'high': 'High',
+                               'low': 'Low', 'close': 'Close', 'volume': 'Volume'}, inplace=True)
             ib_local.disconnect()
             return df
 

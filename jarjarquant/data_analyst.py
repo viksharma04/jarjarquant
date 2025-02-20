@@ -1,11 +1,14 @@
 """The data analyst specializes in performing and contextualizing common statistical tests on one or many data series"""
-import pandas as pd
-import numpy as np
-from scipy.special import legendre
-from statsmodels.tsa.stattools import adfuller
-from scipy.stats import jarque_bera, norm
-from sklearn.metrics import normalized_mutual_info_score
+from typing import Optional
+
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import statsmodels.api as sm
+from scipy.special import legendre
+from scipy.stats import jarque_bera, norm, spearmanr
+from sklearn.metrics import normalized_mutual_info_score
+from statsmodels.tsa.stattools import adfuller
 
 
 class DataAnalyst:
@@ -132,7 +135,7 @@ class DataAnalyst:
     @staticmethod
     def relative_entropy(values: np.ndarray, verbose: bool = False) -> np.float64:
         # Convert values to numpy array for efficient computation
-        values = values
+        values = np.asarray(values)
         n = len(values)
 
         # Determine the number of bins based on sample size
@@ -203,7 +206,7 @@ class DataAnalyst:
         return range_iqr_ratio
 
     @staticmethod
-    def mutual_information(array: np.ndarray, lag: int, n_bins: int = None, is_discrete: bool = False, verbose: bool = False) -> np.ndarray:
+    def mutual_information(array: np.ndarray, lag: int, n_bins: int = 10, is_discrete: bool = False, verbose: bool = False) -> np.ndarray:
         """
         Calculates the mutual information of the array with a specified time lag.
 
@@ -252,18 +255,17 @@ class DataAnalyst:
 
         Args:
             array (np.ndarray): A numpy array representing the time series data.
-            n_bins (int): Number of bins to discretize into.
+            n_bins (int): Number of bins to discretize into using quantile-based binning.
 
         Returns:
             np.ndarray: An array of discretized values.
         """
         # Discretize the array into n_bins using np.percentile for quantile-based binning
-        percentiles = np.linspace(0, 100, n_bins + 1)
-        bins = np.percentile(array, percentiles)
-        discretized = np.digitize(array, bins, right=True) - 1
+        bins = np.percentile(array, np.linspace(0, 100, n_bins + 1))
+        discretized = np.digitize(array, bins, right=False) - 1
 
         # Ensure the discretized values are within the range [0, n_bins - 1]
-        discretized[discretized == n_bins] = n_bins - 1
+        discretized[discretized >= n_bins] = n_bins - 1
 
         return discretized
 
@@ -358,3 +360,67 @@ class DataAnalyst:
         df0.fillna(0.01, inplace=True)
 
         return df0
+
+    @staticmethod
+    def get_spearman_correlation(series1, series2):
+
+        # Convert to numpy arrays if pd.Series
+        if isinstance(series1, pd.Series):
+            series1 = series1.values
+        if isinstance(series2, pd.Series):
+            series2 = series2.values
+
+        # Calculate Spearman correlation
+        spearman_corr, _ = spearmanr(series1, series2)
+
+        # Co sort the series and find spearmann correlation by quantile
+        sorted_indices = np.argsort(series1)
+        sorted_series1 = series1[sorted_indices]
+        sorted_series2 = series2[sorted_indices]
+
+        n = len(sorted_series1)
+        # Define bin edges for 4 equal-sized bins
+        bin_edges = np.linspace(0, n, 5, dtype=int)
+
+        correlations = []
+        for i in range(4):
+            start = bin_edges[i]
+            end = bin_edges[i+1]
+            s1_bin = sorted_series1[start:end]
+            s2_bin = sorted_series2[start:end]
+
+            # Compute Spearman correlation if there are at least 2 data points
+            if len(s1_bin) > 1:
+                corr, _ = spearmanr(s1_bin, s2_bin)
+            else:
+                corr = np.nan
+            correlations.append(corr)
+
+        return {'spearman_corr': spearman_corr, 'spearman_corr_quartile': correlations}
+
+    @staticmethod
+    def plot_loess(x: np.ndarray, y: np.ndarray, smoothing_factor: Optional[int] = 3, x_label: Optional[str] = 'x', y_label: Optional[str] = 'y', title: Optional[str] = 'LOESS Fit', annotation: Optional[float] = None):
+
+        # Fit LOESS (LOWESS in statsmodels)
+        frac = float(smoothing_factor/10)
+        lowess = sm.nonparametric.lowess(
+            y, x, frac=frac)  # frac controls smoothing
+
+        # Extract smoothed values
+        x_smooth, y_smooth = lowess[:, 0], lowess[:, 1]
+
+        # Plot
+        plt.scatter(x, y,
+                    alpha=0.5, label="Data")
+        plt.plot(x_smooth, y_smooth, color="red",
+                 linewidth=2, label="LOESS Fit")
+        # Annotate the correlation coefficient on the plot
+        if annotation is not None:
+            plt.text(0.05, 0.95, f'Pearson r = {annotation:.2f}', transform=plt.gca().transAxes,
+                     fontsize=12, verticalalignment='top')
+
+        plt.legend()
+        plt.xlabel(x_label)
+        plt.ylabel(y_label)
+        plt.title(title)
+        plt.show()

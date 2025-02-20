@@ -2,6 +2,7 @@
 import concurrent.futures
 from typing import Callable, Optional
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr
@@ -12,6 +13,7 @@ from sklearn.model_selection._split import _BaseKFold
 from jarjarquant.cython_utils.opt_threshold import optimize_threshold_cython
 
 from .data_gatherer import DataGatherer
+from .data_analyst import DataAnalyst
 
 # Define the PurgedKFold class for feature importance scores
 
@@ -172,7 +174,7 @@ class FeatureEvaluator:
         Parameters:
         -----------
         fit : sklearn.tree._forest.ForestClassifier or ForestRegressor
-            A fitted ensemble model (e.g., RandomForestClassifier) with an 'estimators_' attribute 
+            A fitted ensemble model (e.g., RandomForestClassifier) with an 'estimators_' attribute
             containing individual decision trees.
 
         featureNames : list of str
@@ -181,7 +183,7 @@ class FeatureEvaluator:
         Returns:
         --------
         pd.DataFrame
-            A DataFrame containing the mean and standard deviation of feature importances, 
+            A DataFrame containing the mean and standard deviation of feature importances,
             normalized so that the mean importances sum to 1.
         """
 
@@ -338,7 +340,7 @@ class FeatureEvaluator:
         return importance_scores
 
     @staticmethod
-    def indicator_threshold_search(indicator_values: pd.Series, associated_returns: pd.Series, n_thresholds: int = None, thresholds: list = None):
+    def indicator_threshold_search(indicator_values: pd.Series, associated_returns: pd.Series, thresholds: Optional[list] = None,  n_thresholds: Optional[int] = 10, threshold_option: Optional[str] = 'percentile'):
         """
         Evaluate profit factors for different thresholds of an indicator.
 
@@ -347,18 +349,33 @@ class FeatureEvaluator:
         associated_returns (pd.Series): Series of returns associated with the indicator values.
         n_thresholds (int, optional): Number of thresholds to evaluate.
         thresholds (list, optional): List of predefined threshold values.
+        threshold_option (str, optional): Method to calculate thresholds ('linear' or 'percentile').
 
         Returns:
         pd.DataFrame: DataFrame with thresholds and profit factors for long/short positions above/below the thresholds.
         """
+        # Ensure the inputs are of the same length
+        if len(indicator_values) != len(associated_returns):
+            raise ValueError(
+                "indicator_values and associated_returns must have the same length.")
+
         if thresholds is None:
             if n_thresholds is None:
                 raise ValueError(
                     "Either n_thresholds or thresholds must be provided.")
-            # Calculate threshold values
-            min_val, max_val = indicator_values.min(), indicator_values.max()
-            # Exclude min and max values
-            thresholds = np.linspace(min_val, max_val, n_thresholds + 2)[1:-1]
+            if threshold_option == 'linear':
+                # Calculate threshold values
+                min_val, max_val = indicator_values.min(), indicator_values.max()
+                # Exclude min and max values
+                thresholds = np.linspace(
+                    min_val, max_val, n_thresholds + 2)[1:-1]
+            elif threshold_option == 'percentile':
+                # Calculate threshold values using percentiles
+                percentiles = np.linspace(0, 100, n_thresholds + 2)[1:-1]
+                thresholds = np.percentile(indicator_values, percentiles)
+            else:
+                raise ValueError(
+                    "threshold_option must be 'linear' or 'percentile'.")
 
         results = []
 
@@ -367,6 +384,7 @@ class FeatureEvaluator:
             above_threshold = indicator_values > threshold
             below_threshold = indicator_values < threshold
 
+            # ABove threshold
             pf_long_above = associated_returns[above_threshold & (associated_returns > 0)].sum() / \
                 -associated_returns[above_threshold &
                                     (associated_returns < 0)].sum()
@@ -374,6 +392,22 @@ class FeatureEvaluator:
                 associated_returns[above_threshold &
                                    (associated_returns > 0)].sum()
 
+            # Calculate mean and median return, standard deviation of return, 25th percentile and 75th percentile return above each threshold
+            mean_return_above = associated_returns[above_threshold.values].mean(
+            )
+            std_return_above = associated_returns[above_threshold.values].std()
+            median_return_above = associated_returns[above_threshold.values].median(
+            )
+            q25_return_above = associated_returns[above_threshold.values].quantile(
+                0.25)
+            q75_return_above = associated_returns[above_threshold.values].quantile(
+                0.75)
+
+            # Calculate spearman rank correlation above threshold
+            spearman_corr_above = spearmanr(
+                indicator_values[above_threshold.values], associated_returns[above_threshold.values])[0]
+
+            # Below threshold
             pf_long_below = associated_returns[below_threshold & (associated_returns > 0)].sum() / \
                 -associated_returns[below_threshold &
                                     (associated_returns < 0)].sum()
@@ -381,12 +415,39 @@ class FeatureEvaluator:
                 associated_returns[below_threshold &
                                    (associated_returns > 0)].sum()
 
+            # Calculate mean and median return, standard deviation of return, 25th percentile and 75th percentile return below each threshold
+            mean_return_below = associated_returns[below_threshold.values].mean(
+            )
+            std_return_below = associated_returns[below_threshold.values].std()
+            median_return_below = associated_returns[below_threshold.values].median(
+            )
+            q25_return_below = associated_returns[below_threshold.values].quantile(
+                0.25)
+            q75_return_below = associated_returns[below_threshold.values].quantile(
+                0.75)
+
+            # Calculate spearman rank correlation below threshold
+            spearman_corr_below = spearmanr(
+                indicator_values[below_threshold.values], associated_returns[below_threshold.values])[0]
+
             results.append({
                 'Threshold': threshold,
                 '% values > threshold': above_threshold.mean()*100,
+                'Spearman correlation above threshold': spearman_corr_above,
+                'Mean return above threshold': mean_return_above,
+                'Std dev return above threshold': std_return_above,
+                'Median return above threshold': median_return_above,
+                'Q25 return above threshold': q25_return_above,
+                'Q75 return above threshold': q75_return_above,
                 'PF Long above threshold': np.nan_to_num(pf_long_above, nan=0.0, posinf=0.0, neginf=0.0),
                 'PF Short above threshold': np.nan_to_num(pf_short_above, nan=0.0, posinf=0.0, neginf=0.0),
                 '% values < threshold': below_threshold.mean()*100,
+                'Spearman correlation below threshold': spearman_corr_below,
+                'Mean return below threshold': mean_return_below,
+                'Std dev return below threshold': std_return_below,
+                'Median return below threshold': median_return_below,
+                'Q25 return below threshold': q25_return_below,
+                'Q75 return below threshold': q75_return_below,
                 'PF Long below threshold': np.nan_to_num(pf_long_below, nan=0.0, posinf=0.0, neginf=0.0),
                 'PF Short below threshold': np.nan_to_num(pf_short_below, nan=0.0, posinf=0.0, neginf=0.0)
             })
@@ -394,22 +455,23 @@ class FeatureEvaluator:
         return pd.DataFrame(results)
 
     @staticmethod
+    def single_indicator_threshold_search(inputs: dict):
+
+        ohlcv_df = inputs["ohlcv_df"]
+        indicator_values = inputs["indicator_values"]
+        thresholds = inputs["thresholds"]
+
+        ohlcv_df['returns'] = ohlcv_df['Open'].pct_change().shift(-1)
+        ohlcv_df['ind'] = indicator_values
+        ohlcv_df['ind'] = ohlcv_df['ind'].shift(1)
+
+        results = FeatureEvaluator.indicator_threshold_search(indicator_values=ohlcv_df['ind'].dropna(
+        ), associated_returns=ohlcv_df['returns'].dropna(), thresholds=thresholds)
+
+        return results
+
+    @staticmethod
     def parallel_indicator_threshold_search(indicator_func: Callable, n_runs: int = 10, n_thresholds: int = 10, **kwargs):
-
-        def single_indicator_threshold_search(inputs: dict):
-
-            ohlcv_df = inputs["ohlcv_df"]
-            indicator_values = inputs["indicator_values"]
-            thresholds = inputs["thresholds"]
-
-            ohlcv_df['returns'] = ohlcv_df['Open'].pct_change().shift(-1)
-            ohlcv_df['ind'] = indicator_values
-            ohlcv_df['ind'] = ohlcv_df['ind'].shift(1)
-
-            results = FeatureEvaluator.indicator_threshold_search(indicator_values=ohlcv_df['ind'].dropna(
-            ), associated_returns=ohlcv_df['returns'].dropna(), thresholds=thresholds)
-
-            return results
 
         inputs_list = []
         indicator_values_list = []
@@ -431,8 +493,12 @@ class FeatureEvaluator:
 
         # Determine thresholds based on the entire range of indicator values across all runs
         all_indicator_values = np.concatenate(indicator_values_list)
-        thresholds = np.linspace(all_indicator_values.min(
-        ), all_indicator_values.max(), n_thresholds + 2)[1:-1]
+        # thresholds = np.linspace(all_indicator_values.min(
+        # ), all_indicator_values.max(), n_thresholds + 2)[1:-1]
+
+        # Implement percentile thresholds
+        percentiles = np.linspace(0, 100, n_thresholds + 2)[1:-1]
+        thresholds = np.percentile(all_indicator_values, percentiles)
 
         # Update inputs with calculated thresholds
         for inputs in inputs_list:
@@ -441,7 +507,7 @@ class FeatureEvaluator:
         # Run threshold search in parallel
         with concurrent.futures.ProcessPoolExecutor() as executor:
             results = list(executor.map(
-                single_indicator_threshold_search, inputs_list))
+                FeatureEvaluator.single_indicator_threshold_search, inputs_list))
 
         # Concatenate results and average across runs
         results = pd.concat(results).groupby('Threshold').mean().reset_index()
@@ -449,30 +515,31 @@ class FeatureEvaluator:
         return results
 
     @staticmethod
+    def single_indicator_evaluation(inputs: dict):
+
+        outputs = []
+
+        indicator_func = inputs["indicator_func"]
+        kwargs = inputs["kwargs"]
+
+        data_gatherer = DataGatherer()
+        ohlcv_df = data_gatherer.get_random_price_samples_yf(
+            num_tickers_to_sample=1)[0]
+        indicator_instance = indicator_func(ohlcv_df, **kwargs)
+
+        indicator_instance.indicator_evaluation_report()
+
+        outputs.append(
+            True if indicator_instance.adf_test == "passed" else False)
+        outputs.append(True if indicator_instance.jb_normality_test ==
+                       "passed" else False)
+        outputs.append(indicator_instance.relative_entropy)
+        outputs.append(indicator_instance.range_iqr_ratio)
+
+        return outputs
+
+    @staticmethod
     def parallel_indicator_evaluation(indicator_func: Callable, n_runs: int = 10, **kwargs):
-
-        def single_indicator_evaluation(inputs: dict):
-
-            outputs = []
-
-            indicator_func = inputs["indicator_func"]
-            kwargs = inputs["kwargs"]
-
-            data_gatherer = DataGatherer()
-            ohlcv_df = data_gatherer.get_random_price_samples_yf(
-                num_tickers_to_sample=1)[0]
-            indicator_instance = indicator_func(ohlcv_df, **kwargs)
-
-            indicator_instance.indicator_evaluation_report()
-
-            outputs.append(
-                True if indicator_instance.adf_test == "passed" else False)
-            outputs.append(True if indicator_instance.jb_normality_test ==
-                           "passed" else False)
-            outputs.append(indicator_instance.relative_entropy)
-            outputs.append(indicator_instance.range_iqr_ratio)
-
-            return outputs
 
         inputs_list = []
 
@@ -486,7 +553,7 @@ class FeatureEvaluator:
 
         with concurrent.futures.ProcessPoolExecutor() as executor:
             results = list(executor.map(
-                single_indicator_evaluation, inputs_list))
+                FeatureEvaluator.single_indicator_evaluation, inputs_list))
 
         # results is a list of lists - average across the lists to get the final results
         results = np.mean(results, axis=0)
@@ -582,3 +649,35 @@ class FeatureEvaluator:
             best_pf_pval = None
 
         return {'spearman_corr': spearman_corr, 'optimal_long_thresh': high_thresh, 'optimal_long_pf': pf_high, 'optimal_short_thresh': low_thresh, 'optimal_short_pf': pf_low, 'best_bf': best_overall_pf, 'best_pf_pval': best_pf_pval}
+
+    @staticmethod
+    def co_distribution_analysis(indicator_values: np.ndarray, associated_returns: np.ndarray):
+
+        data_analyst = DataAnalyst()
+        indicator_values = np.asarray(indicator_values)
+        associated_returns = np.asarray(associated_returns)
+
+        spearman_results = data_analyst.get_spearman_correlation(
+            indicator_values, associated_returns)
+
+        # 1. Plot a LOESS scatter plot of the indicator values and associated returns
+        data_analyst.plot_loess(x=indicator_values, y=associated_returns,
+                                x_label='Indicator Values', y_label='Returns', title='Overall LOESS Scatter Plot', annotation=spearman_results['spearman_corr'])
+
+        # 2. Co sort the returns and indicator values and then create 4 LOESS plots for each quartile of indicator values
+        sorted_indices = np.argsort(indicator_values)
+        sorted_indicator = indicator_values[sorted_indices]
+        sorted_returns = associated_returns[sorted_indices]
+
+        n = len(sorted_indicator)
+        # Define bin edges for 4 equal-sized bins
+        bin_edges = np.linspace(0, n, 5, dtype=int)
+
+        for i in range(4):
+            start = bin_edges[i]
+            end = bin_edges[i+1]
+            s1_bin = sorted_indicator[start:end]
+            s2_bin = sorted_returns[start:end]
+
+            data_analyst.plot_loess(x=s1_bin, y=s2_bin,
+                                    x_label='Indicator Values', y_label='Returns', title=f'Quartile {i+1} LOESS Scatter Plot', annotation=spearman_results['spearman_corr_quartile'][i])

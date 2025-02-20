@@ -1,11 +1,14 @@
 """The data analyst specializes in performing and contextualizing common statistical tests on one or many data series"""
-import pandas as pd
+from typing import Optional
+
+import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import statsmodels.api as sm
 from scipy.special import legendre
-from statsmodels.tsa.stattools import adfuller
 from scipy.stats import jarque_bera, norm, spearmanr
 from sklearn.metrics import normalized_mutual_info_score
-import matplotlib.pyplot as plt
+from statsmodels.tsa.stattools import adfuller
 
 
 class DataAnalyst:
@@ -132,7 +135,7 @@ class DataAnalyst:
     @staticmethod
     def relative_entropy(values: np.ndarray, verbose: bool = False) -> np.float64:
         # Convert values to numpy array for efficient computation
-        values = values
+        values = np.asarray(values)
         n = len(values)
 
         # Determine the number of bins based on sample size
@@ -394,3 +397,30 @@ class DataAnalyst:
             correlations.append(corr)
 
         return {'spearman_corr': spearman_corr, 'spearman_corr_quartile': correlations}
+
+    @staticmethod
+    def plot_loess(x: np.ndarray, y: np.ndarray, smoothing_factor: Optional[int] = 3, x_label: Optional[str] = 'x', y_label: Optional[str] = 'y', title: Optional[str] = 'LOESS Fit', annotation: Optional[float] = None):
+
+        # Fit LOESS (LOWESS in statsmodels)
+        frac = float(smoothing_factor/10)
+        lowess = sm.nonparametric.lowess(
+            y, x, frac=frac)  # frac controls smoothing
+
+        # Extract smoothed values
+        x_smooth, y_smooth = lowess[:, 0], lowess[:, 1]
+
+        # Plot
+        plt.scatter(x, y,
+                    alpha=0.5, label="Data")
+        plt.plot(x_smooth, y_smooth, color="red",
+                 linewidth=2, label="LOESS Fit")
+        # Annotate the correlation coefficient on the plot
+        if annotation is not None:
+            plt.text(0.05, 0.95, f'Pearson r = {annotation:.2f}', transform=plt.gca().transAxes,
+                     fontsize=12, verticalalignment='top')
+
+        plt.legend()
+        plt.xlabel(x_label)
+        plt.ylabel(y_label)
+        plt.title(title)
+        plt.show()

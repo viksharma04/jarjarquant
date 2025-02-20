@@ -37,7 +37,9 @@ jobs:
           python -c "import pandas; print(pandas.__version__)"
 
       - name: Build Cython Extensions
-        run: python setup.py build_ext --inplace
+        run: |
+          source venv/bin/activate
+          python setup.py build_ext --inplace
 
       - name: Run Unit Tests
         run: |

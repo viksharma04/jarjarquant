@@ -1,4 +1,6 @@
 """Main module for jarjarquant package."""
+import asyncio
+
 import pandas as pd
 
 from .data_analyst import DataAnalyst
@@ -22,8 +24,8 @@ class Jarjarquant(Labeller):
         super().__init__(ohlcv_df)
         self.data_gatherer = DataGatherer()
         if ohlcv_df is None:
-            samples = self.data_gatherer.get_random_price_samples_yf(
-                num_tickers_to_sample=1)
+            samples = asyncio.run(self.data_gatherer.get_random_price_samples_tws(
+                num_tickers_to_sample=1))
             if not samples:
                 raise ValueError(
                     "No price samples were returned. Please check the data source.")

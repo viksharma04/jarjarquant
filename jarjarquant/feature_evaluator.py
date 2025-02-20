@@ -2,6 +2,7 @@
 import concurrent.futures
 from typing import Callable, Optional
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr
@@ -12,6 +13,7 @@ from sklearn.model_selection._split import _BaseKFold
 from jarjarquant.cython_utils.opt_threshold import optimize_threshold_cython
 
 from .data_gatherer import DataGatherer
+from .data_analyst import DataAnalyst
 
 # Define the PurgedKFold class for feature importance scores
 
@@ -647,3 +649,35 @@ class FeatureEvaluator:
             best_pf_pval = None
 
         return {'spearman_corr': spearman_corr, 'optimal_long_thresh': high_thresh, 'optimal_long_pf': pf_high, 'optimal_short_thresh': low_thresh, 'optimal_short_pf': pf_low, 'best_bf': best_overall_pf, 'best_pf_pval': best_pf_pval}
+
+    @staticmethod
+    def co_distribution_analysis(indicator_values: np.ndarray, associated_returns: np.ndarray):
+
+        data_analyst = DataAnalyst()
+        indicator_values = np.asarray(indicator_values)
+        associated_returns = np.asarray(associated_returns)
+
+        spearman_results = data_analyst.get_spearman_correlation(
+            indicator_values, associated_returns)
+
+        # 1. Plot a LOESS scatter plot of the indicator values and associated returns
+        data_analyst.plot_loess(x=indicator_values, y=associated_returns,
+                                x_label='Indicator Values', y_label='Returns', title='Overall LOESS Scatter Plot', annotation=spearman_results['spearman_corr'])
+
+        # 2. Co sort the returns and indicator values and then create 4 LOESS plots for each quartile of indicator values
+        sorted_indices = np.argsort(indicator_values)
+        sorted_indicator = indicator_values[sorted_indices]
+        sorted_returns = associated_returns[sorted_indices]
+
+        n = len(sorted_indicator)
+        # Define bin edges for 4 equal-sized bins
+        bin_edges = np.linspace(0, n, 5, dtype=int)
+
+        for i in range(4):
+            start = bin_edges[i]
+            end = bin_edges[i+1]
+            s1_bin = sorted_indicator[start:end]
+            s2_bin = sorted_returns[start:end]
+
+            data_analyst.plot_loess(x=s1_bin, y=s2_bin,
+                                    x_label='Indicator Values', y_label='Returns', title=f'Quartile {i+1} LOESS Scatter Plot', annotation=spearman_results['spearman_corr_quartile'][i])

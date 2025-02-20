@@ -25,6 +25,8 @@ jobs:
 
       - name: Install Python Dependencies
         run: |
+          python -m venv venv
+          source venv\Scripts\activate
           python -m pip install --upgrade pip
           python -m pip install Cython numpy pytest setuptools wheel
           python -m pip install -r requirements.txt || echo "No requirements.txt found"
@@ -36,4 +38,6 @@ jobs:
         run: python setup.py build_ext --inplace
 
       - name: Run Unit Tests
-        run: pytest tests/ --maxfail=3 --disable-warnings
+        run: |
+          source venv\Scripts\activate
+          pytest tests/ --maxfail=3 --disable-warnings

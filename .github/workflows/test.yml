@@ -32,7 +32,9 @@ jobs:
           python -m pip install -r requirements.txt || echo "No requirements.txt found"
 
       - name: Check installed packages
-        run: python -c "import pandas; print(pandas.__version__)"
+        run: |
+          source venv/bin/activate
+          python -c "import pandas; print(pandas.__version__)"
 
       - name: Build Cython Extensions
         run: python setup.py build_ext --inplace

@@ -480,7 +480,7 @@ class FeatureEvaluator:
         with concurrent.futures.ProcessPoolExecutor() as executor:
             data_gatherer = DataGatherer()
             futures = [executor.submit(
-                data_gatherer.get_random_price_samples_yf, num_tickers_to_sample=1) for _ in range(n_runs)]
+                data_gatherer.get_random_price_samples_tws, num_tickers_to_sample=1) for _ in range(n_runs)]
             for future in concurrent.futures.as_completed(futures):
                 ohlcv_df = future.result()[0]
                 indicator_values = indicator_func(
@@ -523,7 +523,7 @@ class FeatureEvaluator:
         kwargs = inputs["kwargs"]
 
         data_gatherer = DataGatherer()
-        ohlcv_df = data_gatherer.get_random_price_samples_yf(
+        ohlcv_df = data_gatherer.get_random_price_samples_tws(
             num_tickers_to_sample=1)[0]
         indicator_instance = indicator_func(ohlcv_df, **kwargs)
 

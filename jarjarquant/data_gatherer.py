@@ -129,13 +129,13 @@ class DataGatherer:
 
         return dataframes
 
-    async def get_random_price_samples_tws(self,
-                                           years_in_sample: int = 10,
-                                           tickers: Optional[list] = None,
-                                           num_tickers_to_sample: Optional[int] = 30,
-                                           persist: Optional[bool] = False,
-                                           bar_size: Optional[str] = '1 day',
-                                           duration: Optional[str] = None):
+    async def _get_random_price_samples_tws(self,
+                                            years_in_sample: int = 10,
+                                            tickers: Optional[list] = None,
+                                            num_tickers_to_sample: Optional[int] = 30,
+                                            persist: Optional[bool] = False,
+                                            bar_size: Optional[str] = '1 day',
+                                            duration: Optional[str] = None):
         # Set today's date and compute the time delta
         today = datetime.today()
         num_years = timedelta(days=years_in_sample * 365)
@@ -210,3 +210,20 @@ class DataGatherer:
         if persist:
             self.series.append(dataframes)
         return dataframes
+
+    def get_random_price_samples_tws(self,
+                                     years_in_sample: int = 10,
+                                     tickers: Optional[list] = None,
+                                     num_tickers_to_sample: Optional[int] = 30,
+                                     persist: Optional[bool] = False,
+                                     bar_size: Optional[str] = '1 day',
+                                     duration: Optional[str] = None):
+
+        return asyncio.run(self._get_random_price_samples_tws(
+            years_in_sample=years_in_sample,
+            tickers=tickers,
+            num_tickers_to_sample=num_tickers_to_sample,
+            persist=persist,
+            bar_size=bar_size,
+            duration=duration
+        ))

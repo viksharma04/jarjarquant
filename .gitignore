@@ -167,3 +167,6 @@ cython_debug/
 # Specific files
 compare_with_file.py
 test_nb.ipynb
+
+# Data folder
+data/

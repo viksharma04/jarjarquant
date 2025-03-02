@@ -521,10 +521,11 @@ class FeatureEvaluator:
 
         indicator_func = inputs["indicator_func"]
         kwargs = inputs["kwargs"]
+        ohlcv_df = inputs["ohlcv_df"]
 
-        data_gatherer = DataGatherer()
-        ohlcv_df = data_gatherer.get_random_price_samples_tws(
-            num_tickers_to_sample=1)[0]
+        # data_gatherer = DataGatherer()
+        # ohlcv_df = data_gatherer.get_random_price_samples_tws(
+        #     num_tickers_to_sample=1)[0]
         indicator_instance = indicator_func(ohlcv_df, **kwargs)
 
         indicator_instance.indicator_evaluation_report()
@@ -542,11 +543,15 @@ class FeatureEvaluator:
     def parallel_indicator_evaluation(indicator_func: Callable, n_runs: int = 10, **kwargs):
 
         inputs_list = []
+        data_gatherer = DataGatherer()
+        ohlcv_dfs = data_gatherer.get_random_price_samples_tws(
+            num_tickers_to_sample=n_runs)
 
         # Create multiple instances of the indicator with a different data sample each time
         for i in range(n_runs):
             inputs = {
                 "indicator_func": indicator_func,
+                "ohlcv_df": ohlcv_dfs[i],
                 "kwargs": kwargs
             }
             inputs_list.append(inputs)

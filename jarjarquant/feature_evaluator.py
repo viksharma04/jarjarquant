@@ -515,7 +515,7 @@ class FeatureEvaluator:
         return results
 
     @staticmethod
-    def single_indicator_evaluation(inputs: dict):
+    def indicator_distribution_study(inputs: dict):
 
         outputs = []
 
@@ -540,7 +540,7 @@ class FeatureEvaluator:
         return outputs
 
     @staticmethod
-    def parallel_indicator_evaluation(indicator_func: Callable, n_runs: int = 10, custom_sample: Optional[str] = None, **kwargs):
+    def parallel_indicator_distribution_study(indicator_func: Callable, n_runs: int = 10, custom_sample: Optional[str] = None, **kwargs):
 
         inputs_list = []
         data_gatherer = DataGatherer()
@@ -558,10 +558,11 @@ class FeatureEvaluator:
 
         with concurrent.futures.ProcessPoolExecutor() as executor:
             results = list(executor.map(
-                FeatureEvaluator.single_indicator_evaluation, inputs_list))
+                FeatureEvaluator.indicator_distribution_study, inputs_list))
 
         # results is a list of lists - average across the lists to get the final results
         results = np.mean(results, axis=0)
+        results = [round(value, 2) for value in results]
 
         return {'ADF Test': results[0], 'Jarque-Bera Test': results[1], 'Relative Entropy': results[2], 'Range-IQR Ratio': results[3]}
 

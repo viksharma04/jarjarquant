@@ -540,18 +540,18 @@ class FeatureEvaluator:
         return outputs
 
     @staticmethod
-    def parallel_indicator_evaluation(indicator_func: Callable, n_runs: int = 10, **kwargs):
+    def parallel_indicator_evaluation(indicator_func: Callable, n_runs: int = 10, custom_sample: Optional[str] = None, **kwargs):
 
         inputs_list = []
         data_gatherer = DataGatherer()
         ohlcv_dfs = data_gatherer.get_random_price_samples_tws(
-            num_tickers_to_sample=n_runs)
+            num_tickers_to_sample=n_runs) if custom_sample is None else data_gatherer.get_custom_sample(sample_name=custom_sample)
 
         # Create multiple instances of the indicator with a different data sample each time
-        for i in range(n_runs):
+        for i, ohlcv_df in enumerate(ohlcv_dfs):
             inputs = {
                 "indicator_func": indicator_func,
-                "ohlcv_df": ohlcv_dfs[i],
+                "ohlcv_df": ohlcv_df,
                 "kwargs": kwargs
             }
             inputs_list.append(inputs)

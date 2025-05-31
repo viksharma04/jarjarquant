@@ -548,7 +548,7 @@ class FeatureEvaluator:
             num_tickers_to_sample=n_runs) if custom_sample is None else data_gatherer.get_custom_sample(sample_name=custom_sample)
 
         # Create multiple instances of the indicator with a different data sample each time
-        for i, ohlcv_df in enumerate(ohlcv_dfs):
+        for _, ohlcv_df in enumerate(ohlcv_dfs):
             inputs = {
                 "indicator_func": indicator_func,
                 "ohlcv_df": ohlcv_df,
@@ -561,7 +561,14 @@ class FeatureEvaluator:
                 FeatureEvaluator.indicator_distribution_study, inputs_list))
 
         # results is a list of lists - average across the lists to get the final results
-        results = np.mean(results, axis=0)
+        adf_test = [result[0] for result in results]
+        jb_test = [result[1] for result in results]
+        relative_entropy = [result[2] for result in results]
+        range_iqr_ratio = [result[3] for result in results]
+
+        results = [np.mean(adf_test), np.mean(jb_test),
+                   np.mean([x for x in relative_entropy if not (np.isnan(x) or np.isinf(x))]), np.mean([x for x in range_iqr_ratio if not (np.isnan(x) or np.isinf(x))])]
+        # results = np.mean(results, axis=0)
         results = [round(value, 2) for value in results]
 
         return {'ADF Test': results[0], 'Jarque-Bera Test': results[1], 'Relative Entropy': results[2], 'Range-IQR Ratio': results[3]}

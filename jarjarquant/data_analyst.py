@@ -274,14 +274,15 @@ class DataAnalyst:
         pass
 
     @staticmethod
-    def atr(atr_length: int, high_series: pd.Series, low_series: pd.Series, close_series: pd.Series, ema: bool = False) -> pd.Series:
+    def atr(atr_length: int, high_series: pd.Series, low_series: pd.Series, close_series: pd.Series, ema: bool = False, expanding: bool = False) -> pd.Series:
         """
             Parameters:
             atr_length (int): The period over which to calculate the ATR.
-            open_series (pd.Series): Series of open prices.
             high_series (pd.Series): Series of high prices.
             low_series (pd.Series): Series of low prices.
             close_series (pd.Series): Series of close prices.
+            ema (bool): If True, use exponential moving average instead of simple moving average.
+            expanding (bool): If True, use expanding window instead of rolling window, calculating ATR using all available data up to each point.
 
             Returns:
             pd.Series: The ATR values for the given period.
@@ -294,11 +295,17 @@ class DataAnalyst:
                 np.abs(low_series - close_series.shift(1))
             )
         )
-        # Compute the rolling mean of the true ranges over the specified atr_length
+        # Compute the moving average of the true ranges
         if ema:
             return true_ranges.ewm(span=atr_length, adjust=False).mean()
         else:
-            return true_ranges.rolling(window=atr_length).mean()
+            if expanding:
+                # Use expanding window (all data up to current point)
+                # Set min_periods to atr_length to match the behavior of rolling window
+                return true_ranges.expanding(min_periods=atr_length).mean()
+            else:
+                # Use fixed-length rolling window
+                return true_ranges.rolling(window=atr_length).mean()
 
     @staticmethod
     def compute_legendre_coefficients(lookback, degree):
@@ -327,6 +334,52 @@ class DataAnalyst:
         return coefficients
 
     @staticmethod
+    def compute_normalized_legendre_coefficients(n, degree):
+        """
+        Compute three normalized arrays c1, c2, and c3 of length n.
+
+        The arrays are computed as follows:
+        - c1: Linearly spaced values in [-1, 1] normalized to unit length.
+        - c2: Square of c1, centered by subtracting the mean, then normalized.
+        - c3: Cube of c1, centered by subtracting the mean, normalized,
+                and then made orthogonal to c1 by removing its projection onto c1,
+                with a final normalization.
+
+        Parameters:
+            n (int): Number of elements in each output array.
+
+        Returns:
+            tuple: (c1, c2, c3) as NumPy arrays.
+        """
+        # Compute c1: linearly spaced from -1 to 1 and normalized to unit length.
+        c1 = np.linspace(-1.0, 1.0, n)
+        c1 /= np.linalg.norm(c1)
+
+        # Compute c2: square of c1, then center and normalize.
+        c2 = c1 ** 2
+        mean_c2 = np.mean(c2)
+        c2 -= mean_c2
+        c2 /= np.linalg.norm(c2)
+
+        # Compute c3: cube of c1, then center and normalize.
+        c3 = c1 ** 3
+        mean_c3 = np.mean(c3)
+        c3 -= mean_c3
+        c3 /= np.linalg.norm(c3)
+
+        # Remove the projection of c1 from c3.
+        proj = np.dot(c1, c3)
+        c3 = c3 - proj * c1
+        c3 /= np.linalg.norm(c3)
+
+        if degree == 1:
+            return c1
+        elif degree == 2:
+            return c2
+        elif degree == 3:
+            return c3
+
+    @staticmethod
     def calculate_regression_coefficient(prices: np.ndarray, legendre_coeffs: np.ndarray) -> float:
         """
         Calculate the linear regression coefficient using the dot product method.
@@ -338,8 +391,8 @@ class DataAnalyst:
         Returns:
         - float: The slope of the least squares line.
         """
-        norm_coeffs_squared = np.sum(legendre_coeffs ** 2)
-        slope = np.dot(legendre_coeffs, prices) / norm_coeffs_squared
+        # norm_coeffs_squared = np.sum(legendre_coeffs ** 2)
+        slope = np.dot(legendre_coeffs, prices)  # / norm_coeffs_squared
         return slope
 
     @staticmethod
@@ -416,7 +469,7 @@ class DataAnalyst:
                  linewidth=2, label="LOESS Fit")
         # Annotate the correlation coefficient on the plot
         if annotation is not None:
-            plt.text(0.05, 0.95, f'Pearson r = {annotation:.2f}', transform=plt.gca().transAxes,
+            plt.text(0.05, 0.95, f'Spearman r = {annotation:.2f}', transform=plt.gca().transAxes,
                      fontsize=12, verticalalignment='top')
 
         plt.legend()

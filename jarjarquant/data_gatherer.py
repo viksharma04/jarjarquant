@@ -1,15 +1,16 @@
 """The data gatherer minimizes code duplication and simplifies gathering samples for experimentation."""
 import asyncio
 import concurrent.futures
+import os
 import random
+import time
 from datetime import datetime, timedelta
 from typing import Optional
 
 import numpy as np
 import pandas as pd
 import yfinance as yf
-from ib_async import IB, Stock, util
-import os
+from ib_async import IB, Contract, Stock, util
 
 
 class DataGatherer:
@@ -48,7 +49,7 @@ class DataGatherer:
 
         return pd.Series(prices, index=date_range, name=name)
 
-    def get_custom_sample(self, sample_name: str, persist: Optional[bool] = False):
+    def get_custom_sample(self, sample_name: str, return_metadata: Optional[bool] = False, persist: Optional[bool] = False):
 
         # Read all csv files in the data/sample_name folder and return a list of DataFrames
 
@@ -65,7 +66,12 @@ class DataGatherer:
                 df.set_index('date', inplace=True)
                 df.index = pd.to_datetime(df.index, utc=True)
                 df.index = df.index.tz_localize(None)
-                data.append(df)
+                if return_metadata:
+                    metadata = file_name.split('_')
+                    data.append(
+                        {'market_cap': metadata[0], 'sector': metadata[1], 'df': df})
+                else:
+                    data.append(df)
 
         if persist:
             self.data.append(data)
@@ -82,7 +88,7 @@ class DataGatherer:
         return series
 
     @staticmethod
-    async def _get_tws_ticker(ticker: str = '', exchange: str = 'SMART', currency: str = 'USD', end_date: str = '', duration: str = '1 M', bar_size: str = '1 day', what_to_show='TRADES', **kwags):
+    async def _get_tws_ticker(ticker: str = '', exchange: str = 'SMART', currency: str = 'USD', end_date: str = '', duration: str = '1 M', bar_size: str = '1 day', what_to_show='TRADES', security_type="STK", **kwags):
 
         ib = IB()
 
@@ -90,7 +96,11 @@ class DataGatherer:
         await ib.connectAsync('127.0.0.1', 7496, clientId=1)
 
         # Define the stock contract
-        contract = Stock(ticker, exchange, currency)
+        if security_type == "STK":
+            contract = Stock(ticker, exchange, currency)
+        else:
+            contract = Contract(security_type, 33887599,
+                                "VOL-NYSE", exchange='NYSE')
 
         # Request historical implied volatility data
         bars = await ib.reqHistoricalDataAsync(
@@ -250,6 +260,7 @@ class DataGatherer:
                     results.append({ticker: result})
                 else:
                     results.append(result)
+                time.sleep(1)
             except Exception as e:
                 print(f"Error fetching data for {ticker}: {e}")
                 continue

@@ -15,6 +15,7 @@ def test_generate_random_normal(data_gatherer):
     assert series.name == 'price'
 
 
+@pytest.mark.skip(reason="Excluded from CI/CD pipeline due to YF connection requirement")
 def test_get_yf_ticker():
     series = DataGatherer.get_yf_ticker("AAPL")
     assert isinstance(series, pd.DataFrame)
@@ -25,12 +26,13 @@ def test_get_yf_ticker():
 
 @pytest.mark.skip(reason="Excluded from CI/CD pipeline due to TWS connection requirement")
 @pytest.mark.asyncio
-async def test_get_tws_ticker():
-    df = await DataGatherer.get_tws_ticker(ticker='AAPL', end_date='20031126 15:59:00 US/Eastern')
+async def test_get_tws_ticker(data_gatherer):
+    df = await data_gatherer.get_tws_ticker(ticker='AAPL', end_date='20031126 15:59:00 US/Eastern')
     assert isinstance(df, pd.DataFrame)
     assert not df.empty
 
 
+@pytest.mark.skip(reason="Excluded from CI/CD pipeline due to YF connection requirement")
 def test_get_random_price_samples_yf(data_gatherer):
     dataframes = data_gatherer.get_random_price_samples_yf()
     assert isinstance(dataframes, list)

@@ -4,12 +4,12 @@
 {
     "distutils": {
         "depends": [],
-        "name": "jarjarquant.cython_utils.bar_permute",
+        "name": "jarjarquant.cython_utils.indicators",
         "sources": [
-            "jarjarquant/cython_utils/bar_permute.pyx"
+            "jarjarquant/cython_utils/indicators.pyx"
         ]
     },
-    "module_name": "jarjarquant.cython_utils.bar_permute"
+    "module_name": "jarjarquant.cython_utils.indicators"
 }
 END: Cython Metadata */
 
@@ -1229,8 +1229,8 @@ static CYTHON_INLINE float __PYX_NAN() {
   #endif
 #endif
 
-#define __PYX_HAVE__jarjarquant__cython_utils__bar_permute
-#define __PYX_HAVE_API__jarjarquant__cython_utils__bar_permute
+#define __PYX_HAVE__jarjarquant__cython_utils__indicators
+#define __PYX_HAVE_API__jarjarquant__cython_utils__indicators
 /* Early includes */
 #include <string.h>
 #include <stdio.h>
@@ -1242,6 +1242,7 @@ static CYTHON_INLINE float __PYX_NAN() {
 #include "numpy/ndarraytypes.h"
 #include "numpy/arrayscalars.h"
 #include "numpy/ufuncobject.h"
+#include <math.h>
 #ifdef _OPENMP
 #include <omp.h>
 #endif /* _OPENMP */
@@ -1512,7 +1513,7 @@ static const char *__pyx_filename;
 /* #### Code section: filename_table ### */
 
 static const char *__pyx_f[] = {
-  "jarjarquant\\\\cython_utils\\\\bar_permute.pyx",
+  "jarjarquant\\\\cython_utils\\\\indicators.pyx",
   "venv\\\\Lib\\\\site-packages\\\\numpy\\\\__init__.cython-30.pxd",
   "venv\\\\Lib\\\\site-packages\\\\Cython\\\\Includes\\\\cpython\\\\type.pxd",
 };
@@ -1711,6 +1712,15 @@ typedef npy_double __pyx_t_5numpy_double_t;
  * ctypedef float complex       cfloat_t
  */
 typedef npy_longdouble __pyx_t_5numpy_longdouble_t;
+
+/* "jarjarquant/cython_utils/indicators.pyx":8
+ * # Declare accepted NumPy types for best performance
+ * DTYPE = np.float64
+ * ctypedef np.float64_t DTYPE_t             # <<<<<<<<<<<<<<
+ * 
+ * cpdef np.ndarray[DTYPE_t, ndim=1] compute_trend_indicator(
+ */
+typedef __pyx_t_5numpy_float64_t __pyx_t_11jarjarquant_12cython_utils_10indicators_DTYPE_t;
 /* #### Code section: complex_type_declarations ### */
 /* Declarations.proto */
 #if CYTHON_CCOMPLEX && (1) && (!0 || __cplusplus)
@@ -1949,6 +1959,78 @@ static CYTHON_INLINE PyObject* __Pyx_PyObject_Call(PyObject *func, PyObject *arg
 /* RaiseException.proto */
 static void __Pyx_Raise(PyObject *type, PyObject *value, PyObject *tb, PyObject *cause);
 
+/* IsLittleEndian.proto */
+static CYTHON_INLINE int __Pyx_Is_Little_Endian(void);
+
+/* BufferFormatCheck.proto */
+static const char* __Pyx_BufFmt_CheckString(__Pyx_BufFmt_Context* ctx, const char* ts);
+static void __Pyx_BufFmt_Init(__Pyx_BufFmt_Context* ctx,
+                              __Pyx_BufFmt_StackElem* stack,
+                              __Pyx_TypeInfo* type);
+
+/* BufferGetAndValidate.proto */
+#define __Pyx_GetBufferAndValidate(buf, obj, dtype, flags, nd, cast, stack)\
+    ((obj == Py_None || obj == NULL) ?\
+    (__Pyx_ZeroBuffer(buf), 0) :\
+    __Pyx__GetBufferAndValidate(buf, obj, dtype, flags, nd, cast, stack))
+static int  __Pyx__GetBufferAndValidate(Py_buffer* buf, PyObject* obj,
+    __Pyx_TypeInfo* dtype, int flags, int nd, int cast, __Pyx_BufFmt_StackElem* stack);
+static void __Pyx_ZeroBuffer(Py_buffer* buf);
+static CYTHON_INLINE void __Pyx_SafeReleaseBuffer(Py_buffer* info);
+static Py_ssize_t __Pyx_minusones[] = { -1, -1, -1, -1, -1, -1, -1, -1 };
+static Py_ssize_t __Pyx_zeros[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+
+/* PyDictVersioning.proto */
+#if CYTHON_USE_DICT_VERSIONS && CYTHON_USE_TYPE_SLOTS
+#define __PYX_DICT_VERSION_INIT  ((PY_UINT64_T) -1)
+#define __PYX_GET_DICT_VERSION(dict)  (((PyDictObject*)(dict))->ma_version_tag)
+#define __PYX_UPDATE_DICT_CACHE(dict, value, cache_var, version_var)\
+    (version_var) = __PYX_GET_DICT_VERSION(dict);\
+    (cache_var) = (value);
+#define __PYX_PY_DICT_LOOKUP_IF_MODIFIED(VAR, DICT, LOOKUP) {\
+    static PY_UINT64_T __pyx_dict_version = 0;\
+    static PyObject *__pyx_dict_cached_value = NULL;\
+    if (likely(__PYX_GET_DICT_VERSION(DICT) == __pyx_dict_version)) {\
+        (VAR) = __pyx_dict_cached_value;\
+    } else {\
+        (VAR) = __pyx_dict_cached_value = (LOOKUP);\
+        __pyx_dict_version = __PYX_GET_DICT_VERSION(DICT);\
+    }\
+}
+static CYTHON_INLINE PY_UINT64_T __Pyx_get_tp_dict_version(PyObject *obj);
+static CYTHON_INLINE PY_UINT64_T __Pyx_get_object_dict_version(PyObject *obj);
+static CYTHON_INLINE int __Pyx_object_dict_version_matches(PyObject* obj, PY_UINT64_T tp_dict_version, PY_UINT64_T obj_dict_version);
+#else
+#define __PYX_GET_DICT_VERSION(dict)  (0)
+#define __PYX_UPDATE_DICT_CACHE(dict, value, cache_var, version_var)
+#define __PYX_PY_DICT_LOOKUP_IF_MODIFIED(VAR, DICT, LOOKUP)  (VAR) = (LOOKUP);
+#endif
+
+/* GetModuleGlobalName.proto */
+#if CYTHON_USE_DICT_VERSIONS
+#define __Pyx_GetModuleGlobalName(var, name)  do {\
+    static PY_UINT64_T __pyx_dict_version = 0;\
+    static PyObject *__pyx_dict_cached_value = NULL;\
+    (var) = (likely(__pyx_dict_version == __PYX_GET_DICT_VERSION(__pyx_d))) ?\
+        (likely(__pyx_dict_cached_value) ? __Pyx_NewRef(__pyx_dict_cached_value) : __Pyx_GetBuiltinName(name)) :\
+        __Pyx__GetModuleGlobalName(name, &__pyx_dict_version, &__pyx_dict_cached_value);\
+} while(0)
+#define __Pyx_GetModuleGlobalNameUncached(var, name)  do {\
+    PY_UINT64_T __pyx_dict_version;\
+    PyObject *__pyx_dict_cached_value;\
+    (var) = __Pyx__GetModuleGlobalName(name, &__pyx_dict_version, &__pyx_dict_cached_value);\
+} while(0)
+static PyObject *__Pyx__GetModuleGlobalName(PyObject *name, PY_UINT64_T *dict_version, PyObject **dict_cached_value);
+#else
+#define __Pyx_GetModuleGlobalName(var, name)  (var) = __Pyx__GetModuleGlobalName(name)
+#define __Pyx_GetModuleGlobalNameUncached(var, name)  (var) = __Pyx__GetModuleGlobalName(name)
+static CYTHON_INLINE PyObject *__Pyx__GetModuleGlobalName(PyObject *name);
+#endif
+
+/* ExtTypeTest.proto */
+static CYTHON_INLINE int __Pyx_TypeTest(PyObject *obj, PyTypeObject *type);
+
+#define __Pyx_BufPtrStrided1d(type, buf, i0, s0) (type)((char*)buf + i0 * s0)
 /* TupleAndListFromArray.proto */
 #if CYTHON_COMPILING_IN_CPYTHON
 static CYTHON_INLINE PyObject* __Pyx_PyList_FromArray(PyObject *const *src, Py_ssize_t n);
@@ -2032,82 +2114,6 @@ static int __Pyx_ParseOptionalKeywords(PyObject *kwds, PyObject *const *kwvalues
         __Pyx__ArgTypeTest(obj, type, name, exact))
 static int __Pyx__ArgTypeTest(PyObject *obj, PyTypeObject *type, const char *name, int exact);
 
-/* IsLittleEndian.proto */
-static CYTHON_INLINE int __Pyx_Is_Little_Endian(void);
-
-/* BufferFormatCheck.proto */
-static const char* __Pyx_BufFmt_CheckString(__Pyx_BufFmt_Context* ctx, const char* ts);
-static void __Pyx_BufFmt_Init(__Pyx_BufFmt_Context* ctx,
-                              __Pyx_BufFmt_StackElem* stack,
-                              __Pyx_TypeInfo* type);
-
-/* BufferGetAndValidate.proto */
-#define __Pyx_GetBufferAndValidate(buf, obj, dtype, flags, nd, cast, stack)\
-    ((obj == Py_None || obj == NULL) ?\
-    (__Pyx_ZeroBuffer(buf), 0) :\
-    __Pyx__GetBufferAndValidate(buf, obj, dtype, flags, nd, cast, stack))
-static int  __Pyx__GetBufferAndValidate(Py_buffer* buf, PyObject* obj,
-    __Pyx_TypeInfo* dtype, int flags, int nd, int cast, __Pyx_BufFmt_StackElem* stack);
-static void __Pyx_ZeroBuffer(Py_buffer* buf);
-static CYTHON_INLINE void __Pyx_SafeReleaseBuffer(Py_buffer* info);
-static Py_ssize_t __Pyx_minusones[] = { -1, -1, -1, -1, -1, -1, -1, -1 };
-static Py_ssize_t __Pyx_zeros[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-
-/* PyDictVersioning.proto */
-#if CYTHON_USE_DICT_VERSIONS && CYTHON_USE_TYPE_SLOTS
-#define __PYX_DICT_VERSION_INIT  ((PY_UINT64_T) -1)
-#define __PYX_GET_DICT_VERSION(dict)  (((PyDictObject*)(dict))->ma_version_tag)
-#define __PYX_UPDATE_DICT_CACHE(dict, value, cache_var, version_var)\
-    (version_var) = __PYX_GET_DICT_VERSION(dict);\
-    (cache_var) = (value);
-#define __PYX_PY_DICT_LOOKUP_IF_MODIFIED(VAR, DICT, LOOKUP) {\
-    static PY_UINT64_T __pyx_dict_version = 0;\
-    static PyObject *__pyx_dict_cached_value = NULL;\
-    if (likely(__PYX_GET_DICT_VERSION(DICT) == __pyx_dict_version)) {\
-        (VAR) = __pyx_dict_cached_value;\
-    } else {\
-        (VAR) = __pyx_dict_cached_value = (LOOKUP);\
-        __pyx_dict_version = __PYX_GET_DICT_VERSION(DICT);\
-    }\
-}
-static CYTHON_INLINE PY_UINT64_T __Pyx_get_tp_dict_version(PyObject *obj);
-static CYTHON_INLINE PY_UINT64_T __Pyx_get_object_dict_version(PyObject *obj);
-static CYTHON_INLINE int __Pyx_object_dict_version_matches(PyObject* obj, PY_UINT64_T tp_dict_version, PY_UINT64_T obj_dict_version);
-#else
-#define __PYX_GET_DICT_VERSION(dict)  (0)
-#define __PYX_UPDATE_DICT_CACHE(dict, value, cache_var, version_var)
-#define __PYX_PY_DICT_LOOKUP_IF_MODIFIED(VAR, DICT, LOOKUP)  (VAR) = (LOOKUP);
-#endif
-
-/* GetModuleGlobalName.proto */
-#if CYTHON_USE_DICT_VERSIONS
-#define __Pyx_GetModuleGlobalName(var, name)  do {\
-    static PY_UINT64_T __pyx_dict_version = 0;\
-    static PyObject *__pyx_dict_cached_value = NULL;\
-    (var) = (likely(__pyx_dict_version == __PYX_GET_DICT_VERSION(__pyx_d))) ?\
-        (likely(__pyx_dict_cached_value) ? __Pyx_NewRef(__pyx_dict_cached_value) : __Pyx_GetBuiltinName(name)) :\
-        __Pyx__GetModuleGlobalName(name, &__pyx_dict_version, &__pyx_dict_cached_value);\
-} while(0)
-#define __Pyx_GetModuleGlobalNameUncached(var, name)  do {\
-    PY_UINT64_T __pyx_dict_version;\
-    PyObject *__pyx_dict_cached_value;\
-    (var) = __Pyx__GetModuleGlobalName(name, &__pyx_dict_version, &__pyx_dict_cached_value);\
-} while(0)
-static PyObject *__Pyx__GetModuleGlobalName(PyObject *name, PY_UINT64_T *dict_version, PyObject **dict_cached_value);
-#else
-#define __Pyx_GetModuleGlobalName(var, name)  (var) = __Pyx__GetModuleGlobalName(name)
-#define __Pyx_GetModuleGlobalNameUncached(var, name)  (var) = __Pyx__GetModuleGlobalName(name)
-static CYTHON_INLINE PyObject *__Pyx__GetModuleGlobalName(PyObject *name);
-#endif
-
-/* ExtTypeTest.proto */
-static CYTHON_INLINE int __Pyx_TypeTest(PyObject *obj, PyTypeObject *type);
-
-/* BufferIndexError.proto */
-static void __Pyx_RaiseBufferIndexError(int axis);
-
-#define __Pyx_BufPtrStrided2d(type, buf, i0, s0, i1, s1) (type)((char*)buf + i0 * s0 + i1 * s1)
-#define __Pyx_BufPtrStrided3d(type, buf, i0, s0, i1, s1, i2, s2) (type)((char*)buf + i0 * s0 + i1 * s1 + i2 * s2)
 /* TypeImport.proto */
 #ifndef __PYX_HAVE_RT_ImportType_proto_3_0_12
 #define __PYX_HAVE_RT_ImportType_proto_3_0_12
@@ -2476,14 +2482,11 @@ typedef struct {
     #endif
 #endif
 
-/* CIntToPy.proto */
-static CYTHON_INLINE PyObject* __Pyx_PyInt_From_int(int value);
-
-/* CIntToPy.proto */
-static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value);
-
 /* CIntFromPy.proto */
 static CYTHON_INLINE int __Pyx_PyInt_As_int(PyObject *);
+
+/* CIntToPy.proto */
+static CYTHON_INLINE PyObject* __Pyx_PyInt_From_int(int value);
 
 /* FormatTypeName.proto */
 #if CYTHON_COMPILING_IN_LIMITED_API
@@ -2497,6 +2500,9 @@ typedef const char *__Pyx_TypeName;
 #define __Pyx_PyType_GetName(tp) ((tp)->tp_name)
 #define __Pyx_DECREF_TypeName(obj)
 #endif
+
+/* CIntToPy.proto */
+static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value);
 
 /* CIntFromPy.proto */
 static CYTHON_INLINE long __Pyx_PyInt_As_long(PyObject *);
@@ -2564,53 +2570,53 @@ static CYTHON_INLINE char *__pyx_f_5numpy_7ndarray_4data_data(PyArrayObject *__p
 
 /* Module declarations from "numpy" */
 
-/* Module declarations from "jarjarquant.cython_utils.bar_permute" */
-/* #### Code section: typeinfo ### */
-static __Pyx_TypeInfo __Pyx_TypeInfo_nn___pyx_t_5numpy_double_t = { "double_t", NULL, sizeof(__pyx_t_5numpy_double_t), { 0 }, 0, 'R', 0, 0 };
-/* #### Code section: before_global_var ### */
-#define __Pyx_MODULE_NAME "jarjarquant.cython_utils.bar_permute"
-extern int __pyx_module_is_main_jarjarquant__cython_utils__bar_permute;
-int __pyx_module_is_main_jarjarquant__cython_utils__bar_permute = 0;
+/* Module declarations from "libc.math" */
 
-/* Implementation of "jarjarquant.cython_utils.bar_permute" */
+/* Module declarations from "jarjarquant.cython_utils.indicators" */
+static PyArrayObject *__pyx_f_11jarjarquant_12cython_utils_10indicators_compute_trend_indicator(PyArrayObject *, PyArrayObject *, int, int, PyArrayObject *, int __pyx_skip_dispatch); /*proto*/
+/* #### Code section: typeinfo ### */
+static __Pyx_TypeInfo __Pyx_TypeInfo_nn___pyx_t_11jarjarquant_12cython_utils_10indicators_DTYPE_t = { "DTYPE_t", NULL, sizeof(__pyx_t_11jarjarquant_12cython_utils_10indicators_DTYPE_t), { 0 }, 0, 'R', 0, 0 };
+/* #### Code section: before_global_var ### */
+#define __Pyx_MODULE_NAME "jarjarquant.cython_utils.indicators"
+extern int __pyx_module_is_main_jarjarquant__cython_utils__indicators;
+int __pyx_module_is_main_jarjarquant__cython_utils__indicators = 0;
+
+/* Implementation of "jarjarquant.cython_utils.indicators" */
 /* #### Code section: global_var ### */
 static PyObject *__pyx_builtin_range;
 static PyObject *__pyx_builtin_ImportError;
 /* #### Code section: string_decls ### */
-static const char __pyx_k_i[] = "i";
-static const char __pyx_k_j[] = "j";
 static const char __pyx_k__3[] = "*";
-static const char __pyx_k__7[] = "?";
+static const char __pyx_k__6[] = "?";
 static const char __pyx_k_np[] = "np";
+static const char __pyx_k_atr[] = "atr";
 static const char __pyx_k_main[] = "__main__";
 static const char __pyx_k_name[] = "__name__";
 static const char __pyx_k_spec[] = "__spec__";
 static const char __pyx_k_test[] = "__test__";
+static const char __pyx_k_DTYPE[] = "DTYPE";
+static const char __pyx_k_close[] = "close";
 static const char __pyx_k_dtype[] = "dtype";
 static const char __pyx_k_empty[] = "empty";
 static const char __pyx_k_numpy[] = "numpy";
 static const char __pyx_k_range[] = "range";
-static const char __pyx_k_double[] = "double";
 static const char __pyx_k_import[] = "__import__";
-static const char __pyx_k_n_steps[] = "n_steps";
-static const char __pyx_k_permuted[] = "permuted";
-static const char __pyx_k_n_markets[] = "n_markets";
-static const char __pyx_k_rel_prices[] = "rel_prices";
+static const char __pyx_k_float64[] = "float64";
+static const char __pyx_k_legendre[] = "legendre";
+static const char __pyx_k_lookback[] = "lookback";
+static const char __pyx_k_atr_length[] = "atr_length";
 static const char __pyx_k_ImportError[] = "ImportError";
-static const char __pyx_k_basis_prices[] = "basis_prices";
 static const char __pyx_k_initializing[] = "_initializing";
 static const char __pyx_k_is_coroutine[] = "_is_coroutine";
-static const char __pyx_k_permute_cython[] = "permute_cython";
 static const char __pyx_k_asyncio_coroutines[] = "asyncio.coroutines";
 static const char __pyx_k_cline_in_traceback[] = "cline_in_traceback";
-static const char __pyx_k_permute_cython_single[] = "permute_cython_single";
-static const char __pyx_k_jarjarquant_cython_utils_bar_per[] = "jarjarquant\\cython_utils\\bar_permute.pyx";
+static const char __pyx_k_compute_trend_indicator[] = "compute_trend_indicator";
+static const char __pyx_k_jarjarquant_cython_utils_indicat[] = "jarjarquant\\cython_utils\\indicators.pyx";
 static const char __pyx_k_numpy__core_multiarray_failed_to[] = "numpy._core.multiarray failed to import";
 static const char __pyx_k_numpy__core_umath_failed_to_impo[] = "numpy._core.umath failed to import";
-static const char __pyx_k_jarjarquant_cython_utils_bar_per_2[] = "jarjarquant.cython_utils.bar_permute";
+static const char __pyx_k_jarjarquant_cython_utils_indicat_2[] = "jarjarquant.cython_utils.indicators";
 /* #### Code section: decls ### */
-static PyObject *__pyx_pf_11jarjarquant_12cython_utils_11bar_permute_permute_cython(CYTHON_UNUSED PyObject *__pyx_self, PyArrayObject *__pyx_v_basis_prices, PyArrayObject *__pyx_v_rel_prices); /* proto */
-static PyObject *__pyx_pf_11jarjarquant_12cython_utils_11bar_permute_2permute_cython_single(CYTHON_UNUSED PyObject *__pyx_self, PyArrayObject *__pyx_v_basis_prices, PyArrayObject *__pyx_v_rel_prices); /* proto */
+static PyObject *__pyx_pf_11jarjarquant_12cython_utils_10indicators_compute_trend_indicator(CYTHON_UNUSED PyObject *__pyx_self, PyArrayObject *__pyx_v_close, PyArrayObject *__pyx_v_legendre, int __pyx_v_lookback, int __pyx_v_atr_length, PyArrayObject *__pyx_v_atr); /* proto */
 /* #### Code section: late_includes ### */
 /* #### Code section: module_state ### */
 typedef struct {
@@ -2674,44 +2680,41 @@ typedef struct {
   PyTypeObject *__pyx_ptype_5numpy_ufunc;
   #if CYTHON_USE_MODULE_STATE
   #endif
+  #if CYTHON_USE_MODULE_STATE
+  #endif
+  PyObject *__pyx_n_s_DTYPE;
   PyObject *__pyx_n_s_ImportError;
   PyObject *__pyx_n_s__3;
-  PyObject *__pyx_n_s__7;
+  PyObject *__pyx_n_s__6;
   PyObject *__pyx_n_s_asyncio_coroutines;
-  PyObject *__pyx_n_s_basis_prices;
+  PyObject *__pyx_n_s_atr;
+  PyObject *__pyx_n_s_atr_length;
   PyObject *__pyx_n_s_cline_in_traceback;
-  PyObject *__pyx_n_s_double;
+  PyObject *__pyx_n_s_close;
+  PyObject *__pyx_n_s_compute_trend_indicator;
   PyObject *__pyx_n_s_dtype;
   PyObject *__pyx_n_s_empty;
-  PyObject *__pyx_n_s_i;
+  PyObject *__pyx_n_s_float64;
   PyObject *__pyx_n_s_import;
   PyObject *__pyx_n_s_initializing;
   PyObject *__pyx_n_s_is_coroutine;
-  PyObject *__pyx_n_s_j;
-  PyObject *__pyx_kp_s_jarjarquant_cython_utils_bar_per;
-  PyObject *__pyx_n_s_jarjarquant_cython_utils_bar_per_2;
+  PyObject *__pyx_kp_s_jarjarquant_cython_utils_indicat;
+  PyObject *__pyx_n_s_jarjarquant_cython_utils_indicat_2;
+  PyObject *__pyx_n_s_legendre;
+  PyObject *__pyx_n_s_lookback;
   PyObject *__pyx_n_s_main;
-  PyObject *__pyx_n_s_n_markets;
-  PyObject *__pyx_n_s_n_steps;
   PyObject *__pyx_n_s_name;
   PyObject *__pyx_n_s_np;
   PyObject *__pyx_n_s_numpy;
   PyObject *__pyx_kp_u_numpy__core_multiarray_failed_to;
   PyObject *__pyx_kp_u_numpy__core_umath_failed_to_impo;
-  PyObject *__pyx_n_s_permute_cython;
-  PyObject *__pyx_n_s_permute_cython_single;
-  PyObject *__pyx_n_s_permuted;
   PyObject *__pyx_n_s_range;
-  PyObject *__pyx_n_s_rel_prices;
   PyObject *__pyx_n_s_spec;
   PyObject *__pyx_n_s_test;
-  PyObject *__pyx_int_1;
-  PyObject *__pyx_int_4;
   PyObject *__pyx_tuple_;
   PyObject *__pyx_tuple__2;
   PyObject *__pyx_tuple__4;
   PyObject *__pyx_codeobj__5;
-  PyObject *__pyx_codeobj__6;
 } __pyx_mstate;
 
 #if CYTHON_USE_MODULE_STATE
@@ -2770,44 +2773,39 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_ptype_5numpy_flexible);
   Py_CLEAR(clear_module_state->__pyx_ptype_5numpy_character);
   Py_CLEAR(clear_module_state->__pyx_ptype_5numpy_ufunc);
+  Py_CLEAR(clear_module_state->__pyx_n_s_DTYPE);
   Py_CLEAR(clear_module_state->__pyx_n_s_ImportError);
   Py_CLEAR(clear_module_state->__pyx_n_s__3);
-  Py_CLEAR(clear_module_state->__pyx_n_s__7);
+  Py_CLEAR(clear_module_state->__pyx_n_s__6);
   Py_CLEAR(clear_module_state->__pyx_n_s_asyncio_coroutines);
-  Py_CLEAR(clear_module_state->__pyx_n_s_basis_prices);
+  Py_CLEAR(clear_module_state->__pyx_n_s_atr);
+  Py_CLEAR(clear_module_state->__pyx_n_s_atr_length);
   Py_CLEAR(clear_module_state->__pyx_n_s_cline_in_traceback);
-  Py_CLEAR(clear_module_state->__pyx_n_s_double);
+  Py_CLEAR(clear_module_state->__pyx_n_s_close);
+  Py_CLEAR(clear_module_state->__pyx_n_s_compute_trend_indicator);
   Py_CLEAR(clear_module_state->__pyx_n_s_dtype);
   Py_CLEAR(clear_module_state->__pyx_n_s_empty);
-  Py_CLEAR(clear_module_state->__pyx_n_s_i);
+  Py_CLEAR(clear_module_state->__pyx_n_s_float64);
   Py_CLEAR(clear_module_state->__pyx_n_s_import);
   Py_CLEAR(clear_module_state->__pyx_n_s_initializing);
   Py_CLEAR(clear_module_state->__pyx_n_s_is_coroutine);
-  Py_CLEAR(clear_module_state->__pyx_n_s_j);
-  Py_CLEAR(clear_module_state->__pyx_kp_s_jarjarquant_cython_utils_bar_per);
-  Py_CLEAR(clear_module_state->__pyx_n_s_jarjarquant_cython_utils_bar_per_2);
+  Py_CLEAR(clear_module_state->__pyx_kp_s_jarjarquant_cython_utils_indicat);
+  Py_CLEAR(clear_module_state->__pyx_n_s_jarjarquant_cython_utils_indicat_2);
+  Py_CLEAR(clear_module_state->__pyx_n_s_legendre);
+  Py_CLEAR(clear_module_state->__pyx_n_s_lookback);
   Py_CLEAR(clear_module_state->__pyx_n_s_main);
-  Py_CLEAR(clear_module_state->__pyx_n_s_n_markets);
-  Py_CLEAR(clear_module_state->__pyx_n_s_n_steps);
   Py_CLEAR(clear_module_state->__pyx_n_s_name);
   Py_CLEAR(clear_module_state->__pyx_n_s_np);
   Py_CLEAR(clear_module_state->__pyx_n_s_numpy);
   Py_CLEAR(clear_module_state->__pyx_kp_u_numpy__core_multiarray_failed_to);
   Py_CLEAR(clear_module_state->__pyx_kp_u_numpy__core_umath_failed_to_impo);
-  Py_CLEAR(clear_module_state->__pyx_n_s_permute_cython);
-  Py_CLEAR(clear_module_state->__pyx_n_s_permute_cython_single);
-  Py_CLEAR(clear_module_state->__pyx_n_s_permuted);
   Py_CLEAR(clear_module_state->__pyx_n_s_range);
-  Py_CLEAR(clear_module_state->__pyx_n_s_rel_prices);
   Py_CLEAR(clear_module_state->__pyx_n_s_spec);
   Py_CLEAR(clear_module_state->__pyx_n_s_test);
-  Py_CLEAR(clear_module_state->__pyx_int_1);
-  Py_CLEAR(clear_module_state->__pyx_int_4);
   Py_CLEAR(clear_module_state->__pyx_tuple_);
   Py_CLEAR(clear_module_state->__pyx_tuple__2);
   Py_CLEAR(clear_module_state->__pyx_tuple__4);
   Py_CLEAR(clear_module_state->__pyx_codeobj__5);
-  Py_CLEAR(clear_module_state->__pyx_codeobj__6);
   return 0;
 }
 #endif
@@ -2844,44 +2842,39 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_ptype_5numpy_flexible);
   Py_VISIT(traverse_module_state->__pyx_ptype_5numpy_character);
   Py_VISIT(traverse_module_state->__pyx_ptype_5numpy_ufunc);
+  Py_VISIT(traverse_module_state->__pyx_n_s_DTYPE);
   Py_VISIT(traverse_module_state->__pyx_n_s_ImportError);
   Py_VISIT(traverse_module_state->__pyx_n_s__3);
-  Py_VISIT(traverse_module_state->__pyx_n_s__7);
+  Py_VISIT(traverse_module_state->__pyx_n_s__6);
   Py_VISIT(traverse_module_state->__pyx_n_s_asyncio_coroutines);
-  Py_VISIT(traverse_module_state->__pyx_n_s_basis_prices);
+  Py_VISIT(traverse_module_state->__pyx_n_s_atr);
+  Py_VISIT(traverse_module_state->__pyx_n_s_atr_length);
   Py_VISIT(traverse_module_state->__pyx_n_s_cline_in_traceback);
-  Py_VISIT(traverse_module_state->__pyx_n_s_double);
+  Py_VISIT(traverse_module_state->__pyx_n_s_close);
+  Py_VISIT(traverse_module_state->__pyx_n_s_compute_trend_indicator);
   Py_VISIT(traverse_module_state->__pyx_n_s_dtype);
   Py_VISIT(traverse_module_state->__pyx_n_s_empty);
-  Py_VISIT(traverse_module_state->__pyx_n_s_i);
+  Py_VISIT(traverse_module_state->__pyx_n_s_float64);
   Py_VISIT(traverse_module_state->__pyx_n_s_import);
   Py_VISIT(traverse_module_state->__pyx_n_s_initializing);
   Py_VISIT(traverse_module_state->__pyx_n_s_is_coroutine);
-  Py_VISIT(traverse_module_state->__pyx_n_s_j);
-  Py_VISIT(traverse_module_state->__pyx_kp_s_jarjarquant_cython_utils_bar_per);
-  Py_VISIT(traverse_module_state->__pyx_n_s_jarjarquant_cython_utils_bar_per_2);
+  Py_VISIT(traverse_module_state->__pyx_kp_s_jarjarquant_cython_utils_indicat);
+  Py_VISIT(traverse_module_state->__pyx_n_s_jarjarquant_cython_utils_indicat_2);
+  Py_VISIT(traverse_module_state->__pyx_n_s_legendre);
+  Py_VISIT(traverse_module_state->__pyx_n_s_lookback);
   Py_VISIT(traverse_module_state->__pyx_n_s_main);
-  Py_VISIT(traverse_module_state->__pyx_n_s_n_markets);
-  Py_VISIT(traverse_module_state->__pyx_n_s_n_steps);
   Py_VISIT(traverse_module_state->__pyx_n_s_name);
   Py_VISIT(traverse_module_state->__pyx_n_s_np);
   Py_VISIT(traverse_module_state->__pyx_n_s_numpy);
   Py_VISIT(traverse_module_state->__pyx_kp_u_numpy__core_multiarray_failed_to);
   Py_VISIT(traverse_module_state->__pyx_kp_u_numpy__core_umath_failed_to_impo);
-  Py_VISIT(traverse_module_state->__pyx_n_s_permute_cython);
-  Py_VISIT(traverse_module_state->__pyx_n_s_permute_cython_single);
-  Py_VISIT(traverse_module_state->__pyx_n_s_permuted);
   Py_VISIT(traverse_module_state->__pyx_n_s_range);
-  Py_VISIT(traverse_module_state->__pyx_n_s_rel_prices);
   Py_VISIT(traverse_module_state->__pyx_n_s_spec);
   Py_VISIT(traverse_module_state->__pyx_n_s_test);
-  Py_VISIT(traverse_module_state->__pyx_int_1);
-  Py_VISIT(traverse_module_state->__pyx_int_4);
   Py_VISIT(traverse_module_state->__pyx_tuple_);
   Py_VISIT(traverse_module_state->__pyx_tuple__2);
   Py_VISIT(traverse_module_state->__pyx_tuple__4);
   Py_VISIT(traverse_module_state->__pyx_codeobj__5);
-  Py_VISIT(traverse_module_state->__pyx_codeobj__6);
   return 0;
 }
 #endif
@@ -2946,44 +2939,41 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_ptype_5numpy_ufunc __pyx_mstate_global->__pyx_ptype_5numpy_ufunc
 #if CYTHON_USE_MODULE_STATE
 #endif
+#if CYTHON_USE_MODULE_STATE
+#endif
+#define __pyx_n_s_DTYPE __pyx_mstate_global->__pyx_n_s_DTYPE
 #define __pyx_n_s_ImportError __pyx_mstate_global->__pyx_n_s_ImportError
 #define __pyx_n_s__3 __pyx_mstate_global->__pyx_n_s__3
-#define __pyx_n_s__7 __pyx_mstate_global->__pyx_n_s__7
+#define __pyx_n_s__6 __pyx_mstate_global->__pyx_n_s__6
 #define __pyx_n_s_asyncio_coroutines __pyx_mstate_global->__pyx_n_s_asyncio_coroutines
-#define __pyx_n_s_basis_prices __pyx_mstate_global->__pyx_n_s_basis_prices
+#define __pyx_n_s_atr __pyx_mstate_global->__pyx_n_s_atr
+#define __pyx_n_s_atr_length __pyx_mstate_global->__pyx_n_s_atr_length
 #define __pyx_n_s_cline_in_traceback __pyx_mstate_global->__pyx_n_s_cline_in_traceback
-#define __pyx_n_s_double __pyx_mstate_global->__pyx_n_s_double
+#define __pyx_n_s_close __pyx_mstate_global->__pyx_n_s_close
+#define __pyx_n_s_compute_trend_indicator __pyx_mstate_global->__pyx_n_s_compute_trend_indicator
 #define __pyx_n_s_dtype __pyx_mstate_global->__pyx_n_s_dtype
 #define __pyx_n_s_empty __pyx_mstate_global->__pyx_n_s_empty
-#define __pyx_n_s_i __pyx_mstate_global->__pyx_n_s_i
+#define __pyx_n_s_float64 __pyx_mstate_global->__pyx_n_s_float64
 #define __pyx_n_s_import __pyx_mstate_global->__pyx_n_s_import
 #define __pyx_n_s_initializing __pyx_mstate_global->__pyx_n_s_initializing
 #define __pyx_n_s_is_coroutine __pyx_mstate_global->__pyx_n_s_is_coroutine
-#define __pyx_n_s_j __pyx_mstate_global->__pyx_n_s_j
-#define __pyx_kp_s_jarjarquant_cython_utils_bar_per __pyx_mstate_global->__pyx_kp_s_jarjarquant_cython_utils_bar_per
-#define __pyx_n_s_jarjarquant_cython_utils_bar_per_2 __pyx_mstate_global->__pyx_n_s_jarjarquant_cython_utils_bar_per_2
+#define __pyx_kp_s_jarjarquant_cython_utils_indicat __pyx_mstate_global->__pyx_kp_s_jarjarquant_cython_utils_indicat
+#define __pyx_n_s_jarjarquant_cython_utils_indicat_2 __pyx_mstate_global->__pyx_n_s_jarjarquant_cython_utils_indicat_2
+#define __pyx_n_s_legendre __pyx_mstate_global->__pyx_n_s_legendre
+#define __pyx_n_s_lookback __pyx_mstate_global->__pyx_n_s_lookback
 #define __pyx_n_s_main __pyx_mstate_global->__pyx_n_s_main
-#define __pyx_n_s_n_markets __pyx_mstate_global->__pyx_n_s_n_markets
-#define __pyx_n_s_n_steps __pyx_mstate_global->__pyx_n_s_n_steps
 #define __pyx_n_s_name __pyx_mstate_global->__pyx_n_s_name
 #define __pyx_n_s_np __pyx_mstate_global->__pyx_n_s_np
 #define __pyx_n_s_numpy __pyx_mstate_global->__pyx_n_s_numpy
 #define __pyx_kp_u_numpy__core_multiarray_failed_to __pyx_mstate_global->__pyx_kp_u_numpy__core_multiarray_failed_to
 #define __pyx_kp_u_numpy__core_umath_failed_to_impo __pyx_mstate_global->__pyx_kp_u_numpy__core_umath_failed_to_impo
-#define __pyx_n_s_permute_cython __pyx_mstate_global->__pyx_n_s_permute_cython
-#define __pyx_n_s_permute_cython_single __pyx_mstate_global->__pyx_n_s_permute_cython_single
-#define __pyx_n_s_permuted __pyx_mstate_global->__pyx_n_s_permuted
 #define __pyx_n_s_range __pyx_mstate_global->__pyx_n_s_range
-#define __pyx_n_s_rel_prices __pyx_mstate_global->__pyx_n_s_rel_prices
 #define __pyx_n_s_spec __pyx_mstate_global->__pyx_n_s_spec
 #define __pyx_n_s_test __pyx_mstate_global->__pyx_n_s_test
-#define __pyx_int_1 __pyx_mstate_global->__pyx_int_1
-#define __pyx_int_4 __pyx_mstate_global->__pyx_int_4
 #define __pyx_tuple_ __pyx_mstate_global->__pyx_tuple_
 #define __pyx_tuple__2 __pyx_mstate_global->__pyx_tuple__2
 #define __pyx_tuple__4 __pyx_mstate_global->__pyx_tuple__4
 #define __pyx_codeobj__5 __pyx_mstate_global->__pyx_codeobj__5
-#define __pyx_codeobj__6 __pyx_mstate_global->__pyx_codeobj__6
 /* #### Code section: module_code ### */
 
 /* "venv/Lib/site-packages/numpy/__init__.cython-30.pxd":286
@@ -4676,44 +4666,602 @@ static CYTHON_INLINE NPY_DATETIMEUNIT __pyx_f_5numpy_get_datetime64_unit(PyObjec
   return __pyx_r;
 }
 
-/* "jarjarquant/cython_utils/bar_permute.pyx":7
- * cimport numpy as cnp
+/* "jarjarquant/cython_utils/indicators.pyx":10
+ * ctypedef np.float64_t DTYPE_t
  * 
- * def permute_cython(cnp.ndarray[cnp.double_t, ndim=2] basis_prices,             # <<<<<<<<<<<<<<
- *                    cnp.ndarray[cnp.double_t, ndim=3] rel_prices):
- *     """
+ * cpdef np.ndarray[DTYPE_t, ndim=1] compute_trend_indicator(             # <<<<<<<<<<<<<<
+ *     np.ndarray[DTYPE_t, ndim=1] close,
+ *     np.ndarray[DTYPE_t, ndim=1] legendre,
  */
 
-/* Python wrapper */
-static PyObject *__pyx_pw_11jarjarquant_12cython_utils_11bar_permute_1permute_cython(PyObject *__pyx_self, 
+static PyObject *__pyx_pw_11jarjarquant_12cython_utils_10indicators_1compute_trend_indicator(PyObject *__pyx_self, 
 #if CYTHON_METH_FASTCALL
 PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 #else
 PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ); /*proto*/
-PyDoc_STRVAR(__pyx_doc_11jarjarquant_12cython_utils_11bar_permute_permute_cython, "\n    Parameters:\n      basis_prices: NumPy array with shape (n_markets, 4)\n                    [columns: Open, High, Low, Close]\n      rel_prices: NumPy array with shape (n_markets, n_steps, 4)\n                  [columns: rel_open, rel_high, rel_low, rel_close]\n                  \n    Returns:\n      permuted: NumPy array with shape (n_markets, n_steps+1, 4)\n                containing the reconstructed OHLC data.\n    ");
-static PyMethodDef __pyx_mdef_11jarjarquant_12cython_utils_11bar_permute_1permute_cython = {"permute_cython", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_11jarjarquant_12cython_utils_11bar_permute_1permute_cython, __Pyx_METH_FASTCALL|METH_KEYWORDS, __pyx_doc_11jarjarquant_12cython_utils_11bar_permute_permute_cython};
-static PyObject *__pyx_pw_11jarjarquant_12cython_utils_11bar_permute_1permute_cython(PyObject *__pyx_self, 
+static PyArrayObject *__pyx_f_11jarjarquant_12cython_utils_10indicators_compute_trend_indicator(PyArrayObject *__pyx_v_close, PyArrayObject *__pyx_v_legendre, int __pyx_v_lookback, int __pyx_v_atr_length, PyArrayObject *__pyx_v_atr, CYTHON_UNUSED int __pyx_skip_dispatch) {
+  int __pyx_v_n;
+  int __pyx_v_front_bad;
+  PyArrayObject *__pyx_v_output = 0;
+  int __pyx_v_icase;
+  int __pyx_v_k;
+  int __pyx_v_window_start;
+  double __pyx_v_price;
+  double __pyx_v_mean;
+  double __pyx_v_dot_prod;
+  double __pyx_v_rsq;
+  double __pyx_v_yss;
+  double __pyx_v_diff;
+  double __pyx_v_pred;
+  double __pyx_v_diff2;
+  double __pyx_v_denom;
+  double __pyx_v_k_factor;
+  double __pyx_v_rsq_err;
+  __Pyx_LocalBuf_ND __pyx_pybuffernd_atr;
+  __Pyx_Buffer __pyx_pybuffer_atr;
+  __Pyx_LocalBuf_ND __pyx_pybuffernd_close;
+  __Pyx_Buffer __pyx_pybuffer_close;
+  __Pyx_LocalBuf_ND __pyx_pybuffernd_legendre;
+  __Pyx_Buffer __pyx_pybuffer_legendre;
+  __Pyx_LocalBuf_ND __pyx_pybuffernd_output;
+  __Pyx_Buffer __pyx_pybuffer_output;
+  PyArrayObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  int __pyx_t_1;
+  PyObject *__pyx_t_2 = NULL;
+  PyObject *__pyx_t_3 = NULL;
+  PyObject *__pyx_t_4 = NULL;
+  PyObject *__pyx_t_5 = NULL;
+  PyArrayObject *__pyx_t_6 = NULL;
+  int __pyx_t_7;
+  int __pyx_t_8;
+  int __pyx_t_9;
+  Py_ssize_t __pyx_t_10;
+  int __pyx_t_11;
+  int __pyx_t_12;
+  int __pyx_t_13;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("compute_trend_indicator", 1);
+  __pyx_pybuffer_output.pybuffer.buf = NULL;
+  __pyx_pybuffer_output.refcount = 0;
+  __pyx_pybuffernd_output.data = NULL;
+  __pyx_pybuffernd_output.rcbuffer = &__pyx_pybuffer_output;
+  __pyx_pybuffer_close.pybuffer.buf = NULL;
+  __pyx_pybuffer_close.refcount = 0;
+  __pyx_pybuffernd_close.data = NULL;
+  __pyx_pybuffernd_close.rcbuffer = &__pyx_pybuffer_close;
+  __pyx_pybuffer_legendre.pybuffer.buf = NULL;
+  __pyx_pybuffer_legendre.refcount = 0;
+  __pyx_pybuffernd_legendre.data = NULL;
+  __pyx_pybuffernd_legendre.rcbuffer = &__pyx_pybuffer_legendre;
+  __pyx_pybuffer_atr.pybuffer.buf = NULL;
+  __pyx_pybuffer_atr.refcount = 0;
+  __pyx_pybuffernd_atr.data = NULL;
+  __pyx_pybuffernd_atr.rcbuffer = &__pyx_pybuffer_atr;
+  {
+    __Pyx_BufFmt_StackElem __pyx_stack[1];
+    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_close.rcbuffer->pybuffer, (PyObject*)__pyx_v_close, &__Pyx_TypeInfo_nn___pyx_t_11jarjarquant_12cython_utils_10indicators_DTYPE_t, PyBUF_FORMAT| PyBUF_STRIDES, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 10, __pyx_L1_error)
+  }
+  __pyx_pybuffernd_close.diminfo[0].strides = __pyx_pybuffernd_close.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_close.diminfo[0].shape = __pyx_pybuffernd_close.rcbuffer->pybuffer.shape[0];
+  {
+    __Pyx_BufFmt_StackElem __pyx_stack[1];
+    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_legendre.rcbuffer->pybuffer, (PyObject*)__pyx_v_legendre, &__Pyx_TypeInfo_nn___pyx_t_11jarjarquant_12cython_utils_10indicators_DTYPE_t, PyBUF_FORMAT| PyBUF_STRIDES, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 10, __pyx_L1_error)
+  }
+  __pyx_pybuffernd_legendre.diminfo[0].strides = __pyx_pybuffernd_legendre.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_legendre.diminfo[0].shape = __pyx_pybuffernd_legendre.rcbuffer->pybuffer.shape[0];
+  {
+    __Pyx_BufFmt_StackElem __pyx_stack[1];
+    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_atr.rcbuffer->pybuffer, (PyObject*)__pyx_v_atr, &__Pyx_TypeInfo_nn___pyx_t_11jarjarquant_12cython_utils_10indicators_DTYPE_t, PyBUF_FORMAT| PyBUF_STRIDES, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 10, __pyx_L1_error)
+  }
+  __pyx_pybuffernd_atr.diminfo[0].strides = __pyx_pybuffernd_atr.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_atr.diminfo[0].shape = __pyx_pybuffernd_atr.rcbuffer->pybuffer.shape[0];
+
+  /* "jarjarquant/cython_utils/indicators.pyx":38
+ *         are set to 0.0.
+ *     """
+ *     cdef int n = close.shape[0]             # <<<<<<<<<<<<<<
+ *     cdef int front_bad = lookback - 1
+ *     if atr_length > front_bad:
+ */
+  __pyx_v_n = (__pyx_f_5numpy_7ndarray_5shape_shape(((PyArrayObject *)__pyx_v_close))[0]);
+
+  /* "jarjarquant/cython_utils/indicators.pyx":39
+ *     """
+ *     cdef int n = close.shape[0]
+ *     cdef int front_bad = lookback - 1             # <<<<<<<<<<<<<<
+ *     if atr_length > front_bad:
+ *         front_bad = atr_length
+ */
+  __pyx_v_front_bad = (__pyx_v_lookback - 1);
+
+  /* "jarjarquant/cython_utils/indicators.pyx":40
+ *     cdef int n = close.shape[0]
+ *     cdef int front_bad = lookback - 1
+ *     if atr_length > front_bad:             # <<<<<<<<<<<<<<
+ *         front_bad = atr_length
+ *     if front_bad > n:
+ */
+  __pyx_t_1 = (__pyx_v_atr_length > __pyx_v_front_bad);
+  if (__pyx_t_1) {
+
+    /* "jarjarquant/cython_utils/indicators.pyx":41
+ *     cdef int front_bad = lookback - 1
+ *     if atr_length > front_bad:
+ *         front_bad = atr_length             # <<<<<<<<<<<<<<
+ *     if front_bad > n:
+ *         front_bad = n
+ */
+    __pyx_v_front_bad = __pyx_v_atr_length;
+
+    /* "jarjarquant/cython_utils/indicators.pyx":40
+ *     cdef int n = close.shape[0]
+ *     cdef int front_bad = lookback - 1
+ *     if atr_length > front_bad:             # <<<<<<<<<<<<<<
+ *         front_bad = atr_length
+ *     if front_bad > n:
+ */
+  }
+
+  /* "jarjarquant/cython_utils/indicators.pyx":42
+ *     if atr_length > front_bad:
+ *         front_bad = atr_length
+ *     if front_bad > n:             # <<<<<<<<<<<<<<
+ *         front_bad = n
+ * 
+ */
+  __pyx_t_1 = (__pyx_v_front_bad > __pyx_v_n);
+  if (__pyx_t_1) {
+
+    /* "jarjarquant/cython_utils/indicators.pyx":43
+ *         front_bad = atr_length
+ *     if front_bad > n:
+ *         front_bad = n             # <<<<<<<<<<<<<<
+ * 
+ *     # Allocate the output array
+ */
+    __pyx_v_front_bad = __pyx_v_n;
+
+    /* "jarjarquant/cython_utils/indicators.pyx":42
+ *     if atr_length > front_bad:
+ *         front_bad = atr_length
+ *     if front_bad > n:             # <<<<<<<<<<<<<<
+ *         front_bad = n
+ * 
+ */
+  }
+
+  /* "jarjarquant/cython_utils/indicators.pyx":46
+ * 
+ *     # Allocate the output array
+ *     cdef np.ndarray[DTYPE_t, ndim=1] output = np.empty(n, dtype=DTYPE)             # <<<<<<<<<<<<<<
+ * 
+ *     cdef int icase, k, window_start
+ */
+  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 46, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_empty); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 46, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __pyx_t_2 = __Pyx_PyInt_From_int(__pyx_v_n); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 46, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __pyx_t_4 = PyTuple_New(1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 46, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __Pyx_GIVEREF(__pyx_t_2);
+  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_4, 0, __pyx_t_2)) __PYX_ERR(0, 46, __pyx_L1_error);
+  __pyx_t_2 = 0;
+  __pyx_t_2 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 46, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __Pyx_GetModuleGlobalName(__pyx_t_5, __pyx_n_s_DTYPE); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 46, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_5);
+  if (PyDict_SetItem(__pyx_t_2, __pyx_n_s_dtype, __pyx_t_5) < 0) __PYX_ERR(0, 46, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+  __pyx_t_5 = __Pyx_PyObject_Call(__pyx_t_3, __pyx_t_4, __pyx_t_2); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 46, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_5);
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  if (!(likely(((__pyx_t_5) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_5, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 46, __pyx_L1_error)
+  __pyx_t_6 = ((PyArrayObject *)__pyx_t_5);
+  {
+    __Pyx_BufFmt_StackElem __pyx_stack[1];
+    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_output.rcbuffer->pybuffer, (PyObject*)__pyx_t_6, &__Pyx_TypeInfo_nn___pyx_t_11jarjarquant_12cython_utils_10indicators_DTYPE_t, PyBUF_FORMAT| PyBUF_STRIDES| PyBUF_WRITABLE, 1, 0, __pyx_stack) == -1)) {
+      __pyx_v_output = ((PyArrayObject *)Py_None); __Pyx_INCREF(Py_None); __pyx_pybuffernd_output.rcbuffer->pybuffer.buf = NULL;
+      __PYX_ERR(0, 46, __pyx_L1_error)
+    } else {__pyx_pybuffernd_output.diminfo[0].strides = __pyx_pybuffernd_output.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_output.diminfo[0].shape = __pyx_pybuffernd_output.rcbuffer->pybuffer.shape[0];
+    }
+  }
+  __pyx_t_6 = 0;
+  __pyx_v_output = ((PyArrayObject *)__pyx_t_5);
+  __pyx_t_5 = 0;
+
+  /* "jarjarquant/cython_utils/indicators.pyx":52
+ * 
+ *     # Set the undefined (initial) values to 0.0
+ *     for icase in range(front_bad):             # <<<<<<<<<<<<<<
+ *         output[icase] = 0.0
+ * 
+ */
+  __pyx_t_7 = __pyx_v_front_bad;
+  __pyx_t_8 = __pyx_t_7;
+  for (__pyx_t_9 = 0; __pyx_t_9 < __pyx_t_8; __pyx_t_9+=1) {
+    __pyx_v_icase = __pyx_t_9;
+
+    /* "jarjarquant/cython_utils/indicators.pyx":53
+ *     # Set the undefined (initial) values to 0.0
+ *     for icase in range(front_bad):
+ *         output[icase] = 0.0             # <<<<<<<<<<<<<<
+ * 
+ *     # Loop over the valid cases
+ */
+    __pyx_t_10 = __pyx_v_icase;
+    *__Pyx_BufPtrStrided1d(__pyx_t_11jarjarquant_12cython_utils_10indicators_DTYPE_t *, __pyx_pybuffernd_output.rcbuffer->pybuffer.buf, __pyx_t_10, __pyx_pybuffernd_output.diminfo[0].strides) = 0.0;
+  }
+
+  /* "jarjarquant/cython_utils/indicators.pyx":56
+ * 
+ *     # Loop over the valid cases
+ *     for icase in range(front_bad, n):             # <<<<<<<<<<<<<<
+ *         # Determine window start index (assume icase >= lookback-1)
+ *         window_start = icase - lookback + 1
+ */
+  __pyx_t_7 = __pyx_v_n;
+  __pyx_t_8 = __pyx_t_7;
+  for (__pyx_t_9 = __pyx_v_front_bad; __pyx_t_9 < __pyx_t_8; __pyx_t_9+=1) {
+    __pyx_v_icase = __pyx_t_9;
+
+    /* "jarjarquant/cython_utils/indicators.pyx":58
+ *     for icase in range(front_bad, n):
+ *         # Determine window start index (assume icase >= lookback-1)
+ *         window_start = icase - lookback + 1             # <<<<<<<<<<<<<<
+ *         mean = 0.0
+ *         dot_prod = 0.0
+ */
+    __pyx_v_window_start = ((__pyx_v_icase - __pyx_v_lookback) + 1);
+
+    /* "jarjarquant/cython_utils/indicators.pyx":59
+ *         # Determine window start index (assume icase >= lookback-1)
+ *         window_start = icase - lookback + 1
+ *         mean = 0.0             # <<<<<<<<<<<<<<
+ *         dot_prod = 0.0
+ *         # Compute dot product and mean of log(prices) over the lookback window
+ */
+    __pyx_v_mean = 0.0;
+
+    /* "jarjarquant/cython_utils/indicators.pyx":60
+ *         window_start = icase - lookback + 1
+ *         mean = 0.0
+ *         dot_prod = 0.0             # <<<<<<<<<<<<<<
+ *         # Compute dot product and mean of log(prices) over the lookback window
+ *         for k in range(lookback):
+ */
+    __pyx_v_dot_prod = 0.0;
+
+    /* "jarjarquant/cython_utils/indicators.pyx":62
+ *         dot_prod = 0.0
+ *         # Compute dot product and mean of log(prices) over the lookback window
+ *         for k in range(lookback):             # <<<<<<<<<<<<<<
+ *             price = log(close[window_start + k])
+ *             mean += price
+ */
+    __pyx_t_11 = __pyx_v_lookback;
+    __pyx_t_12 = __pyx_t_11;
+    for (__pyx_t_13 = 0; __pyx_t_13 < __pyx_t_12; __pyx_t_13+=1) {
+      __pyx_v_k = __pyx_t_13;
+
+      /* "jarjarquant/cython_utils/indicators.pyx":63
+ *         # Compute dot product and mean of log(prices) over the lookback window
+ *         for k in range(lookback):
+ *             price = log(close[window_start + k])             # <<<<<<<<<<<<<<
+ *             mean += price
+ *             dot_prod += price * legendre[k]
+ */
+      __pyx_t_10 = (__pyx_v_window_start + __pyx_v_k);
+      __pyx_v_price = log((*__Pyx_BufPtrStrided1d(__pyx_t_11jarjarquant_12cython_utils_10indicators_DTYPE_t *, __pyx_pybuffernd_close.rcbuffer->pybuffer.buf, __pyx_t_10, __pyx_pybuffernd_close.diminfo[0].strides)));
+
+      /* "jarjarquant/cython_utils/indicators.pyx":64
+ *         for k in range(lookback):
+ *             price = log(close[window_start + k])
+ *             mean += price             # <<<<<<<<<<<<<<
+ *             dot_prod += price * legendre[k]
+ * 
+ */
+      __pyx_v_mean = (__pyx_v_mean + __pyx_v_price);
+
+      /* "jarjarquant/cython_utils/indicators.pyx":65
+ *             price = log(close[window_start + k])
+ *             mean += price
+ *             dot_prod += price * legendre[k]             # <<<<<<<<<<<<<<
+ * 
+ *         mean /= lookback
+ */
+      __pyx_t_10 = __pyx_v_k;
+      __pyx_v_dot_prod = (__pyx_v_dot_prod + (__pyx_v_price * (*__Pyx_BufPtrStrided1d(__pyx_t_11jarjarquant_12cython_utils_10indicators_DTYPE_t *, __pyx_pybuffernd_legendre.rcbuffer->pybuffer.buf, __pyx_t_10, __pyx_pybuffernd_legendre.diminfo[0].strides))));
+    }
+
+    /* "jarjarquant/cython_utils/indicators.pyx":67
+ *             dot_prod += price * legendre[k]
+ * 
+ *         mean /= lookback             # <<<<<<<<<<<<<<
+ * 
+ *         # Choose scaling factor k: normally lookback-1, but if lookback==2 use 2
+ */
+    __pyx_v_mean = (__pyx_v_mean / __pyx_v_lookback);
+
+    /* "jarjarquant/cython_utils/indicators.pyx":70
+ * 
+ *         # Choose scaling factor k: normally lookback-1, but if lookback==2 use 2
+ *         k_factor = lookback - 1             # <<<<<<<<<<<<<<
+ *         if lookback == 2:
+ *             k_factor = 2.0
+ */
+    __pyx_v_k_factor = (__pyx_v_lookback - 1);
+
+    /* "jarjarquant/cython_utils/indicators.pyx":71
+ *         # Choose scaling factor k: normally lookback-1, but if lookback==2 use 2
+ *         k_factor = lookback - 1
+ *         if lookback == 2:             # <<<<<<<<<<<<<<
+ *             k_factor = 2.0
+ * 
+ */
+    __pyx_t_1 = (__pyx_v_lookback == 2);
+    if (__pyx_t_1) {
+
+      /* "jarjarquant/cython_utils/indicators.pyx":72
+ *         k_factor = lookback - 1
+ *         if lookback == 2:
+ *             k_factor = 2.0             # <<<<<<<<<<<<<<
+ * 
+ *         # Normalize by ATR (adding a tiny constant to avoid division by zero)
+ */
+      __pyx_v_k_factor = 2.0;
+
+      /* "jarjarquant/cython_utils/indicators.pyx":71
+ *         # Choose scaling factor k: normally lookback-1, but if lookback==2 use 2
+ *         k_factor = lookback - 1
+ *         if lookback == 2:             # <<<<<<<<<<<<<<
+ *             k_factor = 2.0
+ * 
+ */
+    }
+
+    /* "jarjarquant/cython_utils/indicators.pyx":75
+ * 
+ *         # Normalize by ATR (adding a tiny constant to avoid division by zero)
+ *         denom = atr[icase] * k_factor             # <<<<<<<<<<<<<<
+ *         output[icase] = dot_prod * 2.0 / (denom + 1e-60)
+ * 
+ */
+    __pyx_t_10 = __pyx_v_icase;
+    __pyx_v_denom = ((*__Pyx_BufPtrStrided1d(__pyx_t_11jarjarquant_12cython_utils_10indicators_DTYPE_t *, __pyx_pybuffernd_atr.rcbuffer->pybuffer.buf, __pyx_t_10, __pyx_pybuffernd_atr.diminfo[0].strides)) * __pyx_v_k_factor);
+
+    /* "jarjarquant/cython_utils/indicators.pyx":76
+ *         # Normalize by ATR (adding a tiny constant to avoid division by zero)
+ *         denom = atr[icase] * k_factor
+ *         output[icase] = dot_prod * 2.0 / (denom + 1e-60)             # <<<<<<<<<<<<<<
+ * 
+ *         # Compute R-square for the regression fit
+ */
+    __pyx_t_10 = __pyx_v_icase;
+    *__Pyx_BufPtrStrided1d(__pyx_t_11jarjarquant_12cython_utils_10indicators_DTYPE_t *, __pyx_pybuffernd_output.rcbuffer->pybuffer.buf, __pyx_t_10, __pyx_pybuffernd_output.diminfo[0].strides) = ((__pyx_v_dot_prod * 2.0) / (__pyx_v_denom + 1e-60));
+
+    /* "jarjarquant/cython_utils/indicators.pyx":79
+ * 
+ *         # Compute R-square for the regression fit
+ *         yss = 0.0             # <<<<<<<<<<<<<<
+ *         rsq_err = 0.0
+ *         for k in range(lookback):
+ */
+    __pyx_v_yss = 0.0;
+
+    /* "jarjarquant/cython_utils/indicators.pyx":80
+ *         # Compute R-square for the regression fit
+ *         yss = 0.0
+ *         rsq_err = 0.0             # <<<<<<<<<<<<<<
+ *         for k in range(lookback):
+ *             price = log(close[window_start + k])
+ */
+    __pyx_v_rsq_err = 0.0;
+
+    /* "jarjarquant/cython_utils/indicators.pyx":81
+ *         yss = 0.0
+ *         rsq_err = 0.0
+ *         for k in range(lookback):             # <<<<<<<<<<<<<<
+ *             price = log(close[window_start + k])
+ * 
+ */
+    __pyx_t_11 = __pyx_v_lookback;
+    __pyx_t_12 = __pyx_t_11;
+    for (__pyx_t_13 = 0; __pyx_t_13 < __pyx_t_12; __pyx_t_13+=1) {
+      __pyx_v_k = __pyx_t_13;
+
+      /* "jarjarquant/cython_utils/indicators.pyx":82
+ *         rsq_err = 0.0
+ *         for k in range(lookback):
+ *             price = log(close[window_start + k])             # <<<<<<<<<<<<<<
+ * 
+ *             diff = price - mean
+ */
+      __pyx_t_10 = (__pyx_v_window_start + __pyx_v_k);
+      __pyx_v_price = log((*__Pyx_BufPtrStrided1d(__pyx_t_11jarjarquant_12cython_utils_10indicators_DTYPE_t *, __pyx_pybuffernd_close.rcbuffer->pybuffer.buf, __pyx_t_10, __pyx_pybuffernd_close.diminfo[0].strides)));
+
+      /* "jarjarquant/cython_utils/indicators.pyx":84
+ *             price = log(close[window_start + k])
+ * 
+ *             diff = price - mean             # <<<<<<<<<<<<<<
+ *             yss += diff * diff
+ * 
+ */
+      __pyx_v_diff = (__pyx_v_price - __pyx_v_mean);
+
+      /* "jarjarquant/cython_utils/indicators.pyx":85
+ * 
+ *             diff = price - mean
+ *             yss += diff * diff             # <<<<<<<<<<<<<<
+ * 
+ *             pred = dot_prod * legendre[k]
+ */
+      __pyx_v_yss = (__pyx_v_yss + (__pyx_v_diff * __pyx_v_diff));
+
+      /* "jarjarquant/cython_utils/indicators.pyx":87
+ *             yss += diff * diff
+ * 
+ *             pred = dot_prod * legendre[k]             # <<<<<<<<<<<<<<
+ * 
+ *             diff2 = diff - pred
+ */
+      __pyx_t_10 = __pyx_v_k;
+      __pyx_v_pred = (__pyx_v_dot_prod * (*__Pyx_BufPtrStrided1d(__pyx_t_11jarjarquant_12cython_utils_10indicators_DTYPE_t *, __pyx_pybuffernd_legendre.rcbuffer->pybuffer.buf, __pyx_t_10, __pyx_pybuffernd_legendre.diminfo[0].strides)));
+
+      /* "jarjarquant/cython_utils/indicators.pyx":89
+ *             pred = dot_prod * legendre[k]
+ * 
+ *             diff2 = diff - pred             # <<<<<<<<<<<<<<
+ *             rsq_err += diff2 * diff2
+ * 
+ */
+      __pyx_v_diff2 = (__pyx_v_diff - __pyx_v_pred);
+
+      /* "jarjarquant/cython_utils/indicators.pyx":90
+ * 
+ *             diff2 = diff - pred
+ *             rsq_err += diff2 * diff2             # <<<<<<<<<<<<<<
+ * 
+ *         rsq = 1.0 - rsq_err / (yss + 1e-60)
+ */
+      __pyx_v_rsq_err = (__pyx_v_rsq_err + (__pyx_v_diff2 * __pyx_v_diff2));
+    }
+
+    /* "jarjarquant/cython_utils/indicators.pyx":92
+ *             rsq_err += diff2 * diff2
+ * 
+ *         rsq = 1.0 - rsq_err / (yss + 1e-60)             # <<<<<<<<<<<<<<
+ *         if rsq < 0.0:
+ *             rsq = 0.0
+ */
+    __pyx_v_rsq = (1.0 - (__pyx_v_rsq_err / (__pyx_v_yss + 1e-60)));
+
+    /* "jarjarquant/cython_utils/indicators.pyx":93
+ * 
+ *         rsq = 1.0 - rsq_err / (yss + 1e-60)
+ *         if rsq < 0.0:             # <<<<<<<<<<<<<<
+ *             rsq = 0.0
+ *         output[icase] *= rsq
+ */
+    __pyx_t_1 = (__pyx_v_rsq < 0.0);
+    if (__pyx_t_1) {
+
+      /* "jarjarquant/cython_utils/indicators.pyx":94
+ *         rsq = 1.0 - rsq_err / (yss + 1e-60)
+ *         if rsq < 0.0:
+ *             rsq = 0.0             # <<<<<<<<<<<<<<
+ *         output[icase] *= rsq
+ * 
+ */
+      __pyx_v_rsq = 0.0;
+
+      /* "jarjarquant/cython_utils/indicators.pyx":93
+ * 
+ *         rsq = 1.0 - rsq_err / (yss + 1e-60)
+ *         if rsq < 0.0:             # <<<<<<<<<<<<<<
+ *             rsq = 0.0
+ *         output[icase] *= rsq
+ */
+    }
+
+    /* "jarjarquant/cython_utils/indicators.pyx":95
+ *         if rsq < 0.0:
+ *             rsq = 0.0
+ *         output[icase] *= rsq             # <<<<<<<<<<<<<<
+ * 
+ *     return output
+ */
+    __pyx_t_10 = __pyx_v_icase;
+    *__Pyx_BufPtrStrided1d(__pyx_t_11jarjarquant_12cython_utils_10indicators_DTYPE_t *, __pyx_pybuffernd_output.rcbuffer->pybuffer.buf, __pyx_t_10, __pyx_pybuffernd_output.diminfo[0].strides) *= __pyx_v_rsq;
+  }
+
+  /* "jarjarquant/cython_utils/indicators.pyx":97
+ *         output[icase] *= rsq
+ * 
+ *     return output             # <<<<<<<<<<<<<<
+ */
+  __Pyx_XDECREF((PyObject *)__pyx_r);
+  __Pyx_INCREF((PyObject *)__pyx_v_output);
+  __pyx_r = ((PyArrayObject *)__pyx_v_output);
+  goto __pyx_L0;
+
+  /* "jarjarquant/cython_utils/indicators.pyx":10
+ * ctypedef np.float64_t DTYPE_t
+ * 
+ * cpdef np.ndarray[DTYPE_t, ndim=1] compute_trend_indicator(             # <<<<<<<<<<<<<<
+ *     np.ndarray[DTYPE_t, ndim=1] close,
+ *     np.ndarray[DTYPE_t, ndim=1] legendre,
+ */
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_2);
+  __Pyx_XDECREF(__pyx_t_3);
+  __Pyx_XDECREF(__pyx_t_4);
+  __Pyx_XDECREF(__pyx_t_5);
+  { PyObject *__pyx_type, *__pyx_value, *__pyx_tb;
+    __Pyx_PyThreadState_declare
+    __Pyx_PyThreadState_assign
+    __Pyx_ErrFetch(&__pyx_type, &__pyx_value, &__pyx_tb);
+    __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_atr.rcbuffer->pybuffer);
+    __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_close.rcbuffer->pybuffer);
+    __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_legendre.rcbuffer->pybuffer);
+    __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_output.rcbuffer->pybuffer);
+  __Pyx_ErrRestore(__pyx_type, __pyx_value, __pyx_tb);}
+  __Pyx_AddTraceback("jarjarquant.cython_utils.indicators.compute_trend_indicator", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = 0;
+  goto __pyx_L2;
+  __pyx_L0:;
+  __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_atr.rcbuffer->pybuffer);
+  __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_close.rcbuffer->pybuffer);
+  __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_legendre.rcbuffer->pybuffer);
+  __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_output.rcbuffer->pybuffer);
+  __pyx_L2:;
+  __Pyx_XDECREF((PyObject *)__pyx_v_output);
+  __Pyx_XGIVEREF((PyObject *)__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static PyObject *__pyx_pw_11jarjarquant_12cython_utils_10indicators_1compute_trend_indicator(PyObject *__pyx_self, 
+#if CYTHON_METH_FASTCALL
+PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
+#else
+PyObject *__pyx_args, PyObject *__pyx_kwds
+#endif
+); /*proto*/
+PyDoc_STRVAR(__pyx_doc_11jarjarquant_12cython_utils_10indicators_compute_trend_indicator, "\n    Computes a trend indicator based on a regression against Legendre polynomials.\n    \n    Parameters\n    ----------\n    close : 1D np.ndarray[float64]\n        Array of closing prices.\n    legendre : 1D np.ndarray[float64]\n        Array of Legendre polynomial coefficients with shape (3, 1).\n    lookback : int\n        Lookback window for the trend regression.\n    atr_length : int\n        Lookback window used in ATR normalization (should exceed lookback).\n    atr : 1D np.ndarray[float64]\n        Array of ATR values (precomputed) corresponding to each price.\n        \n    Returns\n    -------\n    np.ndarray[float64]\n        Indicator values (same length as close); undefined values (first indices)\n        are set to 0.0.\n    ");
+static PyMethodDef __pyx_mdef_11jarjarquant_12cython_utils_10indicators_1compute_trend_indicator = {"compute_trend_indicator", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_11jarjarquant_12cython_utils_10indicators_1compute_trend_indicator, __Pyx_METH_FASTCALL|METH_KEYWORDS, __pyx_doc_11jarjarquant_12cython_utils_10indicators_compute_trend_indicator};
+static PyObject *__pyx_pw_11jarjarquant_12cython_utils_10indicators_1compute_trend_indicator(PyObject *__pyx_self, 
 #if CYTHON_METH_FASTCALL
 PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 #else
 PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ) {
-  PyArrayObject *__pyx_v_basis_prices = 0;
-  PyArrayObject *__pyx_v_rel_prices = 0;
+  PyArrayObject *__pyx_v_close = 0;
+  PyArrayObject *__pyx_v_legendre = 0;
+  int __pyx_v_lookback;
+  int __pyx_v_atr_length;
+  PyArrayObject *__pyx_v_atr = 0;
   #if !CYTHON_METH_FASTCALL
   CYTHON_UNUSED Py_ssize_t __pyx_nargs;
   #endif
   CYTHON_UNUSED PyObject *const *__pyx_kwvalues;
-  PyObject* values[2] = {0,0};
+  PyObject* values[5] = {0,0,0,0,0};
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("permute_cython (wrapper)", 0);
+  __Pyx_RefNannySetupContext("compute_trend_indicator (wrapper)", 0);
   #if !CYTHON_METH_FASTCALL
   #if CYTHON_ASSUME_SAFE_MACROS
   __pyx_nargs = PyTuple_GET_SIZE(__pyx_args);
@@ -4723,10 +5271,16 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   #endif
   __pyx_kwvalues = __Pyx_KwValues_FASTCALL(__pyx_args, __pyx_nargs);
   {
-    PyObject **__pyx_pyargnames[] = {&__pyx_n_s_basis_prices,&__pyx_n_s_rel_prices,0};
+    PyObject **__pyx_pyargnames[] = {&__pyx_n_s_close,&__pyx_n_s_legendre,&__pyx_n_s_lookback,&__pyx_n_s_atr_length,&__pyx_n_s_atr,0};
     if (__pyx_kwds) {
       Py_ssize_t kw_args;
       switch (__pyx_nargs) {
+        case  5: values[4] = __Pyx_Arg_FASTCALL(__pyx_args, 4);
+        CYTHON_FALLTHROUGH;
+        case  4: values[3] = __Pyx_Arg_FASTCALL(__pyx_args, 3);
+        CYTHON_FALLTHROUGH;
+        case  3: values[2] = __Pyx_Arg_FASTCALL(__pyx_args, 2);
+        CYTHON_FALLTHROUGH;
         case  2: values[1] = __Pyx_Arg_FASTCALL(__pyx_args, 1);
         CYTHON_FALLTHROUGH;
         case  1: values[0] = __Pyx_Arg_FASTCALL(__pyx_args, 0);
@@ -4737,39 +5291,75 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
       kw_args = __Pyx_NumKwargs_FASTCALL(__pyx_kwds);
       switch (__pyx_nargs) {
         case  0:
-        if (likely((values[0] = __Pyx_GetKwValue_FASTCALL(__pyx_kwds, __pyx_kwvalues, __pyx_n_s_basis_prices)) != 0)) {
+        if (likely((values[0] = __Pyx_GetKwValue_FASTCALL(__pyx_kwds, __pyx_kwvalues, __pyx_n_s_close)) != 0)) {
           (void)__Pyx_Arg_NewRef_FASTCALL(values[0]);
           kw_args--;
         }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 7, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 10, __pyx_L3_error)
         else goto __pyx_L5_argtuple_error;
         CYTHON_FALLTHROUGH;
         case  1:
-        if (likely((values[1] = __Pyx_GetKwValue_FASTCALL(__pyx_kwds, __pyx_kwvalues, __pyx_n_s_rel_prices)) != 0)) {
+        if (likely((values[1] = __Pyx_GetKwValue_FASTCALL(__pyx_kwds, __pyx_kwvalues, __pyx_n_s_legendre)) != 0)) {
           (void)__Pyx_Arg_NewRef_FASTCALL(values[1]);
           kw_args--;
         }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 7, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 10, __pyx_L3_error)
         else {
-          __Pyx_RaiseArgtupleInvalid("permute_cython", 1, 2, 2, 1); __PYX_ERR(0, 7, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("compute_trend_indicator", 1, 5, 5, 1); __PYX_ERR(0, 10, __pyx_L3_error)
+        }
+        CYTHON_FALLTHROUGH;
+        case  2:
+        if (likely((values[2] = __Pyx_GetKwValue_FASTCALL(__pyx_kwds, __pyx_kwvalues, __pyx_n_s_lookback)) != 0)) {
+          (void)__Pyx_Arg_NewRef_FASTCALL(values[2]);
+          kw_args--;
+        }
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 10, __pyx_L3_error)
+        else {
+          __Pyx_RaiseArgtupleInvalid("compute_trend_indicator", 1, 5, 5, 2); __PYX_ERR(0, 10, __pyx_L3_error)
+        }
+        CYTHON_FALLTHROUGH;
+        case  3:
+        if (likely((values[3] = __Pyx_GetKwValue_FASTCALL(__pyx_kwds, __pyx_kwvalues, __pyx_n_s_atr_length)) != 0)) {
+          (void)__Pyx_Arg_NewRef_FASTCALL(values[3]);
+          kw_args--;
+        }
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 10, __pyx_L3_error)
+        else {
+          __Pyx_RaiseArgtupleInvalid("compute_trend_indicator", 1, 5, 5, 3); __PYX_ERR(0, 10, __pyx_L3_error)
+        }
+        CYTHON_FALLTHROUGH;
+        case  4:
+        if (likely((values[4] = __Pyx_GetKwValue_FASTCALL(__pyx_kwds, __pyx_kwvalues, __pyx_n_s_atr)) != 0)) {
+          (void)__Pyx_Arg_NewRef_FASTCALL(values[4]);
+          kw_args--;
+        }
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 10, __pyx_L3_error)
+        else {
+          __Pyx_RaiseArgtupleInvalid("compute_trend_indicator", 1, 5, 5, 4); __PYX_ERR(0, 10, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
         const Py_ssize_t kwd_pos_args = __pyx_nargs;
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "permute_cython") < 0)) __PYX_ERR(0, 7, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "compute_trend_indicator") < 0)) __PYX_ERR(0, 10, __pyx_L3_error)
       }
-    } else if (unlikely(__pyx_nargs != 2)) {
+    } else if (unlikely(__pyx_nargs != 5)) {
       goto __pyx_L5_argtuple_error;
     } else {
       values[0] = __Pyx_Arg_FASTCALL(__pyx_args, 0);
       values[1] = __Pyx_Arg_FASTCALL(__pyx_args, 1);
+      values[2] = __Pyx_Arg_FASTCALL(__pyx_args, 2);
+      values[3] = __Pyx_Arg_FASTCALL(__pyx_args, 3);
+      values[4] = __Pyx_Arg_FASTCALL(__pyx_args, 4);
     }
-    __pyx_v_basis_prices = ((PyArrayObject *)values[0]);
-    __pyx_v_rel_prices = ((PyArrayObject *)values[1]);
+    __pyx_v_close = ((PyArrayObject *)values[0]);
+    __pyx_v_legendre = ((PyArrayObject *)values[1]);
+    __pyx_v_lookback = __Pyx_PyInt_As_int(values[2]); if (unlikely((__pyx_v_lookback == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 13, __pyx_L3_error)
+    __pyx_v_atr_length = __Pyx_PyInt_As_int(values[3]); if (unlikely((__pyx_v_atr_length == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 14, __pyx_L3_error)
+    __pyx_v_atr = ((PyArrayObject *)values[4]);
   }
   goto __pyx_L6_skip;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("permute_cython", 1, 2, 2, __pyx_nargs); __PYX_ERR(0, 7, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("compute_trend_indicator", 1, 5, 5, __pyx_nargs); __PYX_ERR(0, 10, __pyx_L3_error)
   __pyx_L6_skip:;
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -4779,13 +5369,14 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
       __Pyx_Arg_XDECREF_FASTCALL(values[__pyx_temp]);
     }
   }
-  __Pyx_AddTraceback("jarjarquant.cython_utils.bar_permute.permute_cython", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("jarjarquant.cython_utils.indicators.compute_trend_indicator", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_basis_prices), __pyx_ptype_5numpy_ndarray, 1, "basis_prices", 0))) __PYX_ERR(0, 7, __pyx_L1_error)
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_rel_prices), __pyx_ptype_5numpy_ndarray, 1, "rel_prices", 0))) __PYX_ERR(0, 8, __pyx_L1_error)
-  __pyx_r = __pyx_pf_11jarjarquant_12cython_utils_11bar_permute_permute_cython(__pyx_self, __pyx_v_basis_prices, __pyx_v_rel_prices);
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_close), __pyx_ptype_5numpy_ndarray, 1, "close", 0))) __PYX_ERR(0, 11, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_legendre), __pyx_ptype_5numpy_ndarray, 1, "legendre", 0))) __PYX_ERR(0, 12, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_atr), __pyx_ptype_5numpy_ndarray, 1, "atr", 0))) __PYX_ERR(0, 15, __pyx_L1_error)
+  __pyx_r = __pyx_pf_11jarjarquant_12cython_utils_10indicators_compute_trend_indicator(__pyx_self, __pyx_v_close, __pyx_v_legendre, __pyx_v_lookback, __pyx_v_atr_length, __pyx_v_atr);
 
   /* function exit code */
   goto __pyx_L0;
@@ -4802,1122 +5393,73 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_11jarjarquant_12cython_utils_11bar_permute_permute_cython(CYTHON_UNUSED PyObject *__pyx_self, PyArrayObject *__pyx_v_basis_prices, PyArrayObject *__pyx_v_rel_prices) {
-  int __pyx_v_n_markets;
-  int __pyx_v_n_steps;
-  PyArrayObject *__pyx_v_permuted = 0;
-  int __pyx_v_i;
-  int __pyx_v_j;
-  __Pyx_LocalBuf_ND __pyx_pybuffernd_basis_prices;
-  __Pyx_Buffer __pyx_pybuffer_basis_prices;
-  __Pyx_LocalBuf_ND __pyx_pybuffernd_permuted;
-  __Pyx_Buffer __pyx_pybuffer_permuted;
-  __Pyx_LocalBuf_ND __pyx_pybuffernd_rel_prices;
-  __Pyx_Buffer __pyx_pybuffer_rel_prices;
+static PyObject *__pyx_pf_11jarjarquant_12cython_utils_10indicators_compute_trend_indicator(CYTHON_UNUSED PyObject *__pyx_self, PyArrayObject *__pyx_v_close, PyArrayObject *__pyx_v_legendre, int __pyx_v_lookback, int __pyx_v_atr_length, PyArrayObject *__pyx_v_atr) {
+  __Pyx_LocalBuf_ND __pyx_pybuffernd_atr;
+  __Pyx_Buffer __pyx_pybuffer_atr;
+  __Pyx_LocalBuf_ND __pyx_pybuffernd_close;
+  __Pyx_Buffer __pyx_pybuffer_close;
+  __Pyx_LocalBuf_ND __pyx_pybuffernd_legendre;
+  __Pyx_Buffer __pyx_pybuffer_legendre;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
-  PyObject *__pyx_t_2 = NULL;
-  PyObject *__pyx_t_3 = NULL;
-  PyObject *__pyx_t_4 = NULL;
-  PyObject *__pyx_t_5 = NULL;
-  PyArrayObject *__pyx_t_6 = NULL;
-  int __pyx_t_7;
-  int __pyx_t_8;
-  int __pyx_t_9;
-  Py_ssize_t __pyx_t_10;
-  Py_ssize_t __pyx_t_11;
-  int __pyx_t_12;
-  Py_ssize_t __pyx_t_13;
-  Py_ssize_t __pyx_t_14;
-  Py_ssize_t __pyx_t_15;
-  int __pyx_t_16;
-  int __pyx_t_17;
-  int __pyx_t_18;
-  Py_ssize_t __pyx_t_19;
-  Py_ssize_t __pyx_t_20;
-  Py_ssize_t __pyx_t_21;
-  Py_ssize_t __pyx_t_22;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("permute_cython", 1);
-  __pyx_pybuffer_permuted.pybuffer.buf = NULL;
-  __pyx_pybuffer_permuted.refcount = 0;
-  __pyx_pybuffernd_permuted.data = NULL;
-  __pyx_pybuffernd_permuted.rcbuffer = &__pyx_pybuffer_permuted;
-  __pyx_pybuffer_basis_prices.pybuffer.buf = NULL;
-  __pyx_pybuffer_basis_prices.refcount = 0;
-  __pyx_pybuffernd_basis_prices.data = NULL;
-  __pyx_pybuffernd_basis_prices.rcbuffer = &__pyx_pybuffer_basis_prices;
-  __pyx_pybuffer_rel_prices.pybuffer.buf = NULL;
-  __pyx_pybuffer_rel_prices.refcount = 0;
-  __pyx_pybuffernd_rel_prices.data = NULL;
-  __pyx_pybuffernd_rel_prices.rcbuffer = &__pyx_pybuffer_rel_prices;
+  __Pyx_RefNannySetupContext("compute_trend_indicator", 1);
+  __pyx_pybuffer_close.pybuffer.buf = NULL;
+  __pyx_pybuffer_close.refcount = 0;
+  __pyx_pybuffernd_close.data = NULL;
+  __pyx_pybuffernd_close.rcbuffer = &__pyx_pybuffer_close;
+  __pyx_pybuffer_legendre.pybuffer.buf = NULL;
+  __pyx_pybuffer_legendre.refcount = 0;
+  __pyx_pybuffernd_legendre.data = NULL;
+  __pyx_pybuffernd_legendre.rcbuffer = &__pyx_pybuffer_legendre;
+  __pyx_pybuffer_atr.pybuffer.buf = NULL;
+  __pyx_pybuffer_atr.refcount = 0;
+  __pyx_pybuffernd_atr.data = NULL;
+  __pyx_pybuffernd_atr.rcbuffer = &__pyx_pybuffer_atr;
   {
     __Pyx_BufFmt_StackElem __pyx_stack[1];
-    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_basis_prices.rcbuffer->pybuffer, (PyObject*)__pyx_v_basis_prices, &__Pyx_TypeInfo_nn___pyx_t_5numpy_double_t, PyBUF_FORMAT| PyBUF_STRIDES, 2, 0, __pyx_stack) == -1)) __PYX_ERR(0, 7, __pyx_L1_error)
+    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_close.rcbuffer->pybuffer, (PyObject*)__pyx_v_close, &__Pyx_TypeInfo_nn___pyx_t_11jarjarquant_12cython_utils_10indicators_DTYPE_t, PyBUF_FORMAT| PyBUF_STRIDES, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 10, __pyx_L1_error)
   }
-  __pyx_pybuffernd_basis_prices.diminfo[0].strides = __pyx_pybuffernd_basis_prices.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_basis_prices.diminfo[0].shape = __pyx_pybuffernd_basis_prices.rcbuffer->pybuffer.shape[0]; __pyx_pybuffernd_basis_prices.diminfo[1].strides = __pyx_pybuffernd_basis_prices.rcbuffer->pybuffer.strides[1]; __pyx_pybuffernd_basis_prices.diminfo[1].shape = __pyx_pybuffernd_basis_prices.rcbuffer->pybuffer.shape[1];
+  __pyx_pybuffernd_close.diminfo[0].strides = __pyx_pybuffernd_close.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_close.diminfo[0].shape = __pyx_pybuffernd_close.rcbuffer->pybuffer.shape[0];
   {
     __Pyx_BufFmt_StackElem __pyx_stack[1];
-    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_rel_prices.rcbuffer->pybuffer, (PyObject*)__pyx_v_rel_prices, &__Pyx_TypeInfo_nn___pyx_t_5numpy_double_t, PyBUF_FORMAT| PyBUF_STRIDES, 3, 0, __pyx_stack) == -1)) __PYX_ERR(0, 7, __pyx_L1_error)
+    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_legendre.rcbuffer->pybuffer, (PyObject*)__pyx_v_legendre, &__Pyx_TypeInfo_nn___pyx_t_11jarjarquant_12cython_utils_10indicators_DTYPE_t, PyBUF_FORMAT| PyBUF_STRIDES, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 10, __pyx_L1_error)
   }
-  __pyx_pybuffernd_rel_prices.diminfo[0].strides = __pyx_pybuffernd_rel_prices.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_rel_prices.diminfo[0].shape = __pyx_pybuffernd_rel_prices.rcbuffer->pybuffer.shape[0]; __pyx_pybuffernd_rel_prices.diminfo[1].strides = __pyx_pybuffernd_rel_prices.rcbuffer->pybuffer.strides[1]; __pyx_pybuffernd_rel_prices.diminfo[1].shape = __pyx_pybuffernd_rel_prices.rcbuffer->pybuffer.shape[1]; __pyx_pybuffernd_rel_prices.diminfo[2].strides = __pyx_pybuffernd_rel_prices.rcbuffer->pybuffer.strides[2]; __pyx_pybuffernd_rel_prices.diminfo[2].shape = __pyx_pybuffernd_rel_prices.rcbuffer->pybuffer.shape[2];
-
-  /* "jarjarquant/cython_utils/bar_permute.pyx":20
- *                 containing the reconstructed OHLC data.
- *     """
- *     cdef int n_markets = basis_prices.shape[0]             # <<<<<<<<<<<<<<
- *     cdef int n_steps = rel_prices.shape[1]
- *     # Allocate output array: one extra row per market for the initial basis price.
- */
-  __pyx_v_n_markets = (__pyx_f_5numpy_7ndarray_5shape_shape(((PyArrayObject *)__pyx_v_basis_prices))[0]);
-
-  /* "jarjarquant/cython_utils/bar_permute.pyx":21
- *     """
- *     cdef int n_markets = basis_prices.shape[0]
- *     cdef int n_steps = rel_prices.shape[1]             # <<<<<<<<<<<<<<
- *     # Allocate output array: one extra row per market for the initial basis price.
- *     cdef cnp.ndarray[cnp.double_t, ndim=3] permuted = np.empty((n_markets, n_steps + 1, 4), dtype=np.double)
- */
-  __pyx_v_n_steps = (__pyx_f_5numpy_7ndarray_5shape_shape(((PyArrayObject *)__pyx_v_rel_prices))[1]);
-
-  /* "jarjarquant/cython_utils/bar_permute.pyx":23
- *     cdef int n_steps = rel_prices.shape[1]
- *     # Allocate output array: one extra row per market for the initial basis price.
- *     cdef cnp.ndarray[cnp.double_t, ndim=3] permuted = np.empty((n_markets, n_steps + 1, 4), dtype=np.double)             # <<<<<<<<<<<<<<
- * 
- *     cdef int i, j
- */
-  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_np); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 23, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_empty); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 23, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_1 = __Pyx_PyInt_From_int(__pyx_v_n_markets); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 23, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_3 = __Pyx_PyInt_From_long((__pyx_v_n_steps + 1)); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 23, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_4 = PyTuple_New(3); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 23, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  __Pyx_GIVEREF(__pyx_t_1);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_4, 0, __pyx_t_1)) __PYX_ERR(0, 23, __pyx_L1_error);
-  __Pyx_GIVEREF(__pyx_t_3);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_4, 1, __pyx_t_3)) __PYX_ERR(0, 23, __pyx_L1_error);
-  __Pyx_INCREF(__pyx_int_4);
-  __Pyx_GIVEREF(__pyx_int_4);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_4, 2, __pyx_int_4)) __PYX_ERR(0, 23, __pyx_L1_error);
-  __pyx_t_1 = 0;
-  __pyx_t_3 = 0;
-  __pyx_t_3 = PyTuple_New(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 23, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  __Pyx_GIVEREF(__pyx_t_4);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_t_4)) __PYX_ERR(0, 23, __pyx_L1_error);
-  __pyx_t_4 = 0;
-  __pyx_t_4 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 23, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_np); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 23, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_double); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 23, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_5);
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  if (PyDict_SetItem(__pyx_t_4, __pyx_n_s_dtype, __pyx_t_5) < 0) __PYX_ERR(0, 23, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-  __pyx_t_5 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_3, __pyx_t_4); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 23, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_5);
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  if (!(likely(((__pyx_t_5) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_5, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 23, __pyx_L1_error)
-  __pyx_t_6 = ((PyArrayObject *)__pyx_t_5);
+  __pyx_pybuffernd_legendre.diminfo[0].strides = __pyx_pybuffernd_legendre.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_legendre.diminfo[0].shape = __pyx_pybuffernd_legendre.rcbuffer->pybuffer.shape[0];
   {
     __Pyx_BufFmt_StackElem __pyx_stack[1];
-    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_permuted.rcbuffer->pybuffer, (PyObject*)__pyx_t_6, &__Pyx_TypeInfo_nn___pyx_t_5numpy_double_t, PyBUF_FORMAT| PyBUF_STRIDES| PyBUF_WRITABLE, 3, 0, __pyx_stack) == -1)) {
-      __pyx_v_permuted = ((PyArrayObject *)Py_None); __Pyx_INCREF(Py_None); __pyx_pybuffernd_permuted.rcbuffer->pybuffer.buf = NULL;
-      __PYX_ERR(0, 23, __pyx_L1_error)
-    } else {__pyx_pybuffernd_permuted.diminfo[0].strides = __pyx_pybuffernd_permuted.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_permuted.diminfo[0].shape = __pyx_pybuffernd_permuted.rcbuffer->pybuffer.shape[0]; __pyx_pybuffernd_permuted.diminfo[1].strides = __pyx_pybuffernd_permuted.rcbuffer->pybuffer.strides[1]; __pyx_pybuffernd_permuted.diminfo[1].shape = __pyx_pybuffernd_permuted.rcbuffer->pybuffer.shape[1]; __pyx_pybuffernd_permuted.diminfo[2].strides = __pyx_pybuffernd_permuted.rcbuffer->pybuffer.strides[2]; __pyx_pybuffernd_permuted.diminfo[2].shape = __pyx_pybuffernd_permuted.rcbuffer->pybuffer.shape[2];
-    }
+    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_atr.rcbuffer->pybuffer, (PyObject*)__pyx_v_atr, &__Pyx_TypeInfo_nn___pyx_t_11jarjarquant_12cython_utils_10indicators_DTYPE_t, PyBUF_FORMAT| PyBUF_STRIDES, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 10, __pyx_L1_error)
   }
-  __pyx_t_6 = 0;
-  __pyx_v_permuted = ((PyArrayObject *)__pyx_t_5);
-  __pyx_t_5 = 0;
-
-  /* "jarjarquant/cython_utils/bar_permute.pyx":27
- *     cdef int i, j
- * 
- *     for i in range(n_markets):             # <<<<<<<<<<<<<<
- *         # Set the initial basis prices for market i.
- *         permuted[i, 0, 0] = basis_prices[i, 0]  # Open
- */
-  __pyx_t_7 = __pyx_v_n_markets;
-  __pyx_t_8 = __pyx_t_7;
-  for (__pyx_t_9 = 0; __pyx_t_9 < __pyx_t_8; __pyx_t_9+=1) {
-    __pyx_v_i = __pyx_t_9;
-
-    /* "jarjarquant/cython_utils/bar_permute.pyx":29
- *     for i in range(n_markets):
- *         # Set the initial basis prices for market i.
- *         permuted[i, 0, 0] = basis_prices[i, 0]  # Open             # <<<<<<<<<<<<<<
- *         permuted[i, 0, 1] = basis_prices[i, 1]  # High
- *         permuted[i, 0, 2] = basis_prices[i, 2]  # Low
- */
-    __pyx_t_10 = __pyx_v_i;
-    __pyx_t_11 = 0;
-    __pyx_t_12 = -1;
-    if (__pyx_t_10 < 0) {
-      __pyx_t_10 += __pyx_pybuffernd_basis_prices.diminfo[0].shape;
-      if (unlikely(__pyx_t_10 < 0)) __pyx_t_12 = 0;
-    } else if (unlikely(__pyx_t_10 >= __pyx_pybuffernd_basis_prices.diminfo[0].shape)) __pyx_t_12 = 0;
-    if (__pyx_t_11 < 0) {
-      __pyx_t_11 += __pyx_pybuffernd_basis_prices.diminfo[1].shape;
-      if (unlikely(__pyx_t_11 < 0)) __pyx_t_12 = 1;
-    } else if (unlikely(__pyx_t_11 >= __pyx_pybuffernd_basis_prices.diminfo[1].shape)) __pyx_t_12 = 1;
-    if (unlikely(__pyx_t_12 != -1)) {
-      __Pyx_RaiseBufferIndexError(__pyx_t_12);
-      __PYX_ERR(0, 29, __pyx_L1_error)
-    }
-    __pyx_t_13 = __pyx_v_i;
-    __pyx_t_14 = 0;
-    __pyx_t_15 = 0;
-    __pyx_t_12 = -1;
-    if (__pyx_t_13 < 0) {
-      __pyx_t_13 += __pyx_pybuffernd_permuted.diminfo[0].shape;
-      if (unlikely(__pyx_t_13 < 0)) __pyx_t_12 = 0;
-    } else if (unlikely(__pyx_t_13 >= __pyx_pybuffernd_permuted.diminfo[0].shape)) __pyx_t_12 = 0;
-    if (__pyx_t_14 < 0) {
-      __pyx_t_14 += __pyx_pybuffernd_permuted.diminfo[1].shape;
-      if (unlikely(__pyx_t_14 < 0)) __pyx_t_12 = 1;
-    } else if (unlikely(__pyx_t_14 >= __pyx_pybuffernd_permuted.diminfo[1].shape)) __pyx_t_12 = 1;
-    if (__pyx_t_15 < 0) {
-      __pyx_t_15 += __pyx_pybuffernd_permuted.diminfo[2].shape;
-      if (unlikely(__pyx_t_15 < 0)) __pyx_t_12 = 2;
-    } else if (unlikely(__pyx_t_15 >= __pyx_pybuffernd_permuted.diminfo[2].shape)) __pyx_t_12 = 2;
-    if (unlikely(__pyx_t_12 != -1)) {
-      __Pyx_RaiseBufferIndexError(__pyx_t_12);
-      __PYX_ERR(0, 29, __pyx_L1_error)
-    }
-    *__Pyx_BufPtrStrided3d(__pyx_t_5numpy_double_t *, __pyx_pybuffernd_permuted.rcbuffer->pybuffer.buf, __pyx_t_13, __pyx_pybuffernd_permuted.diminfo[0].strides, __pyx_t_14, __pyx_pybuffernd_permuted.diminfo[1].strides, __pyx_t_15, __pyx_pybuffernd_permuted.diminfo[2].strides) = (*__Pyx_BufPtrStrided2d(__pyx_t_5numpy_double_t *, __pyx_pybuffernd_basis_prices.rcbuffer->pybuffer.buf, __pyx_t_10, __pyx_pybuffernd_basis_prices.diminfo[0].strides, __pyx_t_11, __pyx_pybuffernd_basis_prices.diminfo[1].strides));
-
-    /* "jarjarquant/cython_utils/bar_permute.pyx":30
- *         # Set the initial basis prices for market i.
- *         permuted[i, 0, 0] = basis_prices[i, 0]  # Open
- *         permuted[i, 0, 1] = basis_prices[i, 1]  # High             # <<<<<<<<<<<<<<
- *         permuted[i, 0, 2] = basis_prices[i, 2]  # Low
- *         permuted[i, 0, 3] = basis_prices[i, 3]  # Close
- */
-    __pyx_t_11 = __pyx_v_i;
-    __pyx_t_10 = 1;
-    __pyx_t_12 = -1;
-    if (__pyx_t_11 < 0) {
-      __pyx_t_11 += __pyx_pybuffernd_basis_prices.diminfo[0].shape;
-      if (unlikely(__pyx_t_11 < 0)) __pyx_t_12 = 0;
-    } else if (unlikely(__pyx_t_11 >= __pyx_pybuffernd_basis_prices.diminfo[0].shape)) __pyx_t_12 = 0;
-    if (__pyx_t_10 < 0) {
-      __pyx_t_10 += __pyx_pybuffernd_basis_prices.diminfo[1].shape;
-      if (unlikely(__pyx_t_10 < 0)) __pyx_t_12 = 1;
-    } else if (unlikely(__pyx_t_10 >= __pyx_pybuffernd_basis_prices.diminfo[1].shape)) __pyx_t_12 = 1;
-    if (unlikely(__pyx_t_12 != -1)) {
-      __Pyx_RaiseBufferIndexError(__pyx_t_12);
-      __PYX_ERR(0, 30, __pyx_L1_error)
-    }
-    __pyx_t_15 = __pyx_v_i;
-    __pyx_t_14 = 0;
-    __pyx_t_13 = 1;
-    __pyx_t_12 = -1;
-    if (__pyx_t_15 < 0) {
-      __pyx_t_15 += __pyx_pybuffernd_permuted.diminfo[0].shape;
-      if (unlikely(__pyx_t_15 < 0)) __pyx_t_12 = 0;
-    } else if (unlikely(__pyx_t_15 >= __pyx_pybuffernd_permuted.diminfo[0].shape)) __pyx_t_12 = 0;
-    if (__pyx_t_14 < 0) {
-      __pyx_t_14 += __pyx_pybuffernd_permuted.diminfo[1].shape;
-      if (unlikely(__pyx_t_14 < 0)) __pyx_t_12 = 1;
-    } else if (unlikely(__pyx_t_14 >= __pyx_pybuffernd_permuted.diminfo[1].shape)) __pyx_t_12 = 1;
-    if (__pyx_t_13 < 0) {
-      __pyx_t_13 += __pyx_pybuffernd_permuted.diminfo[2].shape;
-      if (unlikely(__pyx_t_13 < 0)) __pyx_t_12 = 2;
-    } else if (unlikely(__pyx_t_13 >= __pyx_pybuffernd_permuted.diminfo[2].shape)) __pyx_t_12 = 2;
-    if (unlikely(__pyx_t_12 != -1)) {
-      __Pyx_RaiseBufferIndexError(__pyx_t_12);
-      __PYX_ERR(0, 30, __pyx_L1_error)
-    }
-    *__Pyx_BufPtrStrided3d(__pyx_t_5numpy_double_t *, __pyx_pybuffernd_permuted.rcbuffer->pybuffer.buf, __pyx_t_15, __pyx_pybuffernd_permuted.diminfo[0].strides, __pyx_t_14, __pyx_pybuffernd_permuted.diminfo[1].strides, __pyx_t_13, __pyx_pybuffernd_permuted.diminfo[2].strides) = (*__Pyx_BufPtrStrided2d(__pyx_t_5numpy_double_t *, __pyx_pybuffernd_basis_prices.rcbuffer->pybuffer.buf, __pyx_t_11, __pyx_pybuffernd_basis_prices.diminfo[0].strides, __pyx_t_10, __pyx_pybuffernd_basis_prices.diminfo[1].strides));
-
-    /* "jarjarquant/cython_utils/bar_permute.pyx":31
- *         permuted[i, 0, 0] = basis_prices[i, 0]  # Open
- *         permuted[i, 0, 1] = basis_prices[i, 1]  # High
- *         permuted[i, 0, 2] = basis_prices[i, 2]  # Low             # <<<<<<<<<<<<<<
- *         permuted[i, 0, 3] = basis_prices[i, 3]  # Close
- * 
- */
-    __pyx_t_10 = __pyx_v_i;
-    __pyx_t_11 = 2;
-    __pyx_t_12 = -1;
-    if (__pyx_t_10 < 0) {
-      __pyx_t_10 += __pyx_pybuffernd_basis_prices.diminfo[0].shape;
-      if (unlikely(__pyx_t_10 < 0)) __pyx_t_12 = 0;
-    } else if (unlikely(__pyx_t_10 >= __pyx_pybuffernd_basis_prices.diminfo[0].shape)) __pyx_t_12 = 0;
-    if (__pyx_t_11 < 0) {
-      __pyx_t_11 += __pyx_pybuffernd_basis_prices.diminfo[1].shape;
-      if (unlikely(__pyx_t_11 < 0)) __pyx_t_12 = 1;
-    } else if (unlikely(__pyx_t_11 >= __pyx_pybuffernd_basis_prices.diminfo[1].shape)) __pyx_t_12 = 1;
-    if (unlikely(__pyx_t_12 != -1)) {
-      __Pyx_RaiseBufferIndexError(__pyx_t_12);
-      __PYX_ERR(0, 31, __pyx_L1_error)
-    }
-    __pyx_t_13 = __pyx_v_i;
-    __pyx_t_14 = 0;
-    __pyx_t_15 = 2;
-    __pyx_t_12 = -1;
-    if (__pyx_t_13 < 0) {
-      __pyx_t_13 += __pyx_pybuffernd_permuted.diminfo[0].shape;
-      if (unlikely(__pyx_t_13 < 0)) __pyx_t_12 = 0;
-    } else if (unlikely(__pyx_t_13 >= __pyx_pybuffernd_permuted.diminfo[0].shape)) __pyx_t_12 = 0;
-    if (__pyx_t_14 < 0) {
-      __pyx_t_14 += __pyx_pybuffernd_permuted.diminfo[1].shape;
-      if (unlikely(__pyx_t_14 < 0)) __pyx_t_12 = 1;
-    } else if (unlikely(__pyx_t_14 >= __pyx_pybuffernd_permuted.diminfo[1].shape)) __pyx_t_12 = 1;
-    if (__pyx_t_15 < 0) {
-      __pyx_t_15 += __pyx_pybuffernd_permuted.diminfo[2].shape;
-      if (unlikely(__pyx_t_15 < 0)) __pyx_t_12 = 2;
-    } else if (unlikely(__pyx_t_15 >= __pyx_pybuffernd_permuted.diminfo[2].shape)) __pyx_t_12 = 2;
-    if (unlikely(__pyx_t_12 != -1)) {
-      __Pyx_RaiseBufferIndexError(__pyx_t_12);
-      __PYX_ERR(0, 31, __pyx_L1_error)
-    }
-    *__Pyx_BufPtrStrided3d(__pyx_t_5numpy_double_t *, __pyx_pybuffernd_permuted.rcbuffer->pybuffer.buf, __pyx_t_13, __pyx_pybuffernd_permuted.diminfo[0].strides, __pyx_t_14, __pyx_pybuffernd_permuted.diminfo[1].strides, __pyx_t_15, __pyx_pybuffernd_permuted.diminfo[2].strides) = (*__Pyx_BufPtrStrided2d(__pyx_t_5numpy_double_t *, __pyx_pybuffernd_basis_prices.rcbuffer->pybuffer.buf, __pyx_t_10, __pyx_pybuffernd_basis_prices.diminfo[0].strides, __pyx_t_11, __pyx_pybuffernd_basis_prices.diminfo[1].strides));
-
-    /* "jarjarquant/cython_utils/bar_permute.pyx":32
- *         permuted[i, 0, 1] = basis_prices[i, 1]  # High
- *         permuted[i, 0, 2] = basis_prices[i, 2]  # Low
- *         permuted[i, 0, 3] = basis_prices[i, 3]  # Close             # <<<<<<<<<<<<<<
- * 
- *         for j in range(n_steps):
- */
-    __pyx_t_11 = __pyx_v_i;
-    __pyx_t_10 = 3;
-    __pyx_t_12 = -1;
-    if (__pyx_t_11 < 0) {
-      __pyx_t_11 += __pyx_pybuffernd_basis_prices.diminfo[0].shape;
-      if (unlikely(__pyx_t_11 < 0)) __pyx_t_12 = 0;
-    } else if (unlikely(__pyx_t_11 >= __pyx_pybuffernd_basis_prices.diminfo[0].shape)) __pyx_t_12 = 0;
-    if (__pyx_t_10 < 0) {
-      __pyx_t_10 += __pyx_pybuffernd_basis_prices.diminfo[1].shape;
-      if (unlikely(__pyx_t_10 < 0)) __pyx_t_12 = 1;
-    } else if (unlikely(__pyx_t_10 >= __pyx_pybuffernd_basis_prices.diminfo[1].shape)) __pyx_t_12 = 1;
-    if (unlikely(__pyx_t_12 != -1)) {
-      __Pyx_RaiseBufferIndexError(__pyx_t_12);
-      __PYX_ERR(0, 32, __pyx_L1_error)
-    }
-    __pyx_t_15 = __pyx_v_i;
-    __pyx_t_14 = 0;
-    __pyx_t_13 = 3;
-    __pyx_t_12 = -1;
-    if (__pyx_t_15 < 0) {
-      __pyx_t_15 += __pyx_pybuffernd_permuted.diminfo[0].shape;
-      if (unlikely(__pyx_t_15 < 0)) __pyx_t_12 = 0;
-    } else if (unlikely(__pyx_t_15 >= __pyx_pybuffernd_permuted.diminfo[0].shape)) __pyx_t_12 = 0;
-    if (__pyx_t_14 < 0) {
-      __pyx_t_14 += __pyx_pybuffernd_permuted.diminfo[1].shape;
-      if (unlikely(__pyx_t_14 < 0)) __pyx_t_12 = 1;
-    } else if (unlikely(__pyx_t_14 >= __pyx_pybuffernd_permuted.diminfo[1].shape)) __pyx_t_12 = 1;
-    if (__pyx_t_13 < 0) {
-      __pyx_t_13 += __pyx_pybuffernd_permuted.diminfo[2].shape;
-      if (unlikely(__pyx_t_13 < 0)) __pyx_t_12 = 2;
-    } else if (unlikely(__pyx_t_13 >= __pyx_pybuffernd_permuted.diminfo[2].shape)) __pyx_t_12 = 2;
-    if (unlikely(__pyx_t_12 != -1)) {
-      __Pyx_RaiseBufferIndexError(__pyx_t_12);
-      __PYX_ERR(0, 32, __pyx_L1_error)
-    }
-    *__Pyx_BufPtrStrided3d(__pyx_t_5numpy_double_t *, __pyx_pybuffernd_permuted.rcbuffer->pybuffer.buf, __pyx_t_15, __pyx_pybuffernd_permuted.diminfo[0].strides, __pyx_t_14, __pyx_pybuffernd_permuted.diminfo[1].strides, __pyx_t_13, __pyx_pybuffernd_permuted.diminfo[2].strides) = (*__Pyx_BufPtrStrided2d(__pyx_t_5numpy_double_t *, __pyx_pybuffernd_basis_prices.rcbuffer->pybuffer.buf, __pyx_t_11, __pyx_pybuffernd_basis_prices.diminfo[0].strides, __pyx_t_10, __pyx_pybuffernd_basis_prices.diminfo[1].strides));
-
-    /* "jarjarquant/cython_utils/bar_permute.pyx":34
- *         permuted[i, 0, 3] = basis_prices[i, 3]  # Close
- * 
- *         for j in range(n_steps):             # <<<<<<<<<<<<<<
- *             # Compute new open from the previous close and the relative open change.
- *             permuted[i, j + 1, 0] = permuted[i, j, 3] + rel_prices[i, j, 0]
- */
-    __pyx_t_12 = __pyx_v_n_steps;
-    __pyx_t_16 = __pyx_t_12;
-    for (__pyx_t_17 = 0; __pyx_t_17 < __pyx_t_16; __pyx_t_17+=1) {
-      __pyx_v_j = __pyx_t_17;
-
-      /* "jarjarquant/cython_utils/bar_permute.pyx":36
- *         for j in range(n_steps):
- *             # Compute new open from the previous close and the relative open change.
- *             permuted[i, j + 1, 0] = permuted[i, j, 3] + rel_prices[i, j, 0]             # <<<<<<<<<<<<<<
- *             # New high is new open plus relative high change.
- *             permuted[i, j + 1, 1] = permuted[i, j + 1, 0] + rel_prices[i, j, 1]
- */
-      __pyx_t_10 = __pyx_v_i;
-      __pyx_t_11 = __pyx_v_j;
-      __pyx_t_13 = 3;
-      __pyx_t_18 = -1;
-      if (__pyx_t_10 < 0) {
-        __pyx_t_10 += __pyx_pybuffernd_permuted.diminfo[0].shape;
-        if (unlikely(__pyx_t_10 < 0)) __pyx_t_18 = 0;
-      } else if (unlikely(__pyx_t_10 >= __pyx_pybuffernd_permuted.diminfo[0].shape)) __pyx_t_18 = 0;
-      if (__pyx_t_11 < 0) {
-        __pyx_t_11 += __pyx_pybuffernd_permuted.diminfo[1].shape;
-        if (unlikely(__pyx_t_11 < 0)) __pyx_t_18 = 1;
-      } else if (unlikely(__pyx_t_11 >= __pyx_pybuffernd_permuted.diminfo[1].shape)) __pyx_t_18 = 1;
-      if (__pyx_t_13 < 0) {
-        __pyx_t_13 += __pyx_pybuffernd_permuted.diminfo[2].shape;
-        if (unlikely(__pyx_t_13 < 0)) __pyx_t_18 = 2;
-      } else if (unlikely(__pyx_t_13 >= __pyx_pybuffernd_permuted.diminfo[2].shape)) __pyx_t_18 = 2;
-      if (unlikely(__pyx_t_18 != -1)) {
-        __Pyx_RaiseBufferIndexError(__pyx_t_18);
-        __PYX_ERR(0, 36, __pyx_L1_error)
-      }
-      __pyx_t_14 = __pyx_v_i;
-      __pyx_t_15 = __pyx_v_j;
-      __pyx_t_19 = 0;
-      __pyx_t_18 = -1;
-      if (__pyx_t_14 < 0) {
-        __pyx_t_14 += __pyx_pybuffernd_rel_prices.diminfo[0].shape;
-        if (unlikely(__pyx_t_14 < 0)) __pyx_t_18 = 0;
-      } else if (unlikely(__pyx_t_14 >= __pyx_pybuffernd_rel_prices.diminfo[0].shape)) __pyx_t_18 = 0;
-      if (__pyx_t_15 < 0) {
-        __pyx_t_15 += __pyx_pybuffernd_rel_prices.diminfo[1].shape;
-        if (unlikely(__pyx_t_15 < 0)) __pyx_t_18 = 1;
-      } else if (unlikely(__pyx_t_15 >= __pyx_pybuffernd_rel_prices.diminfo[1].shape)) __pyx_t_18 = 1;
-      if (__pyx_t_19 < 0) {
-        __pyx_t_19 += __pyx_pybuffernd_rel_prices.diminfo[2].shape;
-        if (unlikely(__pyx_t_19 < 0)) __pyx_t_18 = 2;
-      } else if (unlikely(__pyx_t_19 >= __pyx_pybuffernd_rel_prices.diminfo[2].shape)) __pyx_t_18 = 2;
-      if (unlikely(__pyx_t_18 != -1)) {
-        __Pyx_RaiseBufferIndexError(__pyx_t_18);
-        __PYX_ERR(0, 36, __pyx_L1_error)
-      }
-      __pyx_t_20 = __pyx_v_i;
-      __pyx_t_21 = (__pyx_v_j + 1);
-      __pyx_t_22 = 0;
-      __pyx_t_18 = -1;
-      if (__pyx_t_20 < 0) {
-        __pyx_t_20 += __pyx_pybuffernd_permuted.diminfo[0].shape;
-        if (unlikely(__pyx_t_20 < 0)) __pyx_t_18 = 0;
-      } else if (unlikely(__pyx_t_20 >= __pyx_pybuffernd_permuted.diminfo[0].shape)) __pyx_t_18 = 0;
-      if (__pyx_t_21 < 0) {
-        __pyx_t_21 += __pyx_pybuffernd_permuted.diminfo[1].shape;
-        if (unlikely(__pyx_t_21 < 0)) __pyx_t_18 = 1;
-      } else if (unlikely(__pyx_t_21 >= __pyx_pybuffernd_permuted.diminfo[1].shape)) __pyx_t_18 = 1;
-      if (__pyx_t_22 < 0) {
-        __pyx_t_22 += __pyx_pybuffernd_permuted.diminfo[2].shape;
-        if (unlikely(__pyx_t_22 < 0)) __pyx_t_18 = 2;
-      } else if (unlikely(__pyx_t_22 >= __pyx_pybuffernd_permuted.diminfo[2].shape)) __pyx_t_18 = 2;
-      if (unlikely(__pyx_t_18 != -1)) {
-        __Pyx_RaiseBufferIndexError(__pyx_t_18);
-        __PYX_ERR(0, 36, __pyx_L1_error)
-      }
-      *__Pyx_BufPtrStrided3d(__pyx_t_5numpy_double_t *, __pyx_pybuffernd_permuted.rcbuffer->pybuffer.buf, __pyx_t_20, __pyx_pybuffernd_permuted.diminfo[0].strides, __pyx_t_21, __pyx_pybuffernd_permuted.diminfo[1].strides, __pyx_t_22, __pyx_pybuffernd_permuted.diminfo[2].strides) = ((*__Pyx_BufPtrStrided3d(__pyx_t_5numpy_double_t *, __pyx_pybuffernd_permuted.rcbuffer->pybuffer.buf, __pyx_t_10, __pyx_pybuffernd_permuted.diminfo[0].strides, __pyx_t_11, __pyx_pybuffernd_permuted.diminfo[1].strides, __pyx_t_13, __pyx_pybuffernd_permuted.diminfo[2].strides)) + (*__Pyx_BufPtrStrided3d(__pyx_t_5numpy_double_t *, __pyx_pybuffernd_rel_prices.rcbuffer->pybuffer.buf, __pyx_t_14, __pyx_pybuffernd_rel_prices.diminfo[0].strides, __pyx_t_15, __pyx_pybuffernd_rel_prices.diminfo[1].strides, __pyx_t_19, __pyx_pybuffernd_rel_prices.diminfo[2].strides)));
-
-      /* "jarjarquant/cython_utils/bar_permute.pyx":38
- *             permuted[i, j + 1, 0] = permuted[i, j, 3] + rel_prices[i, j, 0]
- *             # New high is new open plus relative high change.
- *             permuted[i, j + 1, 1] = permuted[i, j + 1, 0] + rel_prices[i, j, 1]             # <<<<<<<<<<<<<<
- *             # New low is new open plus relative low change.
- *             permuted[i, j + 1, 2] = permuted[i, j + 1, 0] + rel_prices[i, j, 2]
- */
-      __pyx_t_19 = __pyx_v_i;
-      __pyx_t_15 = (__pyx_v_j + 1);
-      __pyx_t_14 = 0;
-      __pyx_t_18 = -1;
-      if (__pyx_t_19 < 0) {
-        __pyx_t_19 += __pyx_pybuffernd_permuted.diminfo[0].shape;
-        if (unlikely(__pyx_t_19 < 0)) __pyx_t_18 = 0;
-      } else if (unlikely(__pyx_t_19 >= __pyx_pybuffernd_permuted.diminfo[0].shape)) __pyx_t_18 = 0;
-      if (__pyx_t_15 < 0) {
-        __pyx_t_15 += __pyx_pybuffernd_permuted.diminfo[1].shape;
-        if (unlikely(__pyx_t_15 < 0)) __pyx_t_18 = 1;
-      } else if (unlikely(__pyx_t_15 >= __pyx_pybuffernd_permuted.diminfo[1].shape)) __pyx_t_18 = 1;
-      if (__pyx_t_14 < 0) {
-        __pyx_t_14 += __pyx_pybuffernd_permuted.diminfo[2].shape;
-        if (unlikely(__pyx_t_14 < 0)) __pyx_t_18 = 2;
-      } else if (unlikely(__pyx_t_14 >= __pyx_pybuffernd_permuted.diminfo[2].shape)) __pyx_t_18 = 2;
-      if (unlikely(__pyx_t_18 != -1)) {
-        __Pyx_RaiseBufferIndexError(__pyx_t_18);
-        __PYX_ERR(0, 38, __pyx_L1_error)
-      }
-      __pyx_t_13 = __pyx_v_i;
-      __pyx_t_11 = __pyx_v_j;
-      __pyx_t_10 = 1;
-      __pyx_t_18 = -1;
-      if (__pyx_t_13 < 0) {
-        __pyx_t_13 += __pyx_pybuffernd_rel_prices.diminfo[0].shape;
-        if (unlikely(__pyx_t_13 < 0)) __pyx_t_18 = 0;
-      } else if (unlikely(__pyx_t_13 >= __pyx_pybuffernd_rel_prices.diminfo[0].shape)) __pyx_t_18 = 0;
-      if (__pyx_t_11 < 0) {
-        __pyx_t_11 += __pyx_pybuffernd_rel_prices.diminfo[1].shape;
-        if (unlikely(__pyx_t_11 < 0)) __pyx_t_18 = 1;
-      } else if (unlikely(__pyx_t_11 >= __pyx_pybuffernd_rel_prices.diminfo[1].shape)) __pyx_t_18 = 1;
-      if (__pyx_t_10 < 0) {
-        __pyx_t_10 += __pyx_pybuffernd_rel_prices.diminfo[2].shape;
-        if (unlikely(__pyx_t_10 < 0)) __pyx_t_18 = 2;
-      } else if (unlikely(__pyx_t_10 >= __pyx_pybuffernd_rel_prices.diminfo[2].shape)) __pyx_t_18 = 2;
-      if (unlikely(__pyx_t_18 != -1)) {
-        __Pyx_RaiseBufferIndexError(__pyx_t_18);
-        __PYX_ERR(0, 38, __pyx_L1_error)
-      }
-      __pyx_t_22 = __pyx_v_i;
-      __pyx_t_21 = (__pyx_v_j + 1);
-      __pyx_t_20 = 1;
-      __pyx_t_18 = -1;
-      if (__pyx_t_22 < 0) {
-        __pyx_t_22 += __pyx_pybuffernd_permuted.diminfo[0].shape;
-        if (unlikely(__pyx_t_22 < 0)) __pyx_t_18 = 0;
-      } else if (unlikely(__pyx_t_22 >= __pyx_pybuffernd_permuted.diminfo[0].shape)) __pyx_t_18 = 0;
-      if (__pyx_t_21 < 0) {
-        __pyx_t_21 += __pyx_pybuffernd_permuted.diminfo[1].shape;
-        if (unlikely(__pyx_t_21 < 0)) __pyx_t_18 = 1;
-      } else if (unlikely(__pyx_t_21 >= __pyx_pybuffernd_permuted.diminfo[1].shape)) __pyx_t_18 = 1;
-      if (__pyx_t_20 < 0) {
-        __pyx_t_20 += __pyx_pybuffernd_permuted.diminfo[2].shape;
-        if (unlikely(__pyx_t_20 < 0)) __pyx_t_18 = 2;
-      } else if (unlikely(__pyx_t_20 >= __pyx_pybuffernd_permuted.diminfo[2].shape)) __pyx_t_18 = 2;
-      if (unlikely(__pyx_t_18 != -1)) {
-        __Pyx_RaiseBufferIndexError(__pyx_t_18);
-        __PYX_ERR(0, 38, __pyx_L1_error)
-      }
-      *__Pyx_BufPtrStrided3d(__pyx_t_5numpy_double_t *, __pyx_pybuffernd_permuted.rcbuffer->pybuffer.buf, __pyx_t_22, __pyx_pybuffernd_permuted.diminfo[0].strides, __pyx_t_21, __pyx_pybuffernd_permuted.diminfo[1].strides, __pyx_t_20, __pyx_pybuffernd_permuted.diminfo[2].strides) = ((*__Pyx_BufPtrStrided3d(__pyx_t_5numpy_double_t *, __pyx_pybuffernd_permuted.rcbuffer->pybuffer.buf, __pyx_t_19, __pyx_pybuffernd_permuted.diminfo[0].strides, __pyx_t_15, __pyx_pybuffernd_permuted.diminfo[1].strides, __pyx_t_14, __pyx_pybuffernd_permuted.diminfo[2].strides)) + (*__Pyx_BufPtrStrided3d(__pyx_t_5numpy_double_t *, __pyx_pybuffernd_rel_prices.rcbuffer->pybuffer.buf, __pyx_t_13, __pyx_pybuffernd_rel_prices.diminfo[0].strides, __pyx_t_11, __pyx_pybuffernd_rel_prices.diminfo[1].strides, __pyx_t_10, __pyx_pybuffernd_rel_prices.diminfo[2].strides)));
-
-      /* "jarjarquant/cython_utils/bar_permute.pyx":40
- *             permuted[i, j + 1, 1] = permuted[i, j + 1, 0] + rel_prices[i, j, 1]
- *             # New low is new open plus relative low change.
- *             permuted[i, j + 1, 2] = permuted[i, j + 1, 0] + rel_prices[i, j, 2]             # <<<<<<<<<<<<<<
- *             # New close is new open plus relative close change.
- *             permuted[i, j + 1, 3] = permuted[i, j + 1, 0] + rel_prices[i, j, 3]
- */
-      __pyx_t_10 = __pyx_v_i;
-      __pyx_t_11 = (__pyx_v_j + 1);
-      __pyx_t_13 = 0;
-      __pyx_t_18 = -1;
-      if (__pyx_t_10 < 0) {
-        __pyx_t_10 += __pyx_pybuffernd_permuted.diminfo[0].shape;
-        if (unlikely(__pyx_t_10 < 0)) __pyx_t_18 = 0;
-      } else if (unlikely(__pyx_t_10 >= __pyx_pybuffernd_permuted.diminfo[0].shape)) __pyx_t_18 = 0;
-      if (__pyx_t_11 < 0) {
-        __pyx_t_11 += __pyx_pybuffernd_permuted.diminfo[1].shape;
-        if (unlikely(__pyx_t_11 < 0)) __pyx_t_18 = 1;
-      } else if (unlikely(__pyx_t_11 >= __pyx_pybuffernd_permuted.diminfo[1].shape)) __pyx_t_18 = 1;
-      if (__pyx_t_13 < 0) {
-        __pyx_t_13 += __pyx_pybuffernd_permuted.diminfo[2].shape;
-        if (unlikely(__pyx_t_13 < 0)) __pyx_t_18 = 2;
-      } else if (unlikely(__pyx_t_13 >= __pyx_pybuffernd_permuted.diminfo[2].shape)) __pyx_t_18 = 2;
-      if (unlikely(__pyx_t_18 != -1)) {
-        __Pyx_RaiseBufferIndexError(__pyx_t_18);
-        __PYX_ERR(0, 40, __pyx_L1_error)
-      }
-      __pyx_t_14 = __pyx_v_i;
-      __pyx_t_15 = __pyx_v_j;
-      __pyx_t_19 = 2;
-      __pyx_t_18 = -1;
-      if (__pyx_t_14 < 0) {
-        __pyx_t_14 += __pyx_pybuffernd_rel_prices.diminfo[0].shape;
-        if (unlikely(__pyx_t_14 < 0)) __pyx_t_18 = 0;
-      } else if (unlikely(__pyx_t_14 >= __pyx_pybuffernd_rel_prices.diminfo[0].shape)) __pyx_t_18 = 0;
-      if (__pyx_t_15 < 0) {
-        __pyx_t_15 += __pyx_pybuffernd_rel_prices.diminfo[1].shape;
-        if (unlikely(__pyx_t_15 < 0)) __pyx_t_18 = 1;
-      } else if (unlikely(__pyx_t_15 >= __pyx_pybuffernd_rel_prices.diminfo[1].shape)) __pyx_t_18 = 1;
-      if (__pyx_t_19 < 0) {
-        __pyx_t_19 += __pyx_pybuffernd_rel_prices.diminfo[2].shape;
-        if (unlikely(__pyx_t_19 < 0)) __pyx_t_18 = 2;
-      } else if (unlikely(__pyx_t_19 >= __pyx_pybuffernd_rel_prices.diminfo[2].shape)) __pyx_t_18 = 2;
-      if (unlikely(__pyx_t_18 != -1)) {
-        __Pyx_RaiseBufferIndexError(__pyx_t_18);
-        __PYX_ERR(0, 40, __pyx_L1_error)
-      }
-      __pyx_t_20 = __pyx_v_i;
-      __pyx_t_21 = (__pyx_v_j + 1);
-      __pyx_t_22 = 2;
-      __pyx_t_18 = -1;
-      if (__pyx_t_20 < 0) {
-        __pyx_t_20 += __pyx_pybuffernd_permuted.diminfo[0].shape;
-        if (unlikely(__pyx_t_20 < 0)) __pyx_t_18 = 0;
-      } else if (unlikely(__pyx_t_20 >= __pyx_pybuffernd_permuted.diminfo[0].shape)) __pyx_t_18 = 0;
-      if (__pyx_t_21 < 0) {
-        __pyx_t_21 += __pyx_pybuffernd_permuted.diminfo[1].shape;
-        if (unlikely(__pyx_t_21 < 0)) __pyx_t_18 = 1;
-      } else if (unlikely(__pyx_t_21 >= __pyx_pybuffernd_permuted.diminfo[1].shape)) __pyx_t_18 = 1;
-      if (__pyx_t_22 < 0) {
-        __pyx_t_22 += __pyx_pybuffernd_permuted.diminfo[2].shape;
-        if (unlikely(__pyx_t_22 < 0)) __pyx_t_18 = 2;
-      } else if (unlikely(__pyx_t_22 >= __pyx_pybuffernd_permuted.diminfo[2].shape)) __pyx_t_18 = 2;
-      if (unlikely(__pyx_t_18 != -1)) {
-        __Pyx_RaiseBufferIndexError(__pyx_t_18);
-        __PYX_ERR(0, 40, __pyx_L1_error)
-      }
-      *__Pyx_BufPtrStrided3d(__pyx_t_5numpy_double_t *, __pyx_pybuffernd_permuted.rcbuffer->pybuffer.buf, __pyx_t_20, __pyx_pybuffernd_permuted.diminfo[0].strides, __pyx_t_21, __pyx_pybuffernd_permuted.diminfo[1].strides, __pyx_t_22, __pyx_pybuffernd_permuted.diminfo[2].strides) = ((*__Pyx_BufPtrStrided3d(__pyx_t_5numpy_double_t *, __pyx_pybuffernd_permuted.rcbuffer->pybuffer.buf, __pyx_t_10, __pyx_pybuffernd_permuted.diminfo[0].strides, __pyx_t_11, __pyx_pybuffernd_permuted.diminfo[1].strides, __pyx_t_13, __pyx_pybuffernd_permuted.diminfo[2].strides)) + (*__Pyx_BufPtrStrided3d(__pyx_t_5numpy_double_t *, __pyx_pybuffernd_rel_prices.rcbuffer->pybuffer.buf, __pyx_t_14, __pyx_pybuffernd_rel_prices.diminfo[0].strides, __pyx_t_15, __pyx_pybuffernd_rel_prices.diminfo[1].strides, __pyx_t_19, __pyx_pybuffernd_rel_prices.diminfo[2].strides)));
-
-      /* "jarjarquant/cython_utils/bar_permute.pyx":42
- *             permuted[i, j + 1, 2] = permuted[i, j + 1, 0] + rel_prices[i, j, 2]
- *             # New close is new open plus relative close change.
- *             permuted[i, j + 1, 3] = permuted[i, j + 1, 0] + rel_prices[i, j, 3]             # <<<<<<<<<<<<<<
- * 
- *     return permuted
- */
-      __pyx_t_19 = __pyx_v_i;
-      __pyx_t_15 = (__pyx_v_j + 1);
-      __pyx_t_14 = 0;
-      __pyx_t_18 = -1;
-      if (__pyx_t_19 < 0) {
-        __pyx_t_19 += __pyx_pybuffernd_permuted.diminfo[0].shape;
-        if (unlikely(__pyx_t_19 < 0)) __pyx_t_18 = 0;
-      } else if (unlikely(__pyx_t_19 >= __pyx_pybuffernd_permuted.diminfo[0].shape)) __pyx_t_18 = 0;
-      if (__pyx_t_15 < 0) {
-        __pyx_t_15 += __pyx_pybuffernd_permuted.diminfo[1].shape;
-        if (unlikely(__pyx_t_15 < 0)) __pyx_t_18 = 1;
-      } else if (unlikely(__pyx_t_15 >= __pyx_pybuffernd_permuted.diminfo[1].shape)) __pyx_t_18 = 1;
-      if (__pyx_t_14 < 0) {
-        __pyx_t_14 += __pyx_pybuffernd_permuted.diminfo[2].shape;
-        if (unlikely(__pyx_t_14 < 0)) __pyx_t_18 = 2;
-      } else if (unlikely(__pyx_t_14 >= __pyx_pybuffernd_permuted.diminfo[2].shape)) __pyx_t_18 = 2;
-      if (unlikely(__pyx_t_18 != -1)) {
-        __Pyx_RaiseBufferIndexError(__pyx_t_18);
-        __PYX_ERR(0, 42, __pyx_L1_error)
-      }
-      __pyx_t_13 = __pyx_v_i;
-      __pyx_t_11 = __pyx_v_j;
-      __pyx_t_10 = 3;
-      __pyx_t_18 = -1;
-      if (__pyx_t_13 < 0) {
-        __pyx_t_13 += __pyx_pybuffernd_rel_prices.diminfo[0].shape;
-        if (unlikely(__pyx_t_13 < 0)) __pyx_t_18 = 0;
-      } else if (unlikely(__pyx_t_13 >= __pyx_pybuffernd_rel_prices.diminfo[0].shape)) __pyx_t_18 = 0;
-      if (__pyx_t_11 < 0) {
-        __pyx_t_11 += __pyx_pybuffernd_rel_prices.diminfo[1].shape;
-        if (unlikely(__pyx_t_11 < 0)) __pyx_t_18 = 1;
-      } else if (unlikely(__pyx_t_11 >= __pyx_pybuffernd_rel_prices.diminfo[1].shape)) __pyx_t_18 = 1;
-      if (__pyx_t_10 < 0) {
-        __pyx_t_10 += __pyx_pybuffernd_rel_prices.diminfo[2].shape;
-        if (unlikely(__pyx_t_10 < 0)) __pyx_t_18 = 2;
-      } else if (unlikely(__pyx_t_10 >= __pyx_pybuffernd_rel_prices.diminfo[2].shape)) __pyx_t_18 = 2;
-      if (unlikely(__pyx_t_18 != -1)) {
-        __Pyx_RaiseBufferIndexError(__pyx_t_18);
-        __PYX_ERR(0, 42, __pyx_L1_error)
-      }
-      __pyx_t_22 = __pyx_v_i;
-      __pyx_t_21 = (__pyx_v_j + 1);
-      __pyx_t_20 = 3;
-      __pyx_t_18 = -1;
-      if (__pyx_t_22 < 0) {
-        __pyx_t_22 += __pyx_pybuffernd_permuted.diminfo[0].shape;
-        if (unlikely(__pyx_t_22 < 0)) __pyx_t_18 = 0;
-      } else if (unlikely(__pyx_t_22 >= __pyx_pybuffernd_permuted.diminfo[0].shape)) __pyx_t_18 = 0;
-      if (__pyx_t_21 < 0) {
-        __pyx_t_21 += __pyx_pybuffernd_permuted.diminfo[1].shape;
-        if (unlikely(__pyx_t_21 < 0)) __pyx_t_18 = 1;
-      } else if (unlikely(__pyx_t_21 >= __pyx_pybuffernd_permuted.diminfo[1].shape)) __pyx_t_18 = 1;
-      if (__pyx_t_20 < 0) {
-        __pyx_t_20 += __pyx_pybuffernd_permuted.diminfo[2].shape;
-        if (unlikely(__pyx_t_20 < 0)) __pyx_t_18 = 2;
-      } else if (unlikely(__pyx_t_20 >= __pyx_pybuffernd_permuted.diminfo[2].shape)) __pyx_t_18 = 2;
-      if (unlikely(__pyx_t_18 != -1)) {
-        __Pyx_RaiseBufferIndexError(__pyx_t_18);
-        __PYX_ERR(0, 42, __pyx_L1_error)
-      }
-      *__Pyx_BufPtrStrided3d(__pyx_t_5numpy_double_t *, __pyx_pybuffernd_permuted.rcbuffer->pybuffer.buf, __pyx_t_22, __pyx_pybuffernd_permuted.diminfo[0].strides, __pyx_t_21, __pyx_pybuffernd_permuted.diminfo[1].strides, __pyx_t_20, __pyx_pybuffernd_permuted.diminfo[2].strides) = ((*__Pyx_BufPtrStrided3d(__pyx_t_5numpy_double_t *, __pyx_pybuffernd_permuted.rcbuffer->pybuffer.buf, __pyx_t_19, __pyx_pybuffernd_permuted.diminfo[0].strides, __pyx_t_15, __pyx_pybuffernd_permuted.diminfo[1].strides, __pyx_t_14, __pyx_pybuffernd_permuted.diminfo[2].strides)) + (*__Pyx_BufPtrStrided3d(__pyx_t_5numpy_double_t *, __pyx_pybuffernd_rel_prices.rcbuffer->pybuffer.buf, __pyx_t_13, __pyx_pybuffernd_rel_prices.diminfo[0].strides, __pyx_t_11, __pyx_pybuffernd_rel_prices.diminfo[1].strides, __pyx_t_10, __pyx_pybuffernd_rel_prices.diminfo[2].strides)));
-    }
-  }
-
-  /* "jarjarquant/cython_utils/bar_permute.pyx":44
- *             permuted[i, j + 1, 3] = permuted[i, j + 1, 0] + rel_prices[i, j, 3]
- * 
- *     return permuted             # <<<<<<<<<<<<<<
- * 
- * def permute_cython_single(cnp.ndarray[cnp.double_t, ndim=2] basis_prices,
- */
+  __pyx_pybuffernd_atr.diminfo[0].strides = __pyx_pybuffernd_atr.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_atr.diminfo[0].shape = __pyx_pybuffernd_atr.rcbuffer->pybuffer.shape[0];
   __Pyx_XDECREF(__pyx_r);
-  __Pyx_INCREF((PyObject *)__pyx_v_permuted);
-  __pyx_r = ((PyObject *)__pyx_v_permuted);
+  __pyx_t_1 = ((PyObject *)__pyx_f_11jarjarquant_12cython_utils_10indicators_compute_trend_indicator(__pyx_v_close, __pyx_v_legendre, __pyx_v_lookback, __pyx_v_atr_length, __pyx_v_atr, 0)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 10, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_r = __pyx_t_1;
+  __pyx_t_1 = 0;
   goto __pyx_L0;
-
-  /* "jarjarquant/cython_utils/bar_permute.pyx":7
- * cimport numpy as cnp
- * 
- * def permute_cython(cnp.ndarray[cnp.double_t, ndim=2] basis_prices,             # <<<<<<<<<<<<<<
- *                    cnp.ndarray[cnp.double_t, ndim=3] rel_prices):
- *     """
- */
 
   /* function exit code */
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_XDECREF(__pyx_t_2);
-  __Pyx_XDECREF(__pyx_t_3);
-  __Pyx_XDECREF(__pyx_t_4);
-  __Pyx_XDECREF(__pyx_t_5);
   { PyObject *__pyx_type, *__pyx_value, *__pyx_tb;
     __Pyx_PyThreadState_declare
     __Pyx_PyThreadState_assign
     __Pyx_ErrFetch(&__pyx_type, &__pyx_value, &__pyx_tb);
-    __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_basis_prices.rcbuffer->pybuffer);
-    __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_permuted.rcbuffer->pybuffer);
-    __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_rel_prices.rcbuffer->pybuffer);
+    __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_atr.rcbuffer->pybuffer);
+    __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_close.rcbuffer->pybuffer);
+    __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_legendre.rcbuffer->pybuffer);
   __Pyx_ErrRestore(__pyx_type, __pyx_value, __pyx_tb);}
-  __Pyx_AddTraceback("jarjarquant.cython_utils.bar_permute.permute_cython", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("jarjarquant.cython_utils.indicators.compute_trend_indicator", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   goto __pyx_L2;
   __pyx_L0:;
-  __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_basis_prices.rcbuffer->pybuffer);
-  __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_permuted.rcbuffer->pybuffer);
-  __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_rel_prices.rcbuffer->pybuffer);
+  __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_atr.rcbuffer->pybuffer);
+  __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_close.rcbuffer->pybuffer);
+  __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_legendre.rcbuffer->pybuffer);
   __pyx_L2:;
-  __Pyx_XDECREF((PyObject *)__pyx_v_permuted);
-  __Pyx_XGIVEREF(__pyx_r);
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-/* "jarjarquant/cython_utils/bar_permute.pyx":46
- *     return permuted
- * 
- * def permute_cython_single(cnp.ndarray[cnp.double_t, ndim=2] basis_prices,             # <<<<<<<<<<<<<<
- *                           cnp.ndarray[cnp.double_t, ndim=3] rel_prices):
- *     """
- */
-
-/* Python wrapper */
-static PyObject *__pyx_pw_11jarjarquant_12cython_utils_11bar_permute_3permute_cython_single(PyObject *__pyx_self, 
-#if CYTHON_METH_FASTCALL
-PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
-#else
-PyObject *__pyx_args, PyObject *__pyx_kwds
-#endif
-); /*proto*/
-PyDoc_STRVAR(__pyx_doc_11jarjarquant_12cython_utils_11bar_permute_2permute_cython_single, "\n    Parameters:\n      basis_prices: NumPy array with shape (n_markets, 1)\n                    [column: Close]\n      rel_prices: NumPy array with shape (n_markets, n_steps, 1)\n                  [column: rel_close]\n                  \n    Returns:\n      permuted: NumPy array with shape (n_markets, n_steps+1, 1)\n                containing the reconstructed Close data.\n    ");
-static PyMethodDef __pyx_mdef_11jarjarquant_12cython_utils_11bar_permute_3permute_cython_single = {"permute_cython_single", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_11jarjarquant_12cython_utils_11bar_permute_3permute_cython_single, __Pyx_METH_FASTCALL|METH_KEYWORDS, __pyx_doc_11jarjarquant_12cython_utils_11bar_permute_2permute_cython_single};
-static PyObject *__pyx_pw_11jarjarquant_12cython_utils_11bar_permute_3permute_cython_single(PyObject *__pyx_self, 
-#if CYTHON_METH_FASTCALL
-PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
-#else
-PyObject *__pyx_args, PyObject *__pyx_kwds
-#endif
-) {
-  PyArrayObject *__pyx_v_basis_prices = 0;
-  PyArrayObject *__pyx_v_rel_prices = 0;
-  #if !CYTHON_METH_FASTCALL
-  CYTHON_UNUSED Py_ssize_t __pyx_nargs;
-  #endif
-  CYTHON_UNUSED PyObject *const *__pyx_kwvalues;
-  PyObject* values[2] = {0,0};
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  PyObject *__pyx_r = 0;
-  __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("permute_cython_single (wrapper)", 0);
-  #if !CYTHON_METH_FASTCALL
-  #if CYTHON_ASSUME_SAFE_MACROS
-  __pyx_nargs = PyTuple_GET_SIZE(__pyx_args);
-  #else
-  __pyx_nargs = PyTuple_Size(__pyx_args); if (unlikely(__pyx_nargs < 0)) return NULL;
-  #endif
-  #endif
-  __pyx_kwvalues = __Pyx_KwValues_FASTCALL(__pyx_args, __pyx_nargs);
-  {
-    PyObject **__pyx_pyargnames[] = {&__pyx_n_s_basis_prices,&__pyx_n_s_rel_prices,0};
-    if (__pyx_kwds) {
-      Py_ssize_t kw_args;
-      switch (__pyx_nargs) {
-        case  2: values[1] = __Pyx_Arg_FASTCALL(__pyx_args, 1);
-        CYTHON_FALLTHROUGH;
-        case  1: values[0] = __Pyx_Arg_FASTCALL(__pyx_args, 0);
-        CYTHON_FALLTHROUGH;
-        case  0: break;
-        default: goto __pyx_L5_argtuple_error;
-      }
-      kw_args = __Pyx_NumKwargs_FASTCALL(__pyx_kwds);
-      switch (__pyx_nargs) {
-        case  0:
-        if (likely((values[0] = __Pyx_GetKwValue_FASTCALL(__pyx_kwds, __pyx_kwvalues, __pyx_n_s_basis_prices)) != 0)) {
-          (void)__Pyx_Arg_NewRef_FASTCALL(values[0]);
-          kw_args--;
-        }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 46, __pyx_L3_error)
-        else goto __pyx_L5_argtuple_error;
-        CYTHON_FALLTHROUGH;
-        case  1:
-        if (likely((values[1] = __Pyx_GetKwValue_FASTCALL(__pyx_kwds, __pyx_kwvalues, __pyx_n_s_rel_prices)) != 0)) {
-          (void)__Pyx_Arg_NewRef_FASTCALL(values[1]);
-          kw_args--;
-        }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 46, __pyx_L3_error)
-        else {
-          __Pyx_RaiseArgtupleInvalid("permute_cython_single", 1, 2, 2, 1); __PYX_ERR(0, 46, __pyx_L3_error)
-        }
-      }
-      if (unlikely(kw_args > 0)) {
-        const Py_ssize_t kwd_pos_args = __pyx_nargs;
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "permute_cython_single") < 0)) __PYX_ERR(0, 46, __pyx_L3_error)
-      }
-    } else if (unlikely(__pyx_nargs != 2)) {
-      goto __pyx_L5_argtuple_error;
-    } else {
-      values[0] = __Pyx_Arg_FASTCALL(__pyx_args, 0);
-      values[1] = __Pyx_Arg_FASTCALL(__pyx_args, 1);
-    }
-    __pyx_v_basis_prices = ((PyArrayObject *)values[0]);
-    __pyx_v_rel_prices = ((PyArrayObject *)values[1]);
-  }
-  goto __pyx_L6_skip;
-  __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("permute_cython_single", 1, 2, 2, __pyx_nargs); __PYX_ERR(0, 46, __pyx_L3_error)
-  __pyx_L6_skip:;
-  goto __pyx_L4_argument_unpacking_done;
-  __pyx_L3_error:;
-  {
-    Py_ssize_t __pyx_temp;
-    for (__pyx_temp=0; __pyx_temp < (Py_ssize_t)(sizeof(values)/sizeof(values[0])); ++__pyx_temp) {
-      __Pyx_Arg_XDECREF_FASTCALL(values[__pyx_temp]);
-    }
-  }
-  __Pyx_AddTraceback("jarjarquant.cython_utils.bar_permute.permute_cython_single", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __Pyx_RefNannyFinishContext();
-  return NULL;
-  __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_basis_prices), __pyx_ptype_5numpy_ndarray, 1, "basis_prices", 0))) __PYX_ERR(0, 46, __pyx_L1_error)
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_rel_prices), __pyx_ptype_5numpy_ndarray, 1, "rel_prices", 0))) __PYX_ERR(0, 47, __pyx_L1_error)
-  __pyx_r = __pyx_pf_11jarjarquant_12cython_utils_11bar_permute_2permute_cython_single(__pyx_self, __pyx_v_basis_prices, __pyx_v_rel_prices);
-
-  /* function exit code */
-  goto __pyx_L0;
-  __pyx_L1_error:;
-  __pyx_r = NULL;
-  __pyx_L0:;
-  {
-    Py_ssize_t __pyx_temp;
-    for (__pyx_temp=0; __pyx_temp < (Py_ssize_t)(sizeof(values)/sizeof(values[0])); ++__pyx_temp) {
-      __Pyx_Arg_XDECREF_FASTCALL(values[__pyx_temp]);
-    }
-  }
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-static PyObject *__pyx_pf_11jarjarquant_12cython_utils_11bar_permute_2permute_cython_single(CYTHON_UNUSED PyObject *__pyx_self, PyArrayObject *__pyx_v_basis_prices, PyArrayObject *__pyx_v_rel_prices) {
-  int __pyx_v_n_markets;
-  int __pyx_v_n_steps;
-  PyArrayObject *__pyx_v_permuted = 0;
-  int __pyx_v_i;
-  int __pyx_v_j;
-  __Pyx_LocalBuf_ND __pyx_pybuffernd_basis_prices;
-  __Pyx_Buffer __pyx_pybuffer_basis_prices;
-  __Pyx_LocalBuf_ND __pyx_pybuffernd_permuted;
-  __Pyx_Buffer __pyx_pybuffer_permuted;
-  __Pyx_LocalBuf_ND __pyx_pybuffernd_rel_prices;
-  __Pyx_Buffer __pyx_pybuffer_rel_prices;
-  PyObject *__pyx_r = NULL;
-  __Pyx_RefNannyDeclarations
-  PyObject *__pyx_t_1 = NULL;
-  PyObject *__pyx_t_2 = NULL;
-  PyObject *__pyx_t_3 = NULL;
-  PyObject *__pyx_t_4 = NULL;
-  PyObject *__pyx_t_5 = NULL;
-  PyArrayObject *__pyx_t_6 = NULL;
-  int __pyx_t_7;
-  int __pyx_t_8;
-  int __pyx_t_9;
-  Py_ssize_t __pyx_t_10;
-  Py_ssize_t __pyx_t_11;
-  int __pyx_t_12;
-  Py_ssize_t __pyx_t_13;
-  Py_ssize_t __pyx_t_14;
-  Py_ssize_t __pyx_t_15;
-  int __pyx_t_16;
-  int __pyx_t_17;
-  int __pyx_t_18;
-  Py_ssize_t __pyx_t_19;
-  Py_ssize_t __pyx_t_20;
-  Py_ssize_t __pyx_t_21;
-  Py_ssize_t __pyx_t_22;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("permute_cython_single", 1);
-  __pyx_pybuffer_permuted.pybuffer.buf = NULL;
-  __pyx_pybuffer_permuted.refcount = 0;
-  __pyx_pybuffernd_permuted.data = NULL;
-  __pyx_pybuffernd_permuted.rcbuffer = &__pyx_pybuffer_permuted;
-  __pyx_pybuffer_basis_prices.pybuffer.buf = NULL;
-  __pyx_pybuffer_basis_prices.refcount = 0;
-  __pyx_pybuffernd_basis_prices.data = NULL;
-  __pyx_pybuffernd_basis_prices.rcbuffer = &__pyx_pybuffer_basis_prices;
-  __pyx_pybuffer_rel_prices.pybuffer.buf = NULL;
-  __pyx_pybuffer_rel_prices.refcount = 0;
-  __pyx_pybuffernd_rel_prices.data = NULL;
-  __pyx_pybuffernd_rel_prices.rcbuffer = &__pyx_pybuffer_rel_prices;
-  {
-    __Pyx_BufFmt_StackElem __pyx_stack[1];
-    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_basis_prices.rcbuffer->pybuffer, (PyObject*)__pyx_v_basis_prices, &__Pyx_TypeInfo_nn___pyx_t_5numpy_double_t, PyBUF_FORMAT| PyBUF_STRIDES, 2, 0, __pyx_stack) == -1)) __PYX_ERR(0, 46, __pyx_L1_error)
-  }
-  __pyx_pybuffernd_basis_prices.diminfo[0].strides = __pyx_pybuffernd_basis_prices.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_basis_prices.diminfo[0].shape = __pyx_pybuffernd_basis_prices.rcbuffer->pybuffer.shape[0]; __pyx_pybuffernd_basis_prices.diminfo[1].strides = __pyx_pybuffernd_basis_prices.rcbuffer->pybuffer.strides[1]; __pyx_pybuffernd_basis_prices.diminfo[1].shape = __pyx_pybuffernd_basis_prices.rcbuffer->pybuffer.shape[1];
-  {
-    __Pyx_BufFmt_StackElem __pyx_stack[1];
-    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_rel_prices.rcbuffer->pybuffer, (PyObject*)__pyx_v_rel_prices, &__Pyx_TypeInfo_nn___pyx_t_5numpy_double_t, PyBUF_FORMAT| PyBUF_STRIDES, 3, 0, __pyx_stack) == -1)) __PYX_ERR(0, 46, __pyx_L1_error)
-  }
-  __pyx_pybuffernd_rel_prices.diminfo[0].strides = __pyx_pybuffernd_rel_prices.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_rel_prices.diminfo[0].shape = __pyx_pybuffernd_rel_prices.rcbuffer->pybuffer.shape[0]; __pyx_pybuffernd_rel_prices.diminfo[1].strides = __pyx_pybuffernd_rel_prices.rcbuffer->pybuffer.strides[1]; __pyx_pybuffernd_rel_prices.diminfo[1].shape = __pyx_pybuffernd_rel_prices.rcbuffer->pybuffer.shape[1]; __pyx_pybuffernd_rel_prices.diminfo[2].strides = __pyx_pybuffernd_rel_prices.rcbuffer->pybuffer.strides[2]; __pyx_pybuffernd_rel_prices.diminfo[2].shape = __pyx_pybuffernd_rel_prices.rcbuffer->pybuffer.shape[2];
-
-  /* "jarjarquant/cython_utils/bar_permute.pyx":59
- *                 containing the reconstructed Close data.
- *     """
- *     cdef int n_markets = basis_prices.shape[0]             # <<<<<<<<<<<<<<
- *     cdef int n_steps = rel_prices.shape[1]
- *     # Allocate output array: one extra row per market for the initial basis price.
- */
-  __pyx_v_n_markets = (__pyx_f_5numpy_7ndarray_5shape_shape(((PyArrayObject *)__pyx_v_basis_prices))[0]);
-
-  /* "jarjarquant/cython_utils/bar_permute.pyx":60
- *     """
- *     cdef int n_markets = basis_prices.shape[0]
- *     cdef int n_steps = rel_prices.shape[1]             # <<<<<<<<<<<<<<
- *     # Allocate output array: one extra row per market for the initial basis price.
- *     cdef cnp.ndarray[cnp.double_t, ndim=3] permuted = np.empty((n_markets, n_steps + 1, 1), dtype=np.double)
- */
-  __pyx_v_n_steps = (__pyx_f_5numpy_7ndarray_5shape_shape(((PyArrayObject *)__pyx_v_rel_prices))[1]);
-
-  /* "jarjarquant/cython_utils/bar_permute.pyx":62
- *     cdef int n_steps = rel_prices.shape[1]
- *     # Allocate output array: one extra row per market for the initial basis price.
- *     cdef cnp.ndarray[cnp.double_t, ndim=3] permuted = np.empty((n_markets, n_steps + 1, 1), dtype=np.double)             # <<<<<<<<<<<<<<
- * 
- *     cdef int i, j
- */
-  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_np); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 62, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_empty); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 62, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_1 = __Pyx_PyInt_From_int(__pyx_v_n_markets); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 62, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_3 = __Pyx_PyInt_From_long((__pyx_v_n_steps + 1)); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 62, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_4 = PyTuple_New(3); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 62, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  __Pyx_GIVEREF(__pyx_t_1);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_4, 0, __pyx_t_1)) __PYX_ERR(0, 62, __pyx_L1_error);
-  __Pyx_GIVEREF(__pyx_t_3);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_4, 1, __pyx_t_3)) __PYX_ERR(0, 62, __pyx_L1_error);
-  __Pyx_INCREF(__pyx_int_1);
-  __Pyx_GIVEREF(__pyx_int_1);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_4, 2, __pyx_int_1)) __PYX_ERR(0, 62, __pyx_L1_error);
-  __pyx_t_1 = 0;
-  __pyx_t_3 = 0;
-  __pyx_t_3 = PyTuple_New(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 62, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  __Pyx_GIVEREF(__pyx_t_4);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_t_4)) __PYX_ERR(0, 62, __pyx_L1_error);
-  __pyx_t_4 = 0;
-  __pyx_t_4 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 62, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_np); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 62, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_double); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 62, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_5);
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  if (PyDict_SetItem(__pyx_t_4, __pyx_n_s_dtype, __pyx_t_5) < 0) __PYX_ERR(0, 62, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-  __pyx_t_5 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_3, __pyx_t_4); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 62, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_5);
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  if (!(likely(((__pyx_t_5) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_5, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 62, __pyx_L1_error)
-  __pyx_t_6 = ((PyArrayObject *)__pyx_t_5);
-  {
-    __Pyx_BufFmt_StackElem __pyx_stack[1];
-    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_permuted.rcbuffer->pybuffer, (PyObject*)__pyx_t_6, &__Pyx_TypeInfo_nn___pyx_t_5numpy_double_t, PyBUF_FORMAT| PyBUF_STRIDES| PyBUF_WRITABLE, 3, 0, __pyx_stack) == -1)) {
-      __pyx_v_permuted = ((PyArrayObject *)Py_None); __Pyx_INCREF(Py_None); __pyx_pybuffernd_permuted.rcbuffer->pybuffer.buf = NULL;
-      __PYX_ERR(0, 62, __pyx_L1_error)
-    } else {__pyx_pybuffernd_permuted.diminfo[0].strides = __pyx_pybuffernd_permuted.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_permuted.diminfo[0].shape = __pyx_pybuffernd_permuted.rcbuffer->pybuffer.shape[0]; __pyx_pybuffernd_permuted.diminfo[1].strides = __pyx_pybuffernd_permuted.rcbuffer->pybuffer.strides[1]; __pyx_pybuffernd_permuted.diminfo[1].shape = __pyx_pybuffernd_permuted.rcbuffer->pybuffer.shape[1]; __pyx_pybuffernd_permuted.diminfo[2].strides = __pyx_pybuffernd_permuted.rcbuffer->pybuffer.strides[2]; __pyx_pybuffernd_permuted.diminfo[2].shape = __pyx_pybuffernd_permuted.rcbuffer->pybuffer.shape[2];
-    }
-  }
-  __pyx_t_6 = 0;
-  __pyx_v_permuted = ((PyArrayObject *)__pyx_t_5);
-  __pyx_t_5 = 0;
-
-  /* "jarjarquant/cython_utils/bar_permute.pyx":66
- *     cdef int i, j
- * 
- *     for i in range(n_markets):             # <<<<<<<<<<<<<<
- *         # Set the initial basis prices for market i.
- *         permuted[i, 0, 0] = basis_prices[i, 0]  # Close
- */
-  __pyx_t_7 = __pyx_v_n_markets;
-  __pyx_t_8 = __pyx_t_7;
-  for (__pyx_t_9 = 0; __pyx_t_9 < __pyx_t_8; __pyx_t_9+=1) {
-    __pyx_v_i = __pyx_t_9;
-
-    /* "jarjarquant/cython_utils/bar_permute.pyx":68
- *     for i in range(n_markets):
- *         # Set the initial basis prices for market i.
- *         permuted[i, 0, 0] = basis_prices[i, 0]  # Close             # <<<<<<<<<<<<<<
- * 
- *         for j in range(n_steps):
- */
-    __pyx_t_10 = __pyx_v_i;
-    __pyx_t_11 = 0;
-    __pyx_t_12 = -1;
-    if (__pyx_t_10 < 0) {
-      __pyx_t_10 += __pyx_pybuffernd_basis_prices.diminfo[0].shape;
-      if (unlikely(__pyx_t_10 < 0)) __pyx_t_12 = 0;
-    } else if (unlikely(__pyx_t_10 >= __pyx_pybuffernd_basis_prices.diminfo[0].shape)) __pyx_t_12 = 0;
-    if (__pyx_t_11 < 0) {
-      __pyx_t_11 += __pyx_pybuffernd_basis_prices.diminfo[1].shape;
-      if (unlikely(__pyx_t_11 < 0)) __pyx_t_12 = 1;
-    } else if (unlikely(__pyx_t_11 >= __pyx_pybuffernd_basis_prices.diminfo[1].shape)) __pyx_t_12 = 1;
-    if (unlikely(__pyx_t_12 != -1)) {
-      __Pyx_RaiseBufferIndexError(__pyx_t_12);
-      __PYX_ERR(0, 68, __pyx_L1_error)
-    }
-    __pyx_t_13 = __pyx_v_i;
-    __pyx_t_14 = 0;
-    __pyx_t_15 = 0;
-    __pyx_t_12 = -1;
-    if (__pyx_t_13 < 0) {
-      __pyx_t_13 += __pyx_pybuffernd_permuted.diminfo[0].shape;
-      if (unlikely(__pyx_t_13 < 0)) __pyx_t_12 = 0;
-    } else if (unlikely(__pyx_t_13 >= __pyx_pybuffernd_permuted.diminfo[0].shape)) __pyx_t_12 = 0;
-    if (__pyx_t_14 < 0) {
-      __pyx_t_14 += __pyx_pybuffernd_permuted.diminfo[1].shape;
-      if (unlikely(__pyx_t_14 < 0)) __pyx_t_12 = 1;
-    } else if (unlikely(__pyx_t_14 >= __pyx_pybuffernd_permuted.diminfo[1].shape)) __pyx_t_12 = 1;
-    if (__pyx_t_15 < 0) {
-      __pyx_t_15 += __pyx_pybuffernd_permuted.diminfo[2].shape;
-      if (unlikely(__pyx_t_15 < 0)) __pyx_t_12 = 2;
-    } else if (unlikely(__pyx_t_15 >= __pyx_pybuffernd_permuted.diminfo[2].shape)) __pyx_t_12 = 2;
-    if (unlikely(__pyx_t_12 != -1)) {
-      __Pyx_RaiseBufferIndexError(__pyx_t_12);
-      __PYX_ERR(0, 68, __pyx_L1_error)
-    }
-    *__Pyx_BufPtrStrided3d(__pyx_t_5numpy_double_t *, __pyx_pybuffernd_permuted.rcbuffer->pybuffer.buf, __pyx_t_13, __pyx_pybuffernd_permuted.diminfo[0].strides, __pyx_t_14, __pyx_pybuffernd_permuted.diminfo[1].strides, __pyx_t_15, __pyx_pybuffernd_permuted.diminfo[2].strides) = (*__Pyx_BufPtrStrided2d(__pyx_t_5numpy_double_t *, __pyx_pybuffernd_basis_prices.rcbuffer->pybuffer.buf, __pyx_t_10, __pyx_pybuffernd_basis_prices.diminfo[0].strides, __pyx_t_11, __pyx_pybuffernd_basis_prices.diminfo[1].strides));
-
-    /* "jarjarquant/cython_utils/bar_permute.pyx":70
- *         permuted[i, 0, 0] = basis_prices[i, 0]  # Close
- * 
- *         for j in range(n_steps):             # <<<<<<<<<<<<<<
- *             # Compute new close from the previous close and the relative close change.
- *             permuted[i, j + 1, 0] = permuted[i, j, 0] + rel_prices[i, j, 0]
- */
-    __pyx_t_12 = __pyx_v_n_steps;
-    __pyx_t_16 = __pyx_t_12;
-    for (__pyx_t_17 = 0; __pyx_t_17 < __pyx_t_16; __pyx_t_17+=1) {
-      __pyx_v_j = __pyx_t_17;
-
-      /* "jarjarquant/cython_utils/bar_permute.pyx":72
- *         for j in range(n_steps):
- *             # Compute new close from the previous close and the relative close change.
- *             permuted[i, j + 1, 0] = permuted[i, j, 0] + rel_prices[i, j, 0]             # <<<<<<<<<<<<<<
- * 
- *     return permuted
- */
-      __pyx_t_11 = __pyx_v_i;
-      __pyx_t_10 = __pyx_v_j;
-      __pyx_t_15 = 0;
-      __pyx_t_18 = -1;
-      if (__pyx_t_11 < 0) {
-        __pyx_t_11 += __pyx_pybuffernd_permuted.diminfo[0].shape;
-        if (unlikely(__pyx_t_11 < 0)) __pyx_t_18 = 0;
-      } else if (unlikely(__pyx_t_11 >= __pyx_pybuffernd_permuted.diminfo[0].shape)) __pyx_t_18 = 0;
-      if (__pyx_t_10 < 0) {
-        __pyx_t_10 += __pyx_pybuffernd_permuted.diminfo[1].shape;
-        if (unlikely(__pyx_t_10 < 0)) __pyx_t_18 = 1;
-      } else if (unlikely(__pyx_t_10 >= __pyx_pybuffernd_permuted.diminfo[1].shape)) __pyx_t_18 = 1;
-      if (__pyx_t_15 < 0) {
-        __pyx_t_15 += __pyx_pybuffernd_permuted.diminfo[2].shape;
-        if (unlikely(__pyx_t_15 < 0)) __pyx_t_18 = 2;
-      } else if (unlikely(__pyx_t_15 >= __pyx_pybuffernd_permuted.diminfo[2].shape)) __pyx_t_18 = 2;
-      if (unlikely(__pyx_t_18 != -1)) {
-        __Pyx_RaiseBufferIndexError(__pyx_t_18);
-        __PYX_ERR(0, 72, __pyx_L1_error)
-      }
-      __pyx_t_14 = __pyx_v_i;
-      __pyx_t_13 = __pyx_v_j;
-      __pyx_t_19 = 0;
-      __pyx_t_18 = -1;
-      if (__pyx_t_14 < 0) {
-        __pyx_t_14 += __pyx_pybuffernd_rel_prices.diminfo[0].shape;
-        if (unlikely(__pyx_t_14 < 0)) __pyx_t_18 = 0;
-      } else if (unlikely(__pyx_t_14 >= __pyx_pybuffernd_rel_prices.diminfo[0].shape)) __pyx_t_18 = 0;
-      if (__pyx_t_13 < 0) {
-        __pyx_t_13 += __pyx_pybuffernd_rel_prices.diminfo[1].shape;
-        if (unlikely(__pyx_t_13 < 0)) __pyx_t_18 = 1;
-      } else if (unlikely(__pyx_t_13 >= __pyx_pybuffernd_rel_prices.diminfo[1].shape)) __pyx_t_18 = 1;
-      if (__pyx_t_19 < 0) {
-        __pyx_t_19 += __pyx_pybuffernd_rel_prices.diminfo[2].shape;
-        if (unlikely(__pyx_t_19 < 0)) __pyx_t_18 = 2;
-      } else if (unlikely(__pyx_t_19 >= __pyx_pybuffernd_rel_prices.diminfo[2].shape)) __pyx_t_18 = 2;
-      if (unlikely(__pyx_t_18 != -1)) {
-        __Pyx_RaiseBufferIndexError(__pyx_t_18);
-        __PYX_ERR(0, 72, __pyx_L1_error)
-      }
-      __pyx_t_20 = __pyx_v_i;
-      __pyx_t_21 = (__pyx_v_j + 1);
-      __pyx_t_22 = 0;
-      __pyx_t_18 = -1;
-      if (__pyx_t_20 < 0) {
-        __pyx_t_20 += __pyx_pybuffernd_permuted.diminfo[0].shape;
-        if (unlikely(__pyx_t_20 < 0)) __pyx_t_18 = 0;
-      } else if (unlikely(__pyx_t_20 >= __pyx_pybuffernd_permuted.diminfo[0].shape)) __pyx_t_18 = 0;
-      if (__pyx_t_21 < 0) {
-        __pyx_t_21 += __pyx_pybuffernd_permuted.diminfo[1].shape;
-        if (unlikely(__pyx_t_21 < 0)) __pyx_t_18 = 1;
-      } else if (unlikely(__pyx_t_21 >= __pyx_pybuffernd_permuted.diminfo[1].shape)) __pyx_t_18 = 1;
-      if (__pyx_t_22 < 0) {
-        __pyx_t_22 += __pyx_pybuffernd_permuted.diminfo[2].shape;
-        if (unlikely(__pyx_t_22 < 0)) __pyx_t_18 = 2;
-      } else if (unlikely(__pyx_t_22 >= __pyx_pybuffernd_permuted.diminfo[2].shape)) __pyx_t_18 = 2;
-      if (unlikely(__pyx_t_18 != -1)) {
-        __Pyx_RaiseBufferIndexError(__pyx_t_18);
-        __PYX_ERR(0, 72, __pyx_L1_error)
-      }
-      *__Pyx_BufPtrStrided3d(__pyx_t_5numpy_double_t *, __pyx_pybuffernd_permuted.rcbuffer->pybuffer.buf, __pyx_t_20, __pyx_pybuffernd_permuted.diminfo[0].strides, __pyx_t_21, __pyx_pybuffernd_permuted.diminfo[1].strides, __pyx_t_22, __pyx_pybuffernd_permuted.diminfo[2].strides) = ((*__Pyx_BufPtrStrided3d(__pyx_t_5numpy_double_t *, __pyx_pybuffernd_permuted.rcbuffer->pybuffer.buf, __pyx_t_11, __pyx_pybuffernd_permuted.diminfo[0].strides, __pyx_t_10, __pyx_pybuffernd_permuted.diminfo[1].strides, __pyx_t_15, __pyx_pybuffernd_permuted.diminfo[2].strides)) + (*__Pyx_BufPtrStrided3d(__pyx_t_5numpy_double_t *, __pyx_pybuffernd_rel_prices.rcbuffer->pybuffer.buf, __pyx_t_14, __pyx_pybuffernd_rel_prices.diminfo[0].strides, __pyx_t_13, __pyx_pybuffernd_rel_prices.diminfo[1].strides, __pyx_t_19, __pyx_pybuffernd_rel_prices.diminfo[2].strides)));
-    }
-  }
-
-  /* "jarjarquant/cython_utils/bar_permute.pyx":74
- *             permuted[i, j + 1, 0] = permuted[i, j, 0] + rel_prices[i, j, 0]
- * 
- *     return permuted             # <<<<<<<<<<<<<<
- */
-  __Pyx_XDECREF(__pyx_r);
-  __Pyx_INCREF((PyObject *)__pyx_v_permuted);
-  __pyx_r = ((PyObject *)__pyx_v_permuted);
-  goto __pyx_L0;
-
-  /* "jarjarquant/cython_utils/bar_permute.pyx":46
- *     return permuted
- * 
- * def permute_cython_single(cnp.ndarray[cnp.double_t, ndim=2] basis_prices,             # <<<<<<<<<<<<<<
- *                           cnp.ndarray[cnp.double_t, ndim=3] rel_prices):
- *     """
- */
-
-  /* function exit code */
-  __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_XDECREF(__pyx_t_2);
-  __Pyx_XDECREF(__pyx_t_3);
-  __Pyx_XDECREF(__pyx_t_4);
-  __Pyx_XDECREF(__pyx_t_5);
-  { PyObject *__pyx_type, *__pyx_value, *__pyx_tb;
-    __Pyx_PyThreadState_declare
-    __Pyx_PyThreadState_assign
-    __Pyx_ErrFetch(&__pyx_type, &__pyx_value, &__pyx_tb);
-    __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_basis_prices.rcbuffer->pybuffer);
-    __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_permuted.rcbuffer->pybuffer);
-    __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_rel_prices.rcbuffer->pybuffer);
-  __Pyx_ErrRestore(__pyx_type, __pyx_value, __pyx_tb);}
-  __Pyx_AddTraceback("jarjarquant.cython_utils.bar_permute.permute_cython_single", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __pyx_r = NULL;
-  goto __pyx_L2;
-  __pyx_L0:;
-  __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_basis_prices.rcbuffer->pybuffer);
-  __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_permuted.rcbuffer->pybuffer);
-  __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_rel_prices.rcbuffer->pybuffer);
-  __pyx_L2:;
-  __Pyx_XDECREF((PyObject *)__pyx_v_permuted);
   __Pyx_XGIVEREF(__pyx_r);
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
@@ -5939,35 +5481,33 @@ static PyMethodDef __pyx_methods[] = {
 
 static int __Pyx_CreateStringTabAndInitStrings(void) {
   __Pyx_StringTabEntry __pyx_string_tab[] = {
+    {&__pyx_n_s_DTYPE, __pyx_k_DTYPE, sizeof(__pyx_k_DTYPE), 0, 0, 1, 1},
     {&__pyx_n_s_ImportError, __pyx_k_ImportError, sizeof(__pyx_k_ImportError), 0, 0, 1, 1},
     {&__pyx_n_s__3, __pyx_k__3, sizeof(__pyx_k__3), 0, 0, 1, 1},
-    {&__pyx_n_s__7, __pyx_k__7, sizeof(__pyx_k__7), 0, 0, 1, 1},
+    {&__pyx_n_s__6, __pyx_k__6, sizeof(__pyx_k__6), 0, 0, 1, 1},
     {&__pyx_n_s_asyncio_coroutines, __pyx_k_asyncio_coroutines, sizeof(__pyx_k_asyncio_coroutines), 0, 0, 1, 1},
-    {&__pyx_n_s_basis_prices, __pyx_k_basis_prices, sizeof(__pyx_k_basis_prices), 0, 0, 1, 1},
+    {&__pyx_n_s_atr, __pyx_k_atr, sizeof(__pyx_k_atr), 0, 0, 1, 1},
+    {&__pyx_n_s_atr_length, __pyx_k_atr_length, sizeof(__pyx_k_atr_length), 0, 0, 1, 1},
     {&__pyx_n_s_cline_in_traceback, __pyx_k_cline_in_traceback, sizeof(__pyx_k_cline_in_traceback), 0, 0, 1, 1},
-    {&__pyx_n_s_double, __pyx_k_double, sizeof(__pyx_k_double), 0, 0, 1, 1},
+    {&__pyx_n_s_close, __pyx_k_close, sizeof(__pyx_k_close), 0, 0, 1, 1},
+    {&__pyx_n_s_compute_trend_indicator, __pyx_k_compute_trend_indicator, sizeof(__pyx_k_compute_trend_indicator), 0, 0, 1, 1},
     {&__pyx_n_s_dtype, __pyx_k_dtype, sizeof(__pyx_k_dtype), 0, 0, 1, 1},
     {&__pyx_n_s_empty, __pyx_k_empty, sizeof(__pyx_k_empty), 0, 0, 1, 1},
-    {&__pyx_n_s_i, __pyx_k_i, sizeof(__pyx_k_i), 0, 0, 1, 1},
+    {&__pyx_n_s_float64, __pyx_k_float64, sizeof(__pyx_k_float64), 0, 0, 1, 1},
     {&__pyx_n_s_import, __pyx_k_import, sizeof(__pyx_k_import), 0, 0, 1, 1},
     {&__pyx_n_s_initializing, __pyx_k_initializing, sizeof(__pyx_k_initializing), 0, 0, 1, 1},
     {&__pyx_n_s_is_coroutine, __pyx_k_is_coroutine, sizeof(__pyx_k_is_coroutine), 0, 0, 1, 1},
-    {&__pyx_n_s_j, __pyx_k_j, sizeof(__pyx_k_j), 0, 0, 1, 1},
-    {&__pyx_kp_s_jarjarquant_cython_utils_bar_per, __pyx_k_jarjarquant_cython_utils_bar_per, sizeof(__pyx_k_jarjarquant_cython_utils_bar_per), 0, 0, 1, 0},
-    {&__pyx_n_s_jarjarquant_cython_utils_bar_per_2, __pyx_k_jarjarquant_cython_utils_bar_per_2, sizeof(__pyx_k_jarjarquant_cython_utils_bar_per_2), 0, 0, 1, 1},
+    {&__pyx_kp_s_jarjarquant_cython_utils_indicat, __pyx_k_jarjarquant_cython_utils_indicat, sizeof(__pyx_k_jarjarquant_cython_utils_indicat), 0, 0, 1, 0},
+    {&__pyx_n_s_jarjarquant_cython_utils_indicat_2, __pyx_k_jarjarquant_cython_utils_indicat_2, sizeof(__pyx_k_jarjarquant_cython_utils_indicat_2), 0, 0, 1, 1},
+    {&__pyx_n_s_legendre, __pyx_k_legendre, sizeof(__pyx_k_legendre), 0, 0, 1, 1},
+    {&__pyx_n_s_lookback, __pyx_k_lookback, sizeof(__pyx_k_lookback), 0, 0, 1, 1},
     {&__pyx_n_s_main, __pyx_k_main, sizeof(__pyx_k_main), 0, 0, 1, 1},
-    {&__pyx_n_s_n_markets, __pyx_k_n_markets, sizeof(__pyx_k_n_markets), 0, 0, 1, 1},
-    {&__pyx_n_s_n_steps, __pyx_k_n_steps, sizeof(__pyx_k_n_steps), 0, 0, 1, 1},
     {&__pyx_n_s_name, __pyx_k_name, sizeof(__pyx_k_name), 0, 0, 1, 1},
     {&__pyx_n_s_np, __pyx_k_np, sizeof(__pyx_k_np), 0, 0, 1, 1},
     {&__pyx_n_s_numpy, __pyx_k_numpy, sizeof(__pyx_k_numpy), 0, 0, 1, 1},
     {&__pyx_kp_u_numpy__core_multiarray_failed_to, __pyx_k_numpy__core_multiarray_failed_to, sizeof(__pyx_k_numpy__core_multiarray_failed_to), 0, 1, 0, 0},
     {&__pyx_kp_u_numpy__core_umath_failed_to_impo, __pyx_k_numpy__core_umath_failed_to_impo, sizeof(__pyx_k_numpy__core_umath_failed_to_impo), 0, 1, 0, 0},
-    {&__pyx_n_s_permute_cython, __pyx_k_permute_cython, sizeof(__pyx_k_permute_cython), 0, 0, 1, 1},
-    {&__pyx_n_s_permute_cython_single, __pyx_k_permute_cython_single, sizeof(__pyx_k_permute_cython_single), 0, 0, 1, 1},
-    {&__pyx_n_s_permuted, __pyx_k_permuted, sizeof(__pyx_k_permuted), 0, 0, 1, 1},
     {&__pyx_n_s_range, __pyx_k_range, sizeof(__pyx_k_range), 0, 0, 1, 1},
-    {&__pyx_n_s_rel_prices, __pyx_k_rel_prices, sizeof(__pyx_k_rel_prices), 0, 0, 1, 1},
     {&__pyx_n_s_spec, __pyx_k_spec, sizeof(__pyx_k_spec), 0, 0, 1, 1},
     {&__pyx_n_s_test, __pyx_k_test, sizeof(__pyx_k_test), 0, 0, 1, 1},
     {0, 0, 0, 0, 0, 0, 0}
@@ -5976,7 +5516,7 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
 }
 /* #### Code section: cached_builtins ### */
 static CYTHON_SMALL_CODE int __Pyx_InitCachedBuiltins(void) {
-  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 27, __pyx_L1_error)
+  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 52, __pyx_L1_error)
   __pyx_builtin_ImportError = __Pyx_GetBuiltinName(__pyx_n_s_ImportError); if (!__pyx_builtin_ImportError) __PYX_ERR(1, 1025, __pyx_L1_error)
   return 0;
   __pyx_L1_error:;
@@ -6010,26 +5550,17 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_tuple__2);
   __Pyx_GIVEREF(__pyx_tuple__2);
 
-  /* "jarjarquant/cython_utils/bar_permute.pyx":7
- * cimport numpy as cnp
+  /* "jarjarquant/cython_utils/indicators.pyx":10
+ * ctypedef np.float64_t DTYPE_t
  * 
- * def permute_cython(cnp.ndarray[cnp.double_t, ndim=2] basis_prices,             # <<<<<<<<<<<<<<
- *                    cnp.ndarray[cnp.double_t, ndim=3] rel_prices):
- *     """
+ * cpdef np.ndarray[DTYPE_t, ndim=1] compute_trend_indicator(             # <<<<<<<<<<<<<<
+ *     np.ndarray[DTYPE_t, ndim=1] close,
+ *     np.ndarray[DTYPE_t, ndim=1] legendre,
  */
-  __pyx_tuple__4 = PyTuple_Pack(7, __pyx_n_s_basis_prices, __pyx_n_s_rel_prices, __pyx_n_s_n_markets, __pyx_n_s_n_steps, __pyx_n_s_permuted, __pyx_n_s_i, __pyx_n_s_j); if (unlikely(!__pyx_tuple__4)) __PYX_ERR(0, 7, __pyx_L1_error)
+  __pyx_tuple__4 = PyTuple_Pack(5, __pyx_n_s_close, __pyx_n_s_legendre, __pyx_n_s_lookback, __pyx_n_s_atr_length, __pyx_n_s_atr); if (unlikely(!__pyx_tuple__4)) __PYX_ERR(0, 10, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__4);
   __Pyx_GIVEREF(__pyx_tuple__4);
-  __pyx_codeobj__5 = (PyObject*)__Pyx_PyCode_New(2, 0, 0, 7, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__4, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_jarjarquant_cython_utils_bar_per, __pyx_n_s_permute_cython, 7, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__5)) __PYX_ERR(0, 7, __pyx_L1_error)
-
-  /* "jarjarquant/cython_utils/bar_permute.pyx":46
- *     return permuted
- * 
- * def permute_cython_single(cnp.ndarray[cnp.double_t, ndim=2] basis_prices,             # <<<<<<<<<<<<<<
- *                           cnp.ndarray[cnp.double_t, ndim=3] rel_prices):
- *     """
- */
-  __pyx_codeobj__6 = (PyObject*)__Pyx_PyCode_New(2, 0, 0, 7, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__4, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_jarjarquant_cython_utils_bar_per, __pyx_n_s_permute_cython_single, 46, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__6)) __PYX_ERR(0, 46, __pyx_L1_error)
+  __pyx_codeobj__5 = (PyObject*)__Pyx_PyCode_New(5, 0, 0, 5, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__4, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_jarjarquant_cython_utils_indicat, __pyx_n_s_compute_trend_indicator, 10, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__5)) __PYX_ERR(0, 10, __pyx_L1_error)
   __Pyx_RefNannyFinishContext();
   return 0;
   __pyx_L1_error:;
@@ -6040,8 +5571,6 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
 
 static CYTHON_SMALL_CODE int __Pyx_InitConstants(void) {
   if (__Pyx_CreateStringTabAndInitStrings() < 0) __PYX_ERR(0, 1, __pyx_L1_error);
-  __pyx_int_1 = PyInt_FromLong(1); if (unlikely(!__pyx_int_1)) __PYX_ERR(0, 1, __pyx_L1_error)
-  __pyx_int_4 = PyInt_FromLong(4); if (unlikely(!__pyx_int_4)) __PYX_ERR(0, 1, __pyx_L1_error)
   return 0;
   __pyx_L1_error:;
   return -1;
@@ -6180,10 +5709,10 @@ static int __Pyx_modinit_function_import_code(void) {
 #if PY_MAJOR_VERSION >= 3
 #if CYTHON_PEP489_MULTI_PHASE_INIT
 static PyObject* __pyx_pymod_create(PyObject *spec, PyModuleDef *def); /*proto*/
-static int __pyx_pymod_exec_bar_permute(PyObject* module); /*proto*/
+static int __pyx_pymod_exec_indicators(PyObject* module); /*proto*/
 static PyModuleDef_Slot __pyx_moduledef_slots[] = {
   {Py_mod_create, (void*)__pyx_pymod_create},
-  {Py_mod_exec, (void*)__pyx_pymod_exec_bar_permute},
+  {Py_mod_exec, (void*)__pyx_pymod_exec_indicators},
   {0, NULL}
 };
 #endif
@@ -6196,7 +5725,7 @@ namespace {
   #endif
   {
       PyModuleDef_HEAD_INIT,
-      "bar_permute",
+      "indicators",
       0, /* m_doc */
     #if CYTHON_PEP489_MULTI_PHASE_INIT
       0, /* m_size */
@@ -6244,11 +5773,11 @@ namespace {
 
 
 #if PY_MAJOR_VERSION < 3
-__Pyx_PyMODINIT_FUNC initbar_permute(void) CYTHON_SMALL_CODE; /*proto*/
-__Pyx_PyMODINIT_FUNC initbar_permute(void)
+__Pyx_PyMODINIT_FUNC initindicators(void) CYTHON_SMALL_CODE; /*proto*/
+__Pyx_PyMODINIT_FUNC initindicators(void)
 #else
-__Pyx_PyMODINIT_FUNC PyInit_bar_permute(void) CYTHON_SMALL_CODE; /*proto*/
-__Pyx_PyMODINIT_FUNC PyInit_bar_permute(void)
+__Pyx_PyMODINIT_FUNC PyInit_indicators(void) CYTHON_SMALL_CODE; /*proto*/
+__Pyx_PyMODINIT_FUNC PyInit_indicators(void)
 #if CYTHON_PEP489_MULTI_PHASE_INIT
 {
   return PyModuleDef_Init(&__pyx_moduledef);
@@ -6329,7 +5858,7 @@ bad:
 }
 
 
-static CYTHON_SMALL_CODE int __pyx_pymod_exec_bar_permute(PyObject *__pyx_pyinit_module)
+static CYTHON_SMALL_CODE int __pyx_pymod_exec_indicators(PyObject *__pyx_pyinit_module)
 #endif
 #endif
 {
@@ -6339,6 +5868,7 @@ static CYTHON_SMALL_CODE int __pyx_pymod_exec_bar_permute(PyObject *__pyx_pyinit
   #endif
   PyObject *__pyx_t_1 = NULL;
   PyObject *__pyx_t_2 = NULL;
+  PyObject *__pyx_t_3 = NULL;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
@@ -6346,7 +5876,7 @@ static CYTHON_SMALL_CODE int __pyx_pymod_exec_bar_permute(PyObject *__pyx_pyinit
   #if CYTHON_PEP489_MULTI_PHASE_INIT
   if (__pyx_m) {
     if (__pyx_m == __pyx_pyinit_module) return 0;
-    PyErr_SetString(PyExc_RuntimeError, "Module 'bar_permute' has already been imported. Re-initialisation is not supported.");
+    PyErr_SetString(PyExc_RuntimeError, "Module 'indicators' has already been imported. Re-initialisation is not supported.");
     return -1;
   }
   #elif PY_MAJOR_VERSION >= 3
@@ -6358,13 +5888,13 @@ static CYTHON_SMALL_CODE int __pyx_pymod_exec_bar_permute(PyObject *__pyx_pyinit
   Py_INCREF(__pyx_m);
   #else
   #if PY_MAJOR_VERSION < 3
-  __pyx_m = Py_InitModule4("bar_permute", __pyx_methods, 0, 0, PYTHON_API_VERSION); Py_XINCREF(__pyx_m);
+  __pyx_m = Py_InitModule4("indicators", __pyx_methods, 0, 0, PYTHON_API_VERSION); Py_XINCREF(__pyx_m);
   if (unlikely(!__pyx_m)) __PYX_ERR(0, 1, __pyx_L1_error)
   #elif CYTHON_USE_MODULE_STATE
   __pyx_t_1 = PyModule_Create(&__pyx_moduledef); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 1, __pyx_L1_error)
   {
     int add_module_result = PyState_AddModule(__pyx_t_1, &__pyx_moduledef);
-    __pyx_t_1 = 0; /* transfer ownership from __pyx_t_1 to "bar_permute" pseudovariable */
+    __pyx_t_1 = 0; /* transfer ownership from __pyx_t_1 to "indicators" pseudovariable */
     if (unlikely((add_module_result < 0))) __PYX_ERR(0, 1, __pyx_L1_error)
     pystate_addmodule_run = 1;
   }
@@ -6388,7 +5918,7 @@ if (!__Pyx_RefNanny) {
       Py_FatalError("failed to import 'refnanny' module");
 }
 #endif
-  __Pyx_RefNannySetupContext("__Pyx_PyMODINIT_FUNC PyInit_bar_permute(void)", 0);
+  __Pyx_RefNannySetupContext("__Pyx_PyMODINIT_FUNC PyInit_indicators(void)", 0);
   if (__Pyx_check_binary_version(__PYX_LIMITED_VERSION_HEX, __Pyx_get_runtime_version(), CYTHON_COMPILING_IN_LIMITED_API) < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #ifdef __Pxy_PyFrame_Initialize_Offsets
   __Pxy_PyFrame_Initialize_Offsets();
@@ -6426,14 +5956,14 @@ if (!__Pyx_RefNanny) {
   #if PY_MAJOR_VERSION < 3 && (__PYX_DEFAULT_STRING_ENCODING_IS_ASCII || __PYX_DEFAULT_STRING_ENCODING_IS_DEFAULT)
   if (__Pyx_init_sys_getdefaultencoding_params() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #endif
-  if (__pyx_module_is_main_jarjarquant__cython_utils__bar_permute) {
+  if (__pyx_module_is_main_jarjarquant__cython_utils__indicators) {
     if (PyObject_SetAttr(__pyx_m, __pyx_n_s_name, __pyx_n_s_main) < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   }
   #if PY_MAJOR_VERSION >= 3
   {
     PyObject *modules = PyImport_GetModuleDict(); if (unlikely(!modules)) __PYX_ERR(0, 1, __pyx_L1_error)
-    if (!PyDict_GetItemString(modules, "jarjarquant.cython_utils.bar_permute")) {
-      if (unlikely((PyDict_SetItemString(modules, "jarjarquant.cython_utils.bar_permute", __pyx_m) < 0))) __PYX_ERR(0, 1, __pyx_L1_error)
+    if (!PyDict_GetItemString(modules, "jarjarquant.cython_utils.indicators")) {
+      if (unlikely((PyDict_SetItemString(modules, "jarjarquant.cython_utils.indicators", __pyx_m) < 0))) __PYX_ERR(0, 1, __pyx_L1_error)
     }
   }
   #endif
@@ -6454,60 +5984,63 @@ if (!__Pyx_RefNanny) {
   if (__Pyx_patch_abc() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #endif
 
-  /* "jarjarquant/cython_utils/bar_permute.pyx":4
- * 
- * # Import NumPy for runtime support and its C API for type declarations.
+  /* "jarjarquant/cython_utils/indicators.pyx":2
+ * # cython: boundscheck=False, wraparound=False, cdivision=True
  * import numpy as np             # <<<<<<<<<<<<<<
- * cimport numpy as cnp
- * 
+ * cimport numpy as np
+ * from libc.math cimport log, erf, sqrt
  */
-  __pyx_t_2 = __Pyx_ImportDottedModule(__pyx_n_s_numpy, NULL); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 4, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_ImportDottedModule(__pyx_n_s_numpy, NULL); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 2, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_np, __pyx_t_2) < 0) __PYX_ERR(0, 4, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_np, __pyx_t_2) < 0) __PYX_ERR(0, 2, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "jarjarquant/cython_utils/bar_permute.pyx":7
- * cimport numpy as cnp
+  /* "jarjarquant/cython_utils/indicators.pyx":7
  * 
- * def permute_cython(cnp.ndarray[cnp.double_t, ndim=2] basis_prices,             # <<<<<<<<<<<<<<
- *                    cnp.ndarray[cnp.double_t, ndim=3] rel_prices):
- *     """
+ * # Declare accepted NumPy types for best performance
+ * DTYPE = np.float64             # <<<<<<<<<<<<<<
+ * ctypedef np.float64_t DTYPE_t
+ * 
  */
-  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_11jarjarquant_12cython_utils_11bar_permute_1permute_cython, 0, __pyx_n_s_permute_cython, NULL, __pyx_n_s_jarjarquant_cython_utils_bar_per_2, __pyx_d, ((PyObject *)__pyx_codeobj__5)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 7, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 7, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_permute_cython, __pyx_t_2) < 0) __PYX_ERR(0, 7, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_float64); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 7, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_DTYPE, __pyx_t_3) < 0) __PYX_ERR(0, 7, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-  /* "jarjarquant/cython_utils/bar_permute.pyx":46
- *     return permuted
+  /* "jarjarquant/cython_utils/indicators.pyx":10
+ * ctypedef np.float64_t DTYPE_t
  * 
- * def permute_cython_single(cnp.ndarray[cnp.double_t, ndim=2] basis_prices,             # <<<<<<<<<<<<<<
- *                           cnp.ndarray[cnp.double_t, ndim=3] rel_prices):
- *     """
+ * cpdef np.ndarray[DTYPE_t, ndim=1] compute_trend_indicator(             # <<<<<<<<<<<<<<
+ *     np.ndarray[DTYPE_t, ndim=1] close,
+ *     np.ndarray[DTYPE_t, ndim=1] legendre,
  */
-  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_11jarjarquant_12cython_utils_11bar_permute_3permute_cython_single, 0, __pyx_n_s_permute_cython_single, NULL, __pyx_n_s_jarjarquant_cython_utils_bar_per_2, __pyx_d, ((PyObject *)__pyx_codeobj__6)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 46, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_permute_cython_single, __pyx_t_2) < 0) __PYX_ERR(0, 46, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __pyx_t_3 = __Pyx_CyFunction_New(&__pyx_mdef_11jarjarquant_12cython_utils_10indicators_1compute_trend_indicator, 0, __pyx_n_s_compute_trend_indicator, NULL, __pyx_n_s_jarjarquant_cython_utils_indicat_2, __pyx_d, ((PyObject *)__pyx_codeobj__5)); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 10, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_compute_trend_indicator, __pyx_t_3) < 0) __PYX_ERR(0, 10, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-  /* "jarjarquant/cython_utils/bar_permute.pyx":1
- * # bar_permute_cy.pyx             # <<<<<<<<<<<<<<
- * 
- * # Import NumPy for runtime support and its C API for type declarations.
+  /* "jarjarquant/cython_utils/indicators.pyx":1
+ * # cython: boundscheck=False, wraparound=False, cdivision=True             # <<<<<<<<<<<<<<
+ * import numpy as np
+ * cimport numpy as np
  */
-  __pyx_t_2 = __Pyx_PyDict_NewPresized(0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 1, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_test, __pyx_t_2) < 0) __PYX_ERR(0, 1, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __pyx_t_3 = __Pyx_PyDict_NewPresized(0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 1, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_test, __pyx_t_3) < 0) __PYX_ERR(0, 1, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
   /*--- Wrapped vars code ---*/
 
   goto __pyx_L0;
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_2);
+  __Pyx_XDECREF(__pyx_t_3);
   if (__pyx_m) {
     if (__pyx_d && stringtab_initialized) {
-      __Pyx_AddTraceback("init jarjarquant.cython_utils.bar_permute", __pyx_clineno, __pyx_lineno, __pyx_filename);
+      __Pyx_AddTraceback("init jarjarquant.cython_utils.indicators", __pyx_clineno, __pyx_lineno, __pyx_filename);
     }
     #if !CYTHON_USE_MODULE_STATE
     Py_CLEAR(__pyx_m);
@@ -6521,7 +6054,7 @@ if (!__Pyx_RefNanny) {
     }
     #endif
   } else if (!PyErr_Occurred()) {
-    PyErr_SetString(PyExc_ImportError, "init jarjarquant.cython_utils.bar_permute");
+    PyErr_SetString(PyExc_ImportError, "init jarjarquant.cython_utils.indicators");
   }
   __pyx_L0:;
   __Pyx_RefNannyFinishContext();
@@ -7089,454 +6622,6 @@ bad:
     return;
 }
 #endif
-
-/* TupleAndListFromArray */
-#if CYTHON_COMPILING_IN_CPYTHON
-static CYTHON_INLINE void __Pyx_copy_object_array(PyObject *const *CYTHON_RESTRICT src, PyObject** CYTHON_RESTRICT dest, Py_ssize_t length) {
-    PyObject *v;
-    Py_ssize_t i;
-    for (i = 0; i < length; i++) {
-        v = dest[i] = src[i];
-        Py_INCREF(v);
-    }
-}
-static CYTHON_INLINE PyObject *
-__Pyx_PyTuple_FromArray(PyObject *const *src, Py_ssize_t n)
-{
-    PyObject *res;
-    if (n <= 0) {
-        Py_INCREF(__pyx_empty_tuple);
-        return __pyx_empty_tuple;
-    }
-    res = PyTuple_New(n);
-    if (unlikely(res == NULL)) return NULL;
-    __Pyx_copy_object_array(src, ((PyTupleObject*)res)->ob_item, n);
-    return res;
-}
-static CYTHON_INLINE PyObject *
-__Pyx_PyList_FromArray(PyObject *const *src, Py_ssize_t n)
-{
-    PyObject *res;
-    if (n <= 0) {
-        return PyList_New(0);
-    }
-    res = PyList_New(n);
-    if (unlikely(res == NULL)) return NULL;
-    __Pyx_copy_object_array(src, ((PyListObject*)res)->ob_item, n);
-    return res;
-}
-#endif
-
-/* BytesEquals */
-static CYTHON_INLINE int __Pyx_PyBytes_Equals(PyObject* s1, PyObject* s2, int equals) {
-#if CYTHON_COMPILING_IN_PYPY || CYTHON_COMPILING_IN_LIMITED_API
-    return PyObject_RichCompareBool(s1, s2, equals);
-#else
-    if (s1 == s2) {
-        return (equals == Py_EQ);
-    } else if (PyBytes_CheckExact(s1) & PyBytes_CheckExact(s2)) {
-        const char *ps1, *ps2;
-        Py_ssize_t length = PyBytes_GET_SIZE(s1);
-        if (length != PyBytes_GET_SIZE(s2))
-            return (equals == Py_NE);
-        ps1 = PyBytes_AS_STRING(s1);
-        ps2 = PyBytes_AS_STRING(s2);
-        if (ps1[0] != ps2[0]) {
-            return (equals == Py_NE);
-        } else if (length == 1) {
-            return (equals == Py_EQ);
-        } else {
-            int result;
-#if CYTHON_USE_UNICODE_INTERNALS && (PY_VERSION_HEX < 0x030B0000)
-            Py_hash_t hash1, hash2;
-            hash1 = ((PyBytesObject*)s1)->ob_shash;
-            hash2 = ((PyBytesObject*)s2)->ob_shash;
-            if (hash1 != hash2 && hash1 != -1 && hash2 != -1) {
-                return (equals == Py_NE);
-            }
-#endif
-            result = memcmp(ps1, ps2, (size_t)length);
-            return (equals == Py_EQ) ? (result == 0) : (result != 0);
-        }
-    } else if ((s1 == Py_None) & PyBytes_CheckExact(s2)) {
-        return (equals == Py_NE);
-    } else if ((s2 == Py_None) & PyBytes_CheckExact(s1)) {
-        return (equals == Py_NE);
-    } else {
-        int result;
-        PyObject* py_result = PyObject_RichCompare(s1, s2, equals);
-        if (!py_result)
-            return -1;
-        result = __Pyx_PyObject_IsTrue(py_result);
-        Py_DECREF(py_result);
-        return result;
-    }
-#endif
-}
-
-/* UnicodeEquals */
-static CYTHON_INLINE int __Pyx_PyUnicode_Equals(PyObject* s1, PyObject* s2, int equals) {
-#if CYTHON_COMPILING_IN_PYPY || CYTHON_COMPILING_IN_LIMITED_API
-    return PyObject_RichCompareBool(s1, s2, equals);
-#else
-#if PY_MAJOR_VERSION < 3
-    PyObject* owned_ref = NULL;
-#endif
-    int s1_is_unicode, s2_is_unicode;
-    if (s1 == s2) {
-        goto return_eq;
-    }
-    s1_is_unicode = PyUnicode_CheckExact(s1);
-    s2_is_unicode = PyUnicode_CheckExact(s2);
-#if PY_MAJOR_VERSION < 3
-    if ((s1_is_unicode & (!s2_is_unicode)) && PyString_CheckExact(s2)) {
-        owned_ref = PyUnicode_FromObject(s2);
-        if (unlikely(!owned_ref))
-            return -1;
-        s2 = owned_ref;
-        s2_is_unicode = 1;
-    } else if ((s2_is_unicode & (!s1_is_unicode)) && PyString_CheckExact(s1)) {
-        owned_ref = PyUnicode_FromObject(s1);
-        if (unlikely(!owned_ref))
-            return -1;
-        s1 = owned_ref;
-        s1_is_unicode = 1;
-    } else if (((!s2_is_unicode) & (!s1_is_unicode))) {
-        return __Pyx_PyBytes_Equals(s1, s2, equals);
-    }
-#endif
-    if (s1_is_unicode & s2_is_unicode) {
-        Py_ssize_t length;
-        int kind;
-        void *data1, *data2;
-        if (unlikely(__Pyx_PyUnicode_READY(s1) < 0) || unlikely(__Pyx_PyUnicode_READY(s2) < 0))
-            return -1;
-        length = __Pyx_PyUnicode_GET_LENGTH(s1);
-        if (length != __Pyx_PyUnicode_GET_LENGTH(s2)) {
-            goto return_ne;
-        }
-#if CYTHON_USE_UNICODE_INTERNALS
-        {
-            Py_hash_t hash1, hash2;
-        #if CYTHON_PEP393_ENABLED
-            hash1 = ((PyASCIIObject*)s1)->hash;
-            hash2 = ((PyASCIIObject*)s2)->hash;
-        #else
-            hash1 = ((PyUnicodeObject*)s1)->hash;
-            hash2 = ((PyUnicodeObject*)s2)->hash;
-        #endif
-            if (hash1 != hash2 && hash1 != -1 && hash2 != -1) {
-                goto return_ne;
-            }
-        }
-#endif
-        kind = __Pyx_PyUnicode_KIND(s1);
-        if (kind != __Pyx_PyUnicode_KIND(s2)) {
-            goto return_ne;
-        }
-        data1 = __Pyx_PyUnicode_DATA(s1);
-        data2 = __Pyx_PyUnicode_DATA(s2);
-        if (__Pyx_PyUnicode_READ(kind, data1, 0) != __Pyx_PyUnicode_READ(kind, data2, 0)) {
-            goto return_ne;
-        } else if (length == 1) {
-            goto return_eq;
-        } else {
-            int result = memcmp(data1, data2, (size_t)(length * kind));
-            #if PY_MAJOR_VERSION < 3
-            Py_XDECREF(owned_ref);
-            #endif
-            return (equals == Py_EQ) ? (result == 0) : (result != 0);
-        }
-    } else if ((s1 == Py_None) & s2_is_unicode) {
-        goto return_ne;
-    } else if ((s2 == Py_None) & s1_is_unicode) {
-        goto return_ne;
-    } else {
-        int result;
-        PyObject* py_result = PyObject_RichCompare(s1, s2, equals);
-        #if PY_MAJOR_VERSION < 3
-        Py_XDECREF(owned_ref);
-        #endif
-        if (!py_result)
-            return -1;
-        result = __Pyx_PyObject_IsTrue(py_result);
-        Py_DECREF(py_result);
-        return result;
-    }
-return_eq:
-    #if PY_MAJOR_VERSION < 3
-    Py_XDECREF(owned_ref);
-    #endif
-    return (equals == Py_EQ);
-return_ne:
-    #if PY_MAJOR_VERSION < 3
-    Py_XDECREF(owned_ref);
-    #endif
-    return (equals == Py_NE);
-#endif
-}
-
-/* fastcall */
-#if CYTHON_METH_FASTCALL
-static CYTHON_INLINE PyObject * __Pyx_GetKwValue_FASTCALL(PyObject *kwnames, PyObject *const *kwvalues, PyObject *s)
-{
-    Py_ssize_t i, n = PyTuple_GET_SIZE(kwnames);
-    for (i = 0; i < n; i++)
-    {
-        if (s == PyTuple_GET_ITEM(kwnames, i)) return kwvalues[i];
-    }
-    for (i = 0; i < n; i++)
-    {
-        int eq = __Pyx_PyUnicode_Equals(s, PyTuple_GET_ITEM(kwnames, i), Py_EQ);
-        if (unlikely(eq != 0)) {
-            if (unlikely(eq < 0)) return NULL;
-            return kwvalues[i];
-        }
-    }
-    return NULL;
-}
-#if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x030d0000
-CYTHON_UNUSED static PyObject *__Pyx_KwargsAsDict_FASTCALL(PyObject *kwnames, PyObject *const *kwvalues) {
-    Py_ssize_t i, nkwargs = PyTuple_GET_SIZE(kwnames);
-    PyObject *dict;
-    dict = PyDict_New();
-    if (unlikely(!dict))
-        return NULL;
-    for (i=0; i<nkwargs; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kwnames, i);
-        if (unlikely(PyDict_SetItem(dict, key, kwvalues[i]) < 0))
-            goto bad;
-    }
-    return dict;
-bad:
-    Py_DECREF(dict);
-    return NULL;
-}
-#endif
-#endif
-
-/* RaiseArgTupleInvalid */
-static void __Pyx_RaiseArgtupleInvalid(
-    const char* func_name,
-    int exact,
-    Py_ssize_t num_min,
-    Py_ssize_t num_max,
-    Py_ssize_t num_found)
-{
-    Py_ssize_t num_expected;
-    const char *more_or_less;
-    if (num_found < num_min) {
-        num_expected = num_min;
-        more_or_less = "at least";
-    } else {
-        num_expected = num_max;
-        more_or_less = "at most";
-    }
-    if (exact) {
-        more_or_less = "exactly";
-    }
-    PyErr_Format(PyExc_TypeError,
-                 "%.200s() takes %.8s %" CYTHON_FORMAT_SSIZE_T "d positional argument%.1s (%" CYTHON_FORMAT_SSIZE_T "d given)",
-                 func_name, more_or_less, num_expected,
-                 (num_expected == 1) ? "" : "s", num_found);
-}
-
-/* RaiseDoubleKeywords */
-static void __Pyx_RaiseDoubleKeywordsError(
-    const char* func_name,
-    PyObject* kw_name)
-{
-    PyErr_Format(PyExc_TypeError,
-        #if PY_MAJOR_VERSION >= 3
-        "%s() got multiple values for keyword argument '%U'", func_name, kw_name);
-        #else
-        "%s() got multiple values for keyword argument '%s'", func_name,
-        PyString_AsString(kw_name));
-        #endif
-}
-
-/* ParseKeywords */
-static int __Pyx_ParseOptionalKeywords(
-    PyObject *kwds,
-    PyObject *const *kwvalues,
-    PyObject **argnames[],
-    PyObject *kwds2,
-    PyObject *values[],
-    Py_ssize_t num_pos_args,
-    const char* function_name)
-{
-    PyObject *key = 0, *value = 0;
-    Py_ssize_t pos = 0;
-    PyObject*** name;
-    PyObject*** first_kw_arg = argnames + num_pos_args;
-    int kwds_is_tuple = CYTHON_METH_FASTCALL && likely(PyTuple_Check(kwds));
-    while (1) {
-        Py_XDECREF(key); key = NULL;
-        Py_XDECREF(value); value = NULL;
-        if (kwds_is_tuple) {
-            Py_ssize_t size;
-#if CYTHON_ASSUME_SAFE_MACROS
-            size = PyTuple_GET_SIZE(kwds);
-#else
-            size = PyTuple_Size(kwds);
-            if (size < 0) goto bad;
-#endif
-            if (pos >= size) break;
-#if CYTHON_AVOID_BORROWED_REFS
-            key = __Pyx_PySequence_ITEM(kwds, pos);
-            if (!key) goto bad;
-#elif CYTHON_ASSUME_SAFE_MACROS
-            key = PyTuple_GET_ITEM(kwds, pos);
-#else
-            key = PyTuple_GetItem(kwds, pos);
-            if (!key) goto bad;
-#endif
-            value = kwvalues[pos];
-            pos++;
-        }
-        else
-        {
-            if (!PyDict_Next(kwds, &pos, &key, &value)) break;
-#if CYTHON_AVOID_BORROWED_REFS
-            Py_INCREF(key);
-#endif
-        }
-        name = first_kw_arg;
-        while (*name && (**name != key)) name++;
-        if (*name) {
-            values[name-argnames] = value;
-#if CYTHON_AVOID_BORROWED_REFS
-            Py_INCREF(value);
-            Py_DECREF(key);
-#endif
-            key = NULL;
-            value = NULL;
-            continue;
-        }
-#if !CYTHON_AVOID_BORROWED_REFS
-        Py_INCREF(key);
-#endif
-        Py_INCREF(value);
-        name = first_kw_arg;
-        #if PY_MAJOR_VERSION < 3
-        if (likely(PyString_Check(key))) {
-            while (*name) {
-                if ((CYTHON_COMPILING_IN_PYPY || PyString_GET_SIZE(**name) == PyString_GET_SIZE(key))
-                        && _PyString_Eq(**name, key)) {
-                    values[name-argnames] = value;
-#if CYTHON_AVOID_BORROWED_REFS
-                    value = NULL;
-#endif
-                    break;
-                }
-                name++;
-            }
-            if (*name) continue;
-            else {
-                PyObject*** argname = argnames;
-                while (argname != first_kw_arg) {
-                    if ((**argname == key) || (
-                            (CYTHON_COMPILING_IN_PYPY || PyString_GET_SIZE(**argname) == PyString_GET_SIZE(key))
-                             && _PyString_Eq(**argname, key))) {
-                        goto arg_passed_twice;
-                    }
-                    argname++;
-                }
-            }
-        } else
-        #endif
-        if (likely(PyUnicode_Check(key))) {
-            while (*name) {
-                int cmp = (
-                #if !CYTHON_COMPILING_IN_PYPY && PY_MAJOR_VERSION >= 3
-                    (__Pyx_PyUnicode_GET_LENGTH(**name) != __Pyx_PyUnicode_GET_LENGTH(key)) ? 1 :
-                #endif
-                    PyUnicode_Compare(**name, key)
-                );
-                if (cmp < 0 && unlikely(PyErr_Occurred())) goto bad;
-                if (cmp == 0) {
-                    values[name-argnames] = value;
-#if CYTHON_AVOID_BORROWED_REFS
-                    value = NULL;
-#endif
-                    break;
-                }
-                name++;
-            }
-            if (*name) continue;
-            else {
-                PyObject*** argname = argnames;
-                while (argname != first_kw_arg) {
-                    int cmp = (**argname == key) ? 0 :
-                    #if !CYTHON_COMPILING_IN_PYPY && PY_MAJOR_VERSION >= 3
-                        (__Pyx_PyUnicode_GET_LENGTH(**argname) != __Pyx_PyUnicode_GET_LENGTH(key)) ? 1 :
-                    #endif
-                        PyUnicode_Compare(**argname, key);
-                    if (cmp < 0 && unlikely(PyErr_Occurred())) goto bad;
-                    if (cmp == 0) goto arg_passed_twice;
-                    argname++;
-                }
-            }
-        } else
-            goto invalid_keyword_type;
-        if (kwds2) {
-            if (unlikely(PyDict_SetItem(kwds2, key, value))) goto bad;
-        } else {
-            goto invalid_keyword;
-        }
-    }
-    Py_XDECREF(key);
-    Py_XDECREF(value);
-    return 0;
-arg_passed_twice:
-    __Pyx_RaiseDoubleKeywordsError(function_name, key);
-    goto bad;
-invalid_keyword_type:
-    PyErr_Format(PyExc_TypeError,
-        "%.200s() keywords must be strings", function_name);
-    goto bad;
-invalid_keyword:
-    #if PY_MAJOR_VERSION < 3
-    PyErr_Format(PyExc_TypeError,
-        "%.200s() got an unexpected keyword argument '%.200s'",
-        function_name, PyString_AsString(key));
-    #else
-    PyErr_Format(PyExc_TypeError,
-        "%s() got an unexpected keyword argument '%U'",
-        function_name, key);
-    #endif
-bad:
-    Py_XDECREF(key);
-    Py_XDECREF(value);
-    return -1;
-}
-
-/* ArgTypeTest */
-static int __Pyx__ArgTypeTest(PyObject *obj, PyTypeObject *type, const char *name, int exact)
-{
-    __Pyx_TypeName type_name;
-    __Pyx_TypeName obj_type_name;
-    if (unlikely(!type)) {
-        PyErr_SetString(PyExc_SystemError, "Missing type object");
-        return 0;
-    }
-    else if (exact) {
-        #if PY_MAJOR_VERSION == 2
-        if ((type == &PyBaseString_Type) && likely(__Pyx_PyBaseString_CheckExact(obj))) return 1;
-        #endif
-    }
-    else {
-        if (likely(__Pyx_TypeCheck(obj, type))) return 1;
-    }
-    type_name = __Pyx_PyType_GetName(type);
-    obj_type_name = __Pyx_PyType_GetName(Py_TYPE(obj));
-    PyErr_Format(PyExc_TypeError,
-        "Argument '%.200s' has incorrect type (expected " __Pyx_FMT_TYPENAME
-        ", got " __Pyx_FMT_TYPENAME ")", name, type_name, obj_type_name);
-    __Pyx_DECREF_TypeName(type_name);
-    __Pyx_DECREF_TypeName(obj_type_name);
-    return 0;
-}
 
 /* IsLittleEndian */
 static CYTHON_INLINE int __Pyx_Is_Little_Endian(void)
@@ -8195,10 +7280,452 @@ static CYTHON_INLINE PyObject *__Pyx__GetModuleGlobalName(PyObject *name)
     return 0;
 }
 
-/* BufferIndexError */
-  static void __Pyx_RaiseBufferIndexError(int axis) {
-  PyErr_Format(PyExc_IndexError,
-     "Out of bounds on buffer access (axis %d)", axis);
+/* TupleAndListFromArray */
+  #if CYTHON_COMPILING_IN_CPYTHON
+static CYTHON_INLINE void __Pyx_copy_object_array(PyObject *const *CYTHON_RESTRICT src, PyObject** CYTHON_RESTRICT dest, Py_ssize_t length) {
+    PyObject *v;
+    Py_ssize_t i;
+    for (i = 0; i < length; i++) {
+        v = dest[i] = src[i];
+        Py_INCREF(v);
+    }
+}
+static CYTHON_INLINE PyObject *
+__Pyx_PyTuple_FromArray(PyObject *const *src, Py_ssize_t n)
+{
+    PyObject *res;
+    if (n <= 0) {
+        Py_INCREF(__pyx_empty_tuple);
+        return __pyx_empty_tuple;
+    }
+    res = PyTuple_New(n);
+    if (unlikely(res == NULL)) return NULL;
+    __Pyx_copy_object_array(src, ((PyTupleObject*)res)->ob_item, n);
+    return res;
+}
+static CYTHON_INLINE PyObject *
+__Pyx_PyList_FromArray(PyObject *const *src, Py_ssize_t n)
+{
+    PyObject *res;
+    if (n <= 0) {
+        return PyList_New(0);
+    }
+    res = PyList_New(n);
+    if (unlikely(res == NULL)) return NULL;
+    __Pyx_copy_object_array(src, ((PyListObject*)res)->ob_item, n);
+    return res;
+}
+#endif
+
+/* BytesEquals */
+  static CYTHON_INLINE int __Pyx_PyBytes_Equals(PyObject* s1, PyObject* s2, int equals) {
+#if CYTHON_COMPILING_IN_PYPY || CYTHON_COMPILING_IN_LIMITED_API
+    return PyObject_RichCompareBool(s1, s2, equals);
+#else
+    if (s1 == s2) {
+        return (equals == Py_EQ);
+    } else if (PyBytes_CheckExact(s1) & PyBytes_CheckExact(s2)) {
+        const char *ps1, *ps2;
+        Py_ssize_t length = PyBytes_GET_SIZE(s1);
+        if (length != PyBytes_GET_SIZE(s2))
+            return (equals == Py_NE);
+        ps1 = PyBytes_AS_STRING(s1);
+        ps2 = PyBytes_AS_STRING(s2);
+        if (ps1[0] != ps2[0]) {
+            return (equals == Py_NE);
+        } else if (length == 1) {
+            return (equals == Py_EQ);
+        } else {
+            int result;
+#if CYTHON_USE_UNICODE_INTERNALS && (PY_VERSION_HEX < 0x030B0000)
+            Py_hash_t hash1, hash2;
+            hash1 = ((PyBytesObject*)s1)->ob_shash;
+            hash2 = ((PyBytesObject*)s2)->ob_shash;
+            if (hash1 != hash2 && hash1 != -1 && hash2 != -1) {
+                return (equals == Py_NE);
+            }
+#endif
+            result = memcmp(ps1, ps2, (size_t)length);
+            return (equals == Py_EQ) ? (result == 0) : (result != 0);
+        }
+    } else if ((s1 == Py_None) & PyBytes_CheckExact(s2)) {
+        return (equals == Py_NE);
+    } else if ((s2 == Py_None) & PyBytes_CheckExact(s1)) {
+        return (equals == Py_NE);
+    } else {
+        int result;
+        PyObject* py_result = PyObject_RichCompare(s1, s2, equals);
+        if (!py_result)
+            return -1;
+        result = __Pyx_PyObject_IsTrue(py_result);
+        Py_DECREF(py_result);
+        return result;
+    }
+#endif
+}
+
+/* UnicodeEquals */
+  static CYTHON_INLINE int __Pyx_PyUnicode_Equals(PyObject* s1, PyObject* s2, int equals) {
+#if CYTHON_COMPILING_IN_PYPY || CYTHON_COMPILING_IN_LIMITED_API
+    return PyObject_RichCompareBool(s1, s2, equals);
+#else
+#if PY_MAJOR_VERSION < 3
+    PyObject* owned_ref = NULL;
+#endif
+    int s1_is_unicode, s2_is_unicode;
+    if (s1 == s2) {
+        goto return_eq;
+    }
+    s1_is_unicode = PyUnicode_CheckExact(s1);
+    s2_is_unicode = PyUnicode_CheckExact(s2);
+#if PY_MAJOR_VERSION < 3
+    if ((s1_is_unicode & (!s2_is_unicode)) && PyString_CheckExact(s2)) {
+        owned_ref = PyUnicode_FromObject(s2);
+        if (unlikely(!owned_ref))
+            return -1;
+        s2 = owned_ref;
+        s2_is_unicode = 1;
+    } else if ((s2_is_unicode & (!s1_is_unicode)) && PyString_CheckExact(s1)) {
+        owned_ref = PyUnicode_FromObject(s1);
+        if (unlikely(!owned_ref))
+            return -1;
+        s1 = owned_ref;
+        s1_is_unicode = 1;
+    } else if (((!s2_is_unicode) & (!s1_is_unicode))) {
+        return __Pyx_PyBytes_Equals(s1, s2, equals);
+    }
+#endif
+    if (s1_is_unicode & s2_is_unicode) {
+        Py_ssize_t length;
+        int kind;
+        void *data1, *data2;
+        if (unlikely(__Pyx_PyUnicode_READY(s1) < 0) || unlikely(__Pyx_PyUnicode_READY(s2) < 0))
+            return -1;
+        length = __Pyx_PyUnicode_GET_LENGTH(s1);
+        if (length != __Pyx_PyUnicode_GET_LENGTH(s2)) {
+            goto return_ne;
+        }
+#if CYTHON_USE_UNICODE_INTERNALS
+        {
+            Py_hash_t hash1, hash2;
+        #if CYTHON_PEP393_ENABLED
+            hash1 = ((PyASCIIObject*)s1)->hash;
+            hash2 = ((PyASCIIObject*)s2)->hash;
+        #else
+            hash1 = ((PyUnicodeObject*)s1)->hash;
+            hash2 = ((PyUnicodeObject*)s2)->hash;
+        #endif
+            if (hash1 != hash2 && hash1 != -1 && hash2 != -1) {
+                goto return_ne;
+            }
+        }
+#endif
+        kind = __Pyx_PyUnicode_KIND(s1);
+        if (kind != __Pyx_PyUnicode_KIND(s2)) {
+            goto return_ne;
+        }
+        data1 = __Pyx_PyUnicode_DATA(s1);
+        data2 = __Pyx_PyUnicode_DATA(s2);
+        if (__Pyx_PyUnicode_READ(kind, data1, 0) != __Pyx_PyUnicode_READ(kind, data2, 0)) {
+            goto return_ne;
+        } else if (length == 1) {
+            goto return_eq;
+        } else {
+            int result = memcmp(data1, data2, (size_t)(length * kind));
+            #if PY_MAJOR_VERSION < 3
+            Py_XDECREF(owned_ref);
+            #endif
+            return (equals == Py_EQ) ? (result == 0) : (result != 0);
+        }
+    } else if ((s1 == Py_None) & s2_is_unicode) {
+        goto return_ne;
+    } else if ((s2 == Py_None) & s1_is_unicode) {
+        goto return_ne;
+    } else {
+        int result;
+        PyObject* py_result = PyObject_RichCompare(s1, s2, equals);
+        #if PY_MAJOR_VERSION < 3
+        Py_XDECREF(owned_ref);
+        #endif
+        if (!py_result)
+            return -1;
+        result = __Pyx_PyObject_IsTrue(py_result);
+        Py_DECREF(py_result);
+        return result;
+    }
+return_eq:
+    #if PY_MAJOR_VERSION < 3
+    Py_XDECREF(owned_ref);
+    #endif
+    return (equals == Py_EQ);
+return_ne:
+    #if PY_MAJOR_VERSION < 3
+    Py_XDECREF(owned_ref);
+    #endif
+    return (equals == Py_NE);
+#endif
+}
+
+/* fastcall */
+  #if CYTHON_METH_FASTCALL
+static CYTHON_INLINE PyObject * __Pyx_GetKwValue_FASTCALL(PyObject *kwnames, PyObject *const *kwvalues, PyObject *s)
+{
+    Py_ssize_t i, n = PyTuple_GET_SIZE(kwnames);
+    for (i = 0; i < n; i++)
+    {
+        if (s == PyTuple_GET_ITEM(kwnames, i)) return kwvalues[i];
+    }
+    for (i = 0; i < n; i++)
+    {
+        int eq = __Pyx_PyUnicode_Equals(s, PyTuple_GET_ITEM(kwnames, i), Py_EQ);
+        if (unlikely(eq != 0)) {
+            if (unlikely(eq < 0)) return NULL;
+            return kwvalues[i];
+        }
+    }
+    return NULL;
+}
+#if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x030d0000
+CYTHON_UNUSED static PyObject *__Pyx_KwargsAsDict_FASTCALL(PyObject *kwnames, PyObject *const *kwvalues) {
+    Py_ssize_t i, nkwargs = PyTuple_GET_SIZE(kwnames);
+    PyObject *dict;
+    dict = PyDict_New();
+    if (unlikely(!dict))
+        return NULL;
+    for (i=0; i<nkwargs; i++) {
+        PyObject *key = PyTuple_GET_ITEM(kwnames, i);
+        if (unlikely(PyDict_SetItem(dict, key, kwvalues[i]) < 0))
+            goto bad;
+    }
+    return dict;
+bad:
+    Py_DECREF(dict);
+    return NULL;
+}
+#endif
+#endif
+
+/* RaiseArgTupleInvalid */
+  static void __Pyx_RaiseArgtupleInvalid(
+    const char* func_name,
+    int exact,
+    Py_ssize_t num_min,
+    Py_ssize_t num_max,
+    Py_ssize_t num_found)
+{
+    Py_ssize_t num_expected;
+    const char *more_or_less;
+    if (num_found < num_min) {
+        num_expected = num_min;
+        more_or_less = "at least";
+    } else {
+        num_expected = num_max;
+        more_or_less = "at most";
+    }
+    if (exact) {
+        more_or_less = "exactly";
+    }
+    PyErr_Format(PyExc_TypeError,
+                 "%.200s() takes %.8s %" CYTHON_FORMAT_SSIZE_T "d positional argument%.1s (%" CYTHON_FORMAT_SSIZE_T "d given)",
+                 func_name, more_or_less, num_expected,
+                 (num_expected == 1) ? "" : "s", num_found);
+}
+
+/* RaiseDoubleKeywords */
+  static void __Pyx_RaiseDoubleKeywordsError(
+    const char* func_name,
+    PyObject* kw_name)
+{
+    PyErr_Format(PyExc_TypeError,
+        #if PY_MAJOR_VERSION >= 3
+        "%s() got multiple values for keyword argument '%U'", func_name, kw_name);
+        #else
+        "%s() got multiple values for keyword argument '%s'", func_name,
+        PyString_AsString(kw_name));
+        #endif
+}
+
+/* ParseKeywords */
+  static int __Pyx_ParseOptionalKeywords(
+    PyObject *kwds,
+    PyObject *const *kwvalues,
+    PyObject **argnames[],
+    PyObject *kwds2,
+    PyObject *values[],
+    Py_ssize_t num_pos_args,
+    const char* function_name)
+{
+    PyObject *key = 0, *value = 0;
+    Py_ssize_t pos = 0;
+    PyObject*** name;
+    PyObject*** first_kw_arg = argnames + num_pos_args;
+    int kwds_is_tuple = CYTHON_METH_FASTCALL && likely(PyTuple_Check(kwds));
+    while (1) {
+        Py_XDECREF(key); key = NULL;
+        Py_XDECREF(value); value = NULL;
+        if (kwds_is_tuple) {
+            Py_ssize_t size;
+#if CYTHON_ASSUME_SAFE_MACROS
+            size = PyTuple_GET_SIZE(kwds);
+#else
+            size = PyTuple_Size(kwds);
+            if (size < 0) goto bad;
+#endif
+            if (pos >= size) break;
+#if CYTHON_AVOID_BORROWED_REFS
+            key = __Pyx_PySequence_ITEM(kwds, pos);
+            if (!key) goto bad;
+#elif CYTHON_ASSUME_SAFE_MACROS
+            key = PyTuple_GET_ITEM(kwds, pos);
+#else
+            key = PyTuple_GetItem(kwds, pos);
+            if (!key) goto bad;
+#endif
+            value = kwvalues[pos];
+            pos++;
+        }
+        else
+        {
+            if (!PyDict_Next(kwds, &pos, &key, &value)) break;
+#if CYTHON_AVOID_BORROWED_REFS
+            Py_INCREF(key);
+#endif
+        }
+        name = first_kw_arg;
+        while (*name && (**name != key)) name++;
+        if (*name) {
+            values[name-argnames] = value;
+#if CYTHON_AVOID_BORROWED_REFS
+            Py_INCREF(value);
+            Py_DECREF(key);
+#endif
+            key = NULL;
+            value = NULL;
+            continue;
+        }
+#if !CYTHON_AVOID_BORROWED_REFS
+        Py_INCREF(key);
+#endif
+        Py_INCREF(value);
+        name = first_kw_arg;
+        #if PY_MAJOR_VERSION < 3
+        if (likely(PyString_Check(key))) {
+            while (*name) {
+                if ((CYTHON_COMPILING_IN_PYPY || PyString_GET_SIZE(**name) == PyString_GET_SIZE(key))
+                        && _PyString_Eq(**name, key)) {
+                    values[name-argnames] = value;
+#if CYTHON_AVOID_BORROWED_REFS
+                    value = NULL;
+#endif
+                    break;
+                }
+                name++;
+            }
+            if (*name) continue;
+            else {
+                PyObject*** argname = argnames;
+                while (argname != first_kw_arg) {
+                    if ((**argname == key) || (
+                            (CYTHON_COMPILING_IN_PYPY || PyString_GET_SIZE(**argname) == PyString_GET_SIZE(key))
+                             && _PyString_Eq(**argname, key))) {
+                        goto arg_passed_twice;
+                    }
+                    argname++;
+                }
+            }
+        } else
+        #endif
+        if (likely(PyUnicode_Check(key))) {
+            while (*name) {
+                int cmp = (
+                #if !CYTHON_COMPILING_IN_PYPY && PY_MAJOR_VERSION >= 3
+                    (__Pyx_PyUnicode_GET_LENGTH(**name) != __Pyx_PyUnicode_GET_LENGTH(key)) ? 1 :
+                #endif
+                    PyUnicode_Compare(**name, key)
+                );
+                if (cmp < 0 && unlikely(PyErr_Occurred())) goto bad;
+                if (cmp == 0) {
+                    values[name-argnames] = value;
+#if CYTHON_AVOID_BORROWED_REFS
+                    value = NULL;
+#endif
+                    break;
+                }
+                name++;
+            }
+            if (*name) continue;
+            else {
+                PyObject*** argname = argnames;
+                while (argname != first_kw_arg) {
+                    int cmp = (**argname == key) ? 0 :
+                    #if !CYTHON_COMPILING_IN_PYPY && PY_MAJOR_VERSION >= 3
+                        (__Pyx_PyUnicode_GET_LENGTH(**argname) != __Pyx_PyUnicode_GET_LENGTH(key)) ? 1 :
+                    #endif
+                        PyUnicode_Compare(**argname, key);
+                    if (cmp < 0 && unlikely(PyErr_Occurred())) goto bad;
+                    if (cmp == 0) goto arg_passed_twice;
+                    argname++;
+                }
+            }
+        } else
+            goto invalid_keyword_type;
+        if (kwds2) {
+            if (unlikely(PyDict_SetItem(kwds2, key, value))) goto bad;
+        } else {
+            goto invalid_keyword;
+        }
+    }
+    Py_XDECREF(key);
+    Py_XDECREF(value);
+    return 0;
+arg_passed_twice:
+    __Pyx_RaiseDoubleKeywordsError(function_name, key);
+    goto bad;
+invalid_keyword_type:
+    PyErr_Format(PyExc_TypeError,
+        "%.200s() keywords must be strings", function_name);
+    goto bad;
+invalid_keyword:
+    #if PY_MAJOR_VERSION < 3
+    PyErr_Format(PyExc_TypeError,
+        "%.200s() got an unexpected keyword argument '%.200s'",
+        function_name, PyString_AsString(key));
+    #else
+    PyErr_Format(PyExc_TypeError,
+        "%s() got an unexpected keyword argument '%U'",
+        function_name, key);
+    #endif
+bad:
+    Py_XDECREF(key);
+    Py_XDECREF(value);
+    return -1;
+}
+
+/* ArgTypeTest */
+  static int __Pyx__ArgTypeTest(PyObject *obj, PyTypeObject *type, const char *name, int exact)
+{
+    __Pyx_TypeName type_name;
+    __Pyx_TypeName obj_type_name;
+    if (unlikely(!type)) {
+        PyErr_SetString(PyExc_SystemError, "Missing type object");
+        return 0;
+    }
+    else if (exact) {
+        #if PY_MAJOR_VERSION == 2
+        if ((type == &PyBaseString_Type) && likely(__Pyx_PyBaseString_CheckExact(obj))) return 1;
+        #endif
+    }
+    else {
+        if (likely(__Pyx_TypeCheck(obj, type))) return 1;
+    }
+    type_name = __Pyx_PyType_GetName(type);
+    obj_type_name = __Pyx_PyType_GetName(Py_TYPE(obj));
+    PyErr_Format(PyExc_TypeError,
+        "Argument '%.200s' has incorrect type (expected " __Pyx_FMT_TYPENAME
+        ", got " __Pyx_FMT_TYPENAME ")", name, type_name, obj_type_name);
+    __Pyx_DECREF_TypeName(type_name);
+    __Pyx_DECREF_TypeName(obj_type_name);
+    return 0;
 }
 
 /* TypeImport */
@@ -10546,148 +10073,6 @@ static void __Pyx_ReleaseBuffer(Py_buffer *view) {
     #endif
 #endif
 
-/* CIntToPy */
-  static CYTHON_INLINE PyObject* __Pyx_PyInt_From_int(int value) {
-#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-    const int neg_one = (int) -1, const_zero = (int) 0;
-#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
-#pragma GCC diagnostic pop
-#endif
-    const int is_unsigned = neg_one > const_zero;
-    if (is_unsigned) {
-        if (sizeof(int) < sizeof(long)) {
-            return PyInt_FromLong((long) value);
-        } else if (sizeof(int) <= sizeof(unsigned long)) {
-            return PyLong_FromUnsignedLong((unsigned long) value);
-#ifdef HAVE_LONG_LONG
-        } else if (sizeof(int) <= sizeof(unsigned PY_LONG_LONG)) {
-            return PyLong_FromUnsignedLongLong((unsigned PY_LONG_LONG) value);
-#endif
-        }
-    } else {
-        if (sizeof(int) <= sizeof(long)) {
-            return PyInt_FromLong((long) value);
-#ifdef HAVE_LONG_LONG
-        } else if (sizeof(int) <= sizeof(PY_LONG_LONG)) {
-            return PyLong_FromLongLong((PY_LONG_LONG) value);
-#endif
-        }
-    }
-    {
-        unsigned char *bytes = (unsigned char *)&value;
-#if !CYTHON_COMPILING_IN_LIMITED_API && PY_VERSION_HEX >= 0x030d00A4
-        if (is_unsigned) {
-            return PyLong_FromUnsignedNativeBytes(bytes, sizeof(value), -1);
-        } else {
-            return PyLong_FromNativeBytes(bytes, sizeof(value), -1);
-        }
-#elif !CYTHON_COMPILING_IN_LIMITED_API && PY_VERSION_HEX < 0x030d0000
-        int one = 1; int little = (int)*(unsigned char *)&one;
-        return _PyLong_FromByteArray(bytes, sizeof(int),
-                                     little, !is_unsigned);
-#else
-        int one = 1; int little = (int)*(unsigned char *)&one;
-        PyObject *from_bytes, *result = NULL;
-        PyObject *py_bytes = NULL, *arg_tuple = NULL, *kwds = NULL, *order_str = NULL;
-        from_bytes = PyObject_GetAttrString((PyObject*)&PyLong_Type, "from_bytes");
-        if (!from_bytes) return NULL;
-        py_bytes = PyBytes_FromStringAndSize((char*)bytes, sizeof(int));
-        if (!py_bytes) goto limited_bad;
-        order_str = PyUnicode_FromString(little ? "little" : "big");
-        if (!order_str) goto limited_bad;
-        arg_tuple = PyTuple_Pack(2, py_bytes, order_str);
-        if (!arg_tuple) goto limited_bad;
-        if (!is_unsigned) {
-            kwds = PyDict_New();
-            if (!kwds) goto limited_bad;
-            if (PyDict_SetItemString(kwds, "signed", __Pyx_NewRef(Py_True))) goto limited_bad;
-        }
-        result = PyObject_Call(from_bytes, arg_tuple, kwds);
-        limited_bad:
-        Py_XDECREF(kwds);
-        Py_XDECREF(arg_tuple);
-        Py_XDECREF(order_str);
-        Py_XDECREF(py_bytes);
-        Py_XDECREF(from_bytes);
-        return result;
-#endif
-    }
-}
-
-/* CIntToPy */
-  static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value) {
-#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-    const long neg_one = (long) -1, const_zero = (long) 0;
-#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
-#pragma GCC diagnostic pop
-#endif
-    const int is_unsigned = neg_one > const_zero;
-    if (is_unsigned) {
-        if (sizeof(long) < sizeof(long)) {
-            return PyInt_FromLong((long) value);
-        } else if (sizeof(long) <= sizeof(unsigned long)) {
-            return PyLong_FromUnsignedLong((unsigned long) value);
-#ifdef HAVE_LONG_LONG
-        } else if (sizeof(long) <= sizeof(unsigned PY_LONG_LONG)) {
-            return PyLong_FromUnsignedLongLong((unsigned PY_LONG_LONG) value);
-#endif
-        }
-    } else {
-        if (sizeof(long) <= sizeof(long)) {
-            return PyInt_FromLong((long) value);
-#ifdef HAVE_LONG_LONG
-        } else if (sizeof(long) <= sizeof(PY_LONG_LONG)) {
-            return PyLong_FromLongLong((PY_LONG_LONG) value);
-#endif
-        }
-    }
-    {
-        unsigned char *bytes = (unsigned char *)&value;
-#if !CYTHON_COMPILING_IN_LIMITED_API && PY_VERSION_HEX >= 0x030d00A4
-        if (is_unsigned) {
-            return PyLong_FromUnsignedNativeBytes(bytes, sizeof(value), -1);
-        } else {
-            return PyLong_FromNativeBytes(bytes, sizeof(value), -1);
-        }
-#elif !CYTHON_COMPILING_IN_LIMITED_API && PY_VERSION_HEX < 0x030d0000
-        int one = 1; int little = (int)*(unsigned char *)&one;
-        return _PyLong_FromByteArray(bytes, sizeof(long),
-                                     little, !is_unsigned);
-#else
-        int one = 1; int little = (int)*(unsigned char *)&one;
-        PyObject *from_bytes, *result = NULL;
-        PyObject *py_bytes = NULL, *arg_tuple = NULL, *kwds = NULL, *order_str = NULL;
-        from_bytes = PyObject_GetAttrString((PyObject*)&PyLong_Type, "from_bytes");
-        if (!from_bytes) return NULL;
-        py_bytes = PyBytes_FromStringAndSize((char*)bytes, sizeof(long));
-        if (!py_bytes) goto limited_bad;
-        order_str = PyUnicode_FromString(little ? "little" : "big");
-        if (!order_str) goto limited_bad;
-        arg_tuple = PyTuple_Pack(2, py_bytes, order_str);
-        if (!arg_tuple) goto limited_bad;
-        if (!is_unsigned) {
-            kwds = PyDict_New();
-            if (!kwds) goto limited_bad;
-            if (PyDict_SetItemString(kwds, "signed", __Pyx_NewRef(Py_True))) goto limited_bad;
-        }
-        result = PyObject_Call(from_bytes, arg_tuple, kwds);
-        limited_bad:
-        Py_XDECREF(kwds);
-        Py_XDECREF(arg_tuple);
-        Py_XDECREF(order_str);
-        Py_XDECREF(py_bytes);
-        Py_XDECREF(from_bytes);
-        return result;
-#endif
-    }
-}
-
 /* CIntFromPy */
   static CYTHON_INLINE int __Pyx_PyInt_As_int(PyObject *x) {
 #ifdef __Pyx_HAS_GCC_DIAGNOSTIC
@@ -10955,6 +10340,77 @@ raise_neg_overflow:
     return (int) -1;
 }
 
+/* CIntToPy */
+  static CYTHON_INLINE PyObject* __Pyx_PyInt_From_int(int value) {
+#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+    const int neg_one = (int) -1, const_zero = (int) 0;
+#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
+#pragma GCC diagnostic pop
+#endif
+    const int is_unsigned = neg_one > const_zero;
+    if (is_unsigned) {
+        if (sizeof(int) < sizeof(long)) {
+            return PyInt_FromLong((long) value);
+        } else if (sizeof(int) <= sizeof(unsigned long)) {
+            return PyLong_FromUnsignedLong((unsigned long) value);
+#ifdef HAVE_LONG_LONG
+        } else if (sizeof(int) <= sizeof(unsigned PY_LONG_LONG)) {
+            return PyLong_FromUnsignedLongLong((unsigned PY_LONG_LONG) value);
+#endif
+        }
+    } else {
+        if (sizeof(int) <= sizeof(long)) {
+            return PyInt_FromLong((long) value);
+#ifdef HAVE_LONG_LONG
+        } else if (sizeof(int) <= sizeof(PY_LONG_LONG)) {
+            return PyLong_FromLongLong((PY_LONG_LONG) value);
+#endif
+        }
+    }
+    {
+        unsigned char *bytes = (unsigned char *)&value;
+#if !CYTHON_COMPILING_IN_LIMITED_API && PY_VERSION_HEX >= 0x030d00A4
+        if (is_unsigned) {
+            return PyLong_FromUnsignedNativeBytes(bytes, sizeof(value), -1);
+        } else {
+            return PyLong_FromNativeBytes(bytes, sizeof(value), -1);
+        }
+#elif !CYTHON_COMPILING_IN_LIMITED_API && PY_VERSION_HEX < 0x030d0000
+        int one = 1; int little = (int)*(unsigned char *)&one;
+        return _PyLong_FromByteArray(bytes, sizeof(int),
+                                     little, !is_unsigned);
+#else
+        int one = 1; int little = (int)*(unsigned char *)&one;
+        PyObject *from_bytes, *result = NULL;
+        PyObject *py_bytes = NULL, *arg_tuple = NULL, *kwds = NULL, *order_str = NULL;
+        from_bytes = PyObject_GetAttrString((PyObject*)&PyLong_Type, "from_bytes");
+        if (!from_bytes) return NULL;
+        py_bytes = PyBytes_FromStringAndSize((char*)bytes, sizeof(int));
+        if (!py_bytes) goto limited_bad;
+        order_str = PyUnicode_FromString(little ? "little" : "big");
+        if (!order_str) goto limited_bad;
+        arg_tuple = PyTuple_Pack(2, py_bytes, order_str);
+        if (!arg_tuple) goto limited_bad;
+        if (!is_unsigned) {
+            kwds = PyDict_New();
+            if (!kwds) goto limited_bad;
+            if (PyDict_SetItemString(kwds, "signed", __Pyx_NewRef(Py_True))) goto limited_bad;
+        }
+        result = PyObject_Call(from_bytes, arg_tuple, kwds);
+        limited_bad:
+        Py_XDECREF(kwds);
+        Py_XDECREF(arg_tuple);
+        Py_XDECREF(order_str);
+        Py_XDECREF(py_bytes);
+        Py_XDECREF(from_bytes);
+        return result;
+#endif
+    }
+}
+
 /* FormatTypeName */
   #if CYTHON_COMPILING_IN_LIMITED_API
 static __Pyx_TypeName
@@ -10965,11 +10421,82 @@ __Pyx_PyType_GetName(PyTypeObject* tp)
     if (unlikely(name == NULL) || unlikely(!PyUnicode_Check(name))) {
         PyErr_Clear();
         Py_XDECREF(name);
-        name = __Pyx_NewRef(__pyx_n_s__7);
+        name = __Pyx_NewRef(__pyx_n_s__6);
     }
     return name;
 }
 #endif
+
+/* CIntToPy */
+  static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value) {
+#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+    const long neg_one = (long) -1, const_zero = (long) 0;
+#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
+#pragma GCC diagnostic pop
+#endif
+    const int is_unsigned = neg_one > const_zero;
+    if (is_unsigned) {
+        if (sizeof(long) < sizeof(long)) {
+            return PyInt_FromLong((long) value);
+        } else if (sizeof(long) <= sizeof(unsigned long)) {
+            return PyLong_FromUnsignedLong((unsigned long) value);
+#ifdef HAVE_LONG_LONG
+        } else if (sizeof(long) <= sizeof(unsigned PY_LONG_LONG)) {
+            return PyLong_FromUnsignedLongLong((unsigned PY_LONG_LONG) value);
+#endif
+        }
+    } else {
+        if (sizeof(long) <= sizeof(long)) {
+            return PyInt_FromLong((long) value);
+#ifdef HAVE_LONG_LONG
+        } else if (sizeof(long) <= sizeof(PY_LONG_LONG)) {
+            return PyLong_FromLongLong((PY_LONG_LONG) value);
+#endif
+        }
+    }
+    {
+        unsigned char *bytes = (unsigned char *)&value;
+#if !CYTHON_COMPILING_IN_LIMITED_API && PY_VERSION_HEX >= 0x030d00A4
+        if (is_unsigned) {
+            return PyLong_FromUnsignedNativeBytes(bytes, sizeof(value), -1);
+        } else {
+            return PyLong_FromNativeBytes(bytes, sizeof(value), -1);
+        }
+#elif !CYTHON_COMPILING_IN_LIMITED_API && PY_VERSION_HEX < 0x030d0000
+        int one = 1; int little = (int)*(unsigned char *)&one;
+        return _PyLong_FromByteArray(bytes, sizeof(long),
+                                     little, !is_unsigned);
+#else
+        int one = 1; int little = (int)*(unsigned char *)&one;
+        PyObject *from_bytes, *result = NULL;
+        PyObject *py_bytes = NULL, *arg_tuple = NULL, *kwds = NULL, *order_str = NULL;
+        from_bytes = PyObject_GetAttrString((PyObject*)&PyLong_Type, "from_bytes");
+        if (!from_bytes) return NULL;
+        py_bytes = PyBytes_FromStringAndSize((char*)bytes, sizeof(long));
+        if (!py_bytes) goto limited_bad;
+        order_str = PyUnicode_FromString(little ? "little" : "big");
+        if (!order_str) goto limited_bad;
+        arg_tuple = PyTuple_Pack(2, py_bytes, order_str);
+        if (!arg_tuple) goto limited_bad;
+        if (!is_unsigned) {
+            kwds = PyDict_New();
+            if (!kwds) goto limited_bad;
+            if (PyDict_SetItemString(kwds, "signed", __Pyx_NewRef(Py_True))) goto limited_bad;
+        }
+        result = PyObject_Call(from_bytes, arg_tuple, kwds);
+        limited_bad:
+        Py_XDECREF(kwds);
+        Py_XDECREF(arg_tuple);
+        Py_XDECREF(order_str);
+        Py_XDECREF(py_bytes);
+        Py_XDECREF(from_bytes);
+        return result;
+#endif
+    }
+}
 
 /* CIntFromPy */
   static CYTHON_INLINE long __Pyx_PyInt_As_long(PyObject *x) {

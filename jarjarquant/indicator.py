@@ -9,6 +9,8 @@ from .data_analyst import DataAnalyst
 from .feature_engineer import FeatureEngineer
 from .feature_evaluator import FeatureEvaluator
 
+from jarjarquant.cython_utils.indicators import compute_trend_indicator
+
 
 class Indicator:
     """Base class to implement indicators"""
@@ -424,37 +426,25 @@ class RegressionTrend(Indicator):
                 "Lookback period is greater than the number of data points!")
 
         # Calculate the Legendre polynomials
-        lgdre = self.data_analyst.compute_legendre_coefficients(
+        lgdre = self.data_analyst.compute_normalized_legendre_coefficients(
             self.lookback, self.degree)
+        if self.atr_length < 1:
+            self.atr_length = self.lookback
+            expanding_atr = True
+        else:
+            expanding_atr = False
         atr = self.data_analyst.atr(
-            self.atr_length, self.df['High'], self.df['Low'], self.df['Close']).values
+            self.atr_length, self.df['High'], self.df['Low'], self.df['Close'], expanding=expanding_atr).values
         COMPRESSION_FACTOR = 1.5
 
-        for i in range(self.atr_length+1, n):
-            prices = np.log(close[i-self.lookback:i])
+        output = compute_trend_indicator(
+            close, lgdre, self.lookback, self.atr_length, atr)
 
-            # Calculate the regression coefficient
-            reg_coeff = self.data_analyst.calculate_regression_coefficient(
-                prices, lgdre)
-
-            # Contextualize the regression coefficient using long term atr
-            reg_coeff = (2*reg_coeff)/(atr[i]*(self.lookback-1))
-
-            # Calculate the R^2 value over the lookback period
-            y_diff = prices - np.mean(prices)
-            y_diff_sq = np.sum(y_diff**2)
-            predictions = reg_coeff * lgdre
-            residuals = y_diff - predictions
-            residuals_sq = np.sum(residuals**2)
-
-            r_squared = 1 - residuals_sq/y_diff_sq
-
-            # Multiply the regression coefficient by the R^2 value to devalue weak trends
-            norm_coeff = reg_coeff * r_squared
-            output[i] = 100 * norm.cdf(COMPRESSION_FACTOR*norm_coeff) - 50
+        output = 100 * norm.cdf(COMPRESSION_FACTOR*output) - 50
 
         if self.transform is not None:
             output = self.feature_engineer.transform(output, self.transform)
+
         return output
 
 

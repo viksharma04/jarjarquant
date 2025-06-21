@@ -1,7 +1,20 @@
 # JARJARQUANT
 
-***
+## About
+
 Jarjarquant is a package that implements common techniques in advanced financial machine learning. A big inspiration is the techniques discussed in [*Advances in Financial Machine Learning* by Marcos López de Prado](https://www.wiley.com/en-us/Advances+in+Financial+Machine+Learning-p-9781119482086).
+
+One of the concepts discussed in *Advances in Financial Machine Learning* is the strategy production chain:
+
+**Figure 1: Strategy Production Chain**
+```mermaid
+flowchart LR
+    A[Data Curators] --> B[Feature Analysts]
+    B --> C[Strategists]
+    C --> D[Backtesters]
+    D --> E[Deployment Team]
+    E --> F[Portfolio Oversight]
+```
 
 ## References
 

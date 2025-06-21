@@ -480,7 +480,7 @@ class FeatureEvaluator:
         with concurrent.futures.ProcessPoolExecutor() as executor:
             data_gatherer = DataGatherer()
             futures = [executor.submit(
-                data_gatherer.get_random_price_samples_yf, num_tickers_to_sample=1) for _ in range(n_runs)]
+                data_gatherer.get_random_price_samples_tws, num_tickers_to_sample=1) for _ in range(n_runs)]
             for future in concurrent.futures.as_completed(futures):
                 ohlcv_df = future.result()[0]
                 indicator_values = indicator_func(
@@ -515,16 +515,17 @@ class FeatureEvaluator:
         return results
 
     @staticmethod
-    def single_indicator_evaluation(inputs: dict):
+    def indicator_distribution_study(inputs: dict):
 
         outputs = []
 
         indicator_func = inputs["indicator_func"]
         kwargs = inputs["kwargs"]
+        ohlcv_df = inputs["ohlcv_df"]
 
-        data_gatherer = DataGatherer()
-        ohlcv_df = data_gatherer.get_random_price_samples_yf(
-            num_tickers_to_sample=1)[0]
+        # data_gatherer = DataGatherer()
+        # ohlcv_df = data_gatherer.get_random_price_samples_tws(
+        #     num_tickers_to_sample=1)[0]
         indicator_instance = indicator_func(ohlcv_df, **kwargs)
 
         indicator_instance.indicator_evaluation_report()
@@ -539,24 +540,36 @@ class FeatureEvaluator:
         return outputs
 
     @staticmethod
-    def parallel_indicator_evaluation(indicator_func: Callable, n_runs: int = 10, **kwargs):
+    def parallel_indicator_distribution_study(indicator_func: Callable, n_runs: int = 10, custom_sample: Optional[str] = None, **kwargs):
 
         inputs_list = []
+        data_gatherer = DataGatherer()
+        ohlcv_dfs = data_gatherer.get_random_price_samples_tws(
+            num_tickers_to_sample=n_runs) if custom_sample is None else data_gatherer.get_custom_sample(sample_name=custom_sample)
 
         # Create multiple instances of the indicator with a different data sample each time
-        for i in range(n_runs):
+        for _, ohlcv_df in enumerate(ohlcv_dfs):
             inputs = {
                 "indicator_func": indicator_func,
+                "ohlcv_df": ohlcv_df,
                 "kwargs": kwargs
             }
             inputs_list.append(inputs)
 
         with concurrent.futures.ProcessPoolExecutor() as executor:
             results = list(executor.map(
-                FeatureEvaluator.single_indicator_evaluation, inputs_list))
+                FeatureEvaluator.indicator_distribution_study, inputs_list))
 
         # results is a list of lists - average across the lists to get the final results
-        results = np.mean(results, axis=0)
+        adf_test = [result[0] for result in results]
+        jb_test = [result[1] for result in results]
+        relative_entropy = [result[2] for result in results]
+        range_iqr_ratio = [result[3] for result in results]
+
+        results = [np.mean(adf_test), np.mean(jb_test),
+                   np.mean([x for x in relative_entropy if not (np.isnan(x) or np.isinf(x))]), np.mean([x for x in range_iqr_ratio if not (np.isnan(x) or np.isinf(x))])]
+        # results = np.mean(results, axis=0)
+        results = [round(value, 2) for value in results]
 
         return {'ADF Test': results[0], 'Jarque-Bera Test': results[1], 'Relative Entropy': results[2], 'Range-IQR Ratio': results[3]}
 

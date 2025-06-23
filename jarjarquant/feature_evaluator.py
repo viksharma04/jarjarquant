@@ -2,7 +2,6 @@
 import concurrent.futures
 from typing import Callable, Optional
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr

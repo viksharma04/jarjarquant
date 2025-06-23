@@ -1,6 +1,5 @@
 """The data gatherer minimizes code duplication and simplifies gathering samples for experimentation."""
 import asyncio
-import concurrent.futures
 import os
 import random
 import time

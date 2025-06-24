@@ -209,7 +209,7 @@ class DataAnalyst:
         print(range_iqr_ratio)
         if verbose:
             print(
-                "Presence of outliers can greatly reduce the performance of an algorithm. The most obvious reason is that the presence of an outlier reduces entropy, causing the 'normal' observations to form a compact cluster and hence reducing the information carrying capacity of the indicator. \n Ratios of 2 and 3 are reasonable and upto 5 is usually not excessive. But iof the indicator has a range IQR ratio of more than 5, the tails should be tamed. \n ----------------------------- \n"
+                "Presence of outliers can greatly reduce the performance of an algorithm. The most obvious reason is that the presence of an outlier reduces entropy, causing the 'normal' observations to form a compact cluster and hence reducing the information carrying capacity of the indicator. \n Ratios of 2 and 3 are reasonable and upto 5 is usually not excessive. But if the indicator has a range IQR ratio of more than 5, the tails should be tamed. \n ----------------------------- \n"
             )
         else:
             if range_iqr_ratio <= 3:

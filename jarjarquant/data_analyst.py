@@ -254,7 +254,7 @@ class DataAnalyst:
                     nbins = 5
                 else:
                     nbins = 3
-            array = DataAnalyst.discretize_array(array, n_bins=n_bins)
+            array = DataAnalyst.discretize_array(array, n_bins=nbins)
 
         for i in range(1, lag + 1):
             # Create lagged array

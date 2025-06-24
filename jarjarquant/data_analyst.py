@@ -1,4 +1,5 @@
 """The data analyst specializes in performing and contextualizing common statistical tests on one or many data series"""
+
 from typing import Optional
 
 import matplotlib.pyplot as plt
@@ -12,7 +13,6 @@ from statsmodels.tsa.stattools import adfuller
 
 
 class DataAnalyst:
-
     def __init__(self) -> None:
         pass
 
@@ -24,27 +24,29 @@ class DataAnalyst:
             None
         """
         plt.figure(figsize=(10, 6))
-        plt.plot(values, label='Indicator Value', color='blue')
+        plt.plot(values, label="Indicator Value", color="blue")
 
         # Calculate thresholds
         upper_threshold = np.quantile(values, 0.85)
         lower_threshold = np.quantile(values, 0.15)
 
         # Plot thresholds
-        plt.axhline(y=upper_threshold, color='red',
-                    linestyle='--', label='85th Percentile')
-        plt.axhline(y=lower_threshold, color='green',
-                    linestyle='--', label='15th Percentile')
+        plt.axhline(
+            y=upper_threshold, color="red", linestyle="--", label="85th Percentile"
+        )
+        plt.axhline(
+            y=lower_threshold, color="green", linestyle="--", label="15th Percentile"
+        )
 
-        plt.title('Visual Stationary Test')
-        plt.xlabel('Index')
-        plt.ylabel('Value')
+        plt.title("Visual Stationary Test")
+        plt.xlabel("Index")
+        plt.ylabel("Value")
         plt.legend()
         plt.grid(True)
         plt.show()
 
     @staticmethod
-    def adf_test(values: np.ndarray, verbose: bool = False):
+    def adf_test(values: np.ndarray, verbose: bool = False) -> str:
         """
         Performs the Augmented Dickey-Fuller test to check if the time series is stationary.
 
@@ -69,7 +71,7 @@ class DataAnalyst:
         else:
             print("NON-STATIONARY @ 5% CONFIDENCE LEVEL")
 
-        if test_statistic < critical_values['1%']:
+        if test_statistic < critical_values["1%"]:
             print("STRONG EVIDENCE OF STATIONARITY")
         else:
             print("WEAK EVIDENCE OF STATIONARITY")
@@ -82,7 +84,7 @@ class DataAnalyst:
             return "failed"
 
     @staticmethod
-    def jb_normality_test(values: np.ndarray, verbose=False):
+    def jb_normality_test(values: np.ndarray, verbose=False) -> str:
         """
         Performs the Jarque-Bera test to check if the time series is normally distributed.
 
@@ -109,17 +111,28 @@ class DataAnalyst:
         # Plot distribution if requested
         if verbose:
             plt.figure(figsize=(10, 6))
-            plt.hist(values, bins=30, density=True, color='blue',
-                     alpha=0.6, label='Indicator Value Distribution')
+            plt.hist(
+                values,
+                bins=30,
+                density=True,
+                color="blue",
+                alpha=0.6,
+                label="Indicator Value Distribution",
+            )
 
             # Plot standard normal density curve
             x = np.linspace(values.min(), values.max(), 1000)
-            plt.plot(x, norm.pdf(x, values.mean(), values.std()),
-                     color='red', linestyle='--', label='Normal Distribution')
+            plt.plot(
+                x,
+                norm.pdf(x, values.mean(), values.std()),
+                color="red",
+                linestyle="--",
+                label="Normal Distribution",
+            )
 
-            plt.title('Distribution of Indicator Values with Normal Curve')
-            plt.xlabel('Value')
-            plt.ylabel('Density')
+            plt.title("Distribution of Indicator Values with Normal Curve")
+            plt.xlabel("Value")
+            plt.ylabel("Density")
             plt.legend()
             plt.grid(True)
             plt.show()
@@ -161,7 +174,9 @@ class DataAnalyst:
         normalized_entropy = entropy / np.log(nbins)
 
         if verbose:
-            print("The underlying idea for relative entropy is that valuable discriminatory information is nearly as likely to lie within clumps as it is in broad, thin regions. If the indicator's values lie within a few concentrated regions surrounded by broad swaths of emptiness, most models will focus on the wide spreads of the range while putting little effort into studying what's going on inside the clumps. \n The entropy of an indicator is an upper limit on the amount of infornmation it can carry. Anything above 0.8 is plenty, an even somewhat lower is usually fine. Anything below 0.5 is concerning and below 0.2 is very concerning. \n ---------------------------------------- \n")
+            print(
+                "The underlying idea for relative entropy is that valuable discriminatory information is nearly as likely to lie within clumps as it is in broad, thin regions. If the indicator's values lie within a few concentrated regions surrounded by broad swaths of emptiness, most models will focus on the wide spreads of the range while putting little effort into studying what's going on inside the clumps. \n The entropy of an indicator is an upper limit on the amount of information it can carry. Anything above 0.8 is plenty, an even somewhat lower is usually fine. Anything below 0.5 is concerning and below 0.2 is very concerning. \n ---------------------------------------- \n"
+            )
 
         print(f"Relative Entropy: {normalized_entropy}")
         if normalized_entropy < 0.2:
@@ -187,12 +202,15 @@ class DataAnalyst:
         Returns:
             np.float64: range iqr ratios
         """
-        range_iqr_ratio = (np.max(values) - np.min(values)) / \
-            (np.quantile(values, 0.75) - np.quantile(values, 0.25))
+        range_iqr_ratio = (np.max(values) - np.min(values)) / (
+            np.quantile(values, 0.75) - np.quantile(values, 0.25)
+        )
 
         print(range_iqr_ratio)
         if verbose:
-            print("Presence of outliers can greatly reduce the performance of an algorithm. The most obvious reason is that the presence of an outlier reduces entropy, causing the 'normal' observations to form a compact cluster and hence reducing the information carrying capacity of the indicator. \n Ratios of 2 and 3 are reasonable and upto 5 is usually not excessive. But iof the indicator has a range IQR ratio of more than 5, the tails should be tamed. \n ----------------------------- \n")
+            print(
+                "Presence of outliers can greatly reduce the performance of an algorithm. The most obvious reason is that the presence of an outlier reduces entropy, causing the 'normal' observations to form a compact cluster and hence reducing the information carrying capacity of the indicator. \n Ratios of 2 and 3 are reasonable and upto 5 is usually not excessive. But if the indicator has a range IQR ratio of more than 5, the tails should be tamed. \n ----------------------------- \n"
+            )
         else:
             if range_iqr_ratio <= 3:
                 print("GREAT DISTRIBUTION - MINIMAL OUTLIERS")
@@ -206,7 +224,13 @@ class DataAnalyst:
         return range_iqr_ratio
 
     @staticmethod
-    def mutual_information(array: np.ndarray, lag: int, n_bins: int = 10, is_discrete: bool = False, verbose: bool = False) -> np.ndarray:
+    def mutual_information(
+        array: np.ndarray,
+        lag: int,
+        n_bins: Optional[int] = None,
+        is_discrete: bool = False,
+        verbose: bool = False,
+    ) -> np.ndarray:
         """
         Calculates the mutual information of the array with a specified time lag.
 
@@ -217,8 +241,7 @@ class DataAnalyst:
         Returns:
             float: The mutual information score.
         """
-        nmi_scores = np.full(lag, np.nan)\
-
+        nmi_scores = np.full(lag, np.nan)
         if not is_discrete:
             n = len(array)
             if n_bins is None:
@@ -231,20 +254,20 @@ class DataAnalyst:
                     nbins = 5
                 else:
                     nbins = 3
-            array = DataAnalyst.discretize_array(array, n_bins=n_bins)
+            array = DataAnalyst.discretize_array(array, n_bins=nbins)
 
         for i in range(1, lag + 1):
             # Create lagged array
             if i >= len(array):
                 raise ValueError(
-                    "Lag is greater than or equal to the length of the array.")
+                    "Lag is greater than or equal to the length of the array."
+                )
 
             array_lagged = array[:-i]
             array_future = array[i:]
 
             # Calculate mutual information
-            nmi_scores[i -
-                       1] = normalized_mutual_info_score(array_lagged, array_future)
+            nmi_scores[i - 1] = normalized_mutual_info_score(array_lagged, array_future)
 
         return nmi_scores
 
@@ -274,26 +297,33 @@ class DataAnalyst:
         pass
 
     @staticmethod
-    def atr(atr_length: int, high_series: pd.Series, low_series: pd.Series, close_series: pd.Series, ema: bool = False, expanding: bool = False) -> pd.Series:
+    def atr(
+        atr_length: int,
+        high_series: pd.Series,
+        low_series: pd.Series,
+        close_series: pd.Series,
+        ema: bool = False,
+        expanding: bool = False,
+    ) -> pd.Series:
         """
-            Parameters:
-            atr_length (int): The period over which to calculate the ATR.
-            high_series (pd.Series): Series of high prices.
-            low_series (pd.Series): Series of low prices.
-            close_series (pd.Series): Series of close prices.
-            ema (bool): If True, use exponential moving average instead of simple moving average.
-            expanding (bool): If True, use expanding window instead of rolling window, calculating ATR using all available data up to each point.
+        Parameters:
+        atr_length (int): The period over which to calculate the ATR.
+        high_series (pd.Series): Series of high prices.
+        low_series (pd.Series): Series of low prices.
+        close_series (pd.Series): Series of close prices.
+        ema (bool): If True, use exponential moving average instead of simple moving average.
+        expanding (bool): If True, use expanding window instead of rolling window, calculating ATR using all available data up to each point.
 
-            Returns:
-            pd.Series: The ATR values for the given period.
+        Returns:
+        pd.Series: The ATR values for the given period.
         """
         # Calculate the true range for each row in the data
         true_ranges = np.maximum(
             high_series - low_series,
             np.maximum(
                 np.abs(high_series - close_series.shift(1)),
-                np.abs(low_series - close_series.shift(1))
-            )
+                np.abs(low_series - close_series.shift(1)),
+            ),
         )
         # Compute the moving average of the true ranges
         if ema:
@@ -356,13 +386,13 @@ class DataAnalyst:
         c1 /= np.linalg.norm(c1)
 
         # Compute c2: square of c1, then center and normalize.
-        c2 = c1 ** 2
+        c2 = c1**2
         mean_c2 = np.mean(c2)
         c2 -= mean_c2
         c2 /= np.linalg.norm(c2)
 
         # Compute c3: cube of c1, then center and normalize.
-        c3 = c1 ** 3
+        c3 = c1**3
         mean_c3 = np.mean(c3)
         c3 -= mean_c3
         c3 /= np.linalg.norm(c3)
@@ -380,7 +410,9 @@ class DataAnalyst:
             return c3
 
     @staticmethod
-    def calculate_regression_coefficient(prices: np.ndarray, legendre_coeffs: np.ndarray) -> float:
+    def calculate_regression_coefficient(
+        prices: np.ndarray, legendre_coeffs: np.ndarray
+    ) -> float:
         """
         Calculate the linear regression coefficient using the dot product method.
 
@@ -403,7 +435,8 @@ class DataAnalyst:
         df0 = df0[df0 > 0]
         # Create a series which stores the previous date for each date in the close series
         df0 = pd.Series(
-            close.index[df0-1], index=close.index[close.shape[0]-df0.shape[0]:])
+            close.index[df0 - 1], index=close.index[close.shape[0] - df0.shape[0] :]
+        )
         # Calculate the return by dividing current close by previous close -1
         df0 = close.loc[df0.index] / close.loc[df0.values].values - 1
         # Calculate the EMA(100) of the standard deviation of the return series
@@ -416,7 +449,6 @@ class DataAnalyst:
 
     @staticmethod
     def get_spearman_correlation(series1, series2):
-
         # Convert to numpy arrays if pd.Series
         if isinstance(series1, pd.Series):
             series1 = series1.values
@@ -438,7 +470,7 @@ class DataAnalyst:
         correlations = []
         for i in range(4):
             start = bin_edges[i]
-            end = bin_edges[i+1]
+            end = bin_edges[i + 1]
             s1_bin = sorted_series1[start:end]
             s2_bin = sorted_series2[start:end]
 
@@ -449,28 +481,38 @@ class DataAnalyst:
                 corr = np.nan
             correlations.append(corr)
 
-        return {'spearman_corr': spearman_corr, 'spearman_corr_quartile': correlations}
+        return {"spearman_corr": spearman_corr, "spearman_corr_quartile": correlations}
 
     @staticmethod
-    def plot_loess(x: np.ndarray, y: np.ndarray, smoothing_factor: Optional[int] = 3, x_label: Optional[str] = 'x', y_label: Optional[str] = 'y', title: Optional[str] = 'LOESS Fit', annotation: Optional[float] = None):
-
+    def plot_loess(
+        x: np.ndarray,
+        y: np.ndarray,
+        smoothing_factor: Optional[int] = 3,
+        x_label: Optional[str] = "x",
+        y_label: Optional[str] = "y",
+        title: Optional[str] = "LOESS Fit",
+        annotation: Optional[float] = None,
+    ):
         # Fit LOESS (LOWESS in statsmodels)
-        frac = float(smoothing_factor/10)
-        lowess = sm.nonparametric.lowess(
-            y, x, frac=frac)  # frac controls smoothing
+        frac = float(smoothing_factor / 10)
+        lowess = sm.nonparametric.lowess(y, x, frac=frac)  # frac controls smoothing
 
         # Extract smoothed values
         x_smooth, y_smooth = lowess[:, 0], lowess[:, 1]
 
         # Plot
-        plt.scatter(x, y,
-                    alpha=0.5, label="Data")
-        plt.plot(x_smooth, y_smooth, color="red",
-                 linewidth=2, label="LOESS Fit")
+        plt.scatter(x, y, alpha=0.5, label="Data")
+        plt.plot(x_smooth, y_smooth, color="red", linewidth=2, label="LOESS Fit")
         # Annotate the correlation coefficient on the plot
         if annotation is not None:
-            plt.text(0.05, 0.95, f'Spearman r = {annotation:.2f}', transform=plt.gca().transAxes,
-                     fontsize=12, verticalalignment='top')
+            plt.text(
+                0.05,
+                0.95,
+                f"Spearman r = {annotation:.2f}",
+                transform=plt.gca().transAxes,
+                fontsize=12,
+                verticalalignment="top",
+            )
 
         plt.legend()
         plt.xlabel(x_label)

@@ -175,7 +175,7 @@ class DataAnalyst:
 
         if verbose:
             print(
-                "The underlying idea for relative entropy is that valuable discriminatory information is nearly as likely to lie within clumps as it is in broad, thin regions. If the indicator's values lie within a few concentrated regions surrounded by broad swaths of emptiness, most models will focus on the wide spreads of the range while putting little effort into studying what's going on inside the clumps. \n The entropy of an indicator is an upper limit on the amount of infornmation it can carry. Anything above 0.8 is plenty, an even somewhat lower is usually fine. Anything below 0.5 is concerning and below 0.2 is very concerning. \n ---------------------------------------- \n"
+                "The underlying idea for relative entropy is that valuable discriminatory information is nearly as likely to lie within clumps as it is in broad, thin regions. If the indicator's values lie within a few concentrated regions surrounded by broad swaths of emptiness, most models will focus on the wide spreads of the range while putting little effort into studying what's going on inside the clumps. \n The entropy of an indicator is an upper limit on the amount of information it can carry. Anything above 0.8 is plenty, an even somewhat lower is usually fine. Anything below 0.5 is concerning and below 0.2 is very concerning. \n ---------------------------------------- \n"
             )
 
         print(f"Relative Entropy: {normalized_entropy}")
@@ -209,7 +209,7 @@ class DataAnalyst:
         print(range_iqr_ratio)
         if verbose:
             print(
-                "Presence of outliers can greatly reduce the performance of an algorithm. The most obvious reason is that the presence of an outlier reduces entropy, causing the 'normal' observations to form a compact cluster and hence reducing the information carrying capacity of the indicator. \n Ratios of 2 and 3 are reasonable and upto 5 is usually not excessive. But iof the indicator has a range IQR ratio of more than 5, the tails should be tamed. \n ----------------------------- \n"
+                "Presence of outliers can greatly reduce the performance of an algorithm. The most obvious reason is that the presence of an outlier reduces entropy, causing the 'normal' observations to form a compact cluster and hence reducing the information carrying capacity of the indicator. \n Ratios of 2 and 3 are reasonable and upto 5 is usually not excessive. But if the indicator has a range IQR ratio of more than 5, the tails should be tamed. \n ----------------------------- \n"
             )
         else:
             if range_iqr_ratio <= 3:

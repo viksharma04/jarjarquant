@@ -10,7 +10,7 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 import yfinance as yf
-from ib_async import IB, Contract, Stock, util
+from ib_async import IB, Contract, Index, Stock, util
 
 
 class DataGatherer:
@@ -151,41 +151,80 @@ class DataGatherer:
         security_type="STK",
         **kwags,
     ):
+        """
+        Asynchronously fetches historical market data from Interactive Brokers TWS or Gateway.
+        Parameters:
+            ticker (str): The ticker symbol of the security (default: "").
+            exchange (str): The exchange to use (default: "SMART").
+            currency (str): The currency of the security (default: "USD").
+            end_date (str): The end date/time for the data request format "YYYY-MM-DD" or "YYYY-MM-DD HH:MM:SS" (default: "").
+            duration (str): The duration of data to fetch, e.g., '1 M' for 1 month (default: "1 M").
+            bar_size (str): The size of each bar, e.g., '1 day' (default: "1 day").
+            what_to_show (str): The type of data to show, e.g., "TRADES" (default: "TRADES").
+            security_type (str): The type of security, e.g., "STK" for stock (default: "STK").
+            **kwags: Additional keyword arguments.
+        Returns:
+            pandas.DataFrame: DataFrame containing the historical data with columns renamed to standard format.
+        Raises:
+            RuntimeError: If data cannot be fetched from TWS.
+        """
         ib = IB()
 
         # Connect to the IB Gateway or TWS
-        await ib.connectAsync("127.0.0.1", 7496, clientId=1)
+        try:
+            await ib.connectAsync("127.0.0.1", 7496, clientId=1)
+        except Exception as e:
+            raise RuntimeError(f"TWSError: Cannot establish TWS connection: {e}")
 
         # Define the stock contract
         if security_type == "STK":
             contract = Stock(ticker, exchange, currency)
+        elif security_type == "IDX":
+            exchange = "CBOE" if exchange == "SMART" else exchange
+            contract = Index(ticker, exchange, currency)
         else:
-            contract = Contract(security_type, 33887599, "VOL-NYSE", exchange="NYSE")
+            contract = Contract(security_type, 33887599, ticker, exchange=exchange)
+
+        if end_date.strip():
+            try:
+                dt = datetime.strptime(end_date, "%Y-%m-%d")
+            except ValueError:
+                # Try alternate format if the first one fails
+                dt = datetime.strptime(end_date, "%Y%m%d %H:%M:%S")
+
+            # Format date according to IB API requirements: yyyymmdd hh:mm:ss TZ
+            end_date = dt.strftime("%Y%m%d %H:%M:%S") + " US/Eastern"
 
         # Request historical implied volatility data
-        bars = await ib.reqHistoricalDataAsync(
-            contract,
-            endDateTime=end_date,
-            durationStr=duration,  # Duration of data, e.g., '1 M' for 1 month
-            barSizeSetting=bar_size,  # Bar size, e.g., '1 day'
-            whatToShow=what_to_show,
-            useRTH=True,
-            formatDate=1,
-        )
+        try:
+            bars = await ib.reqHistoricalDataAsync(
+                contract,
+                endDateTime=end_date,
+                durationStr=duration,  # Duration of data, e.g., '1 M' for 1 month
+                barSizeSetting=bar_size,  # Bar size, e.g., '1 day'
+                whatToShow=what_to_show,
+                useRTH=True,
+                formatDate=1,
+            )
+        except Exception as e:
+            ib.disconnect()  # Disconnect to make sure nextr call works
+            raise RuntimeError(f"TWSError: Cannot fetch data from TWS: {e}")
 
         # Convert bars to a DataFrame and display
         df = util.df(bars)
         # Rename 'open', 'high', 'low', 'close' columns to 'Open', 'High', 'Low', 'Close'
-        df.rename(
-            columns={
-                "open": "Open",
-                "high": "High",
-                "low": "Low",
-                "close": "Close",
-                "volume": "Volume",
-            },
-            inplace=True,
-        )
+        if df is not None:
+            df.rename(
+                columns={
+                    "open": "Open",
+                    "high": "High",
+                    "low": "Low",
+                    "close": "Close",
+                    "volume": "Volume",
+                },
+                inplace=True,
+            )
+            df.index = pd.DatetimeIndex(df["date"])
 
         # Disconnect from IB
         ib.disconnect()
@@ -201,8 +240,26 @@ class DataGatherer:
         duration: str = "1 M",
         bar_size: str = "1 day",
         what_to_show="TRADES",
+        security_type="STK",
         **kwags,
     ):
+        """
+        Synchronous wrapper to fetch historical market data from Interactive Brokers TWS or Gateway.
+        Parameters:
+            ticker (str): The ticker symbol of the security (default: "").
+            exchange (str): The exchange to use (default: "SMART").
+            currency (str): The currency of the security (default: "USD").
+            end_date (str): The end date/time for the data request format "YYYY-MM-DD" or "YYYY-MM-DD HH:MM:SS" (default: "").
+            duration (str): The duration of data to fetch, e.g., '1 M' for 1 month (default: "1 M").
+            bar_size (str): The size of each bar, e.g., '1 day' (default: "1 day").
+            what_to_show (str): The type of data to show, e.g., "TRADES" (default: "TRADES").
+            security_type (str): The type of security, e.g., "STK" for stock (default: "STK").
+            **kwags: Additional keyword arguments.
+        Returns:
+            pandas.DataFrame: DataFrame containing the historical data with columns renamed to standard format.
+        Raises:
+            RuntimeError: If data cannot be fetched from TWS.
+        """
         return asyncio.run(
             self._get_tws_ticker(
                 ticker=ticker,
@@ -212,6 +269,7 @@ class DataGatherer:
                 duration=duration,
                 bar_size=bar_size,
                 what_to_show=what_to_show,
+                security_type=security_type,
                 **kwags,
             )
         )
@@ -364,16 +422,18 @@ class DataGatherer:
 
         # Convert the bars to a DataFrame
         df = util.df(bars)
-        df.rename(
-            columns={
-                "open": "Open",
-                "high": "High",
-                "low": "Low",
-                "close": "Close",
-                "volume": "Volume",
-            },
-            inplace=True,
-        )
+        if df is not None:
+            df.rename(
+                columns={
+                    "open": "Open",
+                    "high": "High",
+                    "low": "Low",
+                    "close": "Close",
+                    "volume": "Volume",
+                },
+                inplace=True,
+            )
+            df.index = pd.DatetimeIndex(df["date"])
 
         return df
 

@@ -155,12 +155,13 @@ class Labeller:
     @staticmethod
     def triple_barrier_method(
         Close: pd.Series,
-        t_events: pd.DatetimeIndex = None,
+        t_events: pd.DatetimeIndex,
         scale_pt_sl: bool = True,
-        span: int = 100,
-        pt_sl: int = 1.5,
-        n_days: int = 10,
+        span: int = 10,
+        pt_sl: float = 1,
+        n_days: int = 2,
     ):
+        Close.index = pd.DatetimeIndex(Close.index)
         Close.index = Close.index.tz_localize(None)
 
         # If scale pt_sl is True pt_sl is multiplied by the average period volatility over the scale_lookback period
@@ -180,7 +181,7 @@ class Labeller:
         if t_events is None:
             t_events = Close.index
         else:
-            Close = Close.loc[t_events]
+            Close = Close.loc[Close.index.intersection(t_events)]
 
         t_events = t_events[t_events.isin(Close.index)]
 
@@ -223,8 +224,8 @@ class Labeller:
 
     def add_labels(
         self,
-        method: Optional[str] = "triple_barrier",
-        price: Optional[str] = "Close",
+        method: str = "triple_barrier",
+        price: str = "Close",
         **kwargs,
     ):
         labels = None
@@ -240,7 +241,9 @@ class Labeller:
                     self._df[price], t_events=t_events, **kwargs
                 )
             else:
-                labels = self.triple_barrier_method(self._df[price], **kwargs)
+                labels = self.triple_barrier_method(
+                    self._df[price], t_events=self._df.index, **kwargs
+                )
 
         self._df = self._df.join(labels, how="left")
 

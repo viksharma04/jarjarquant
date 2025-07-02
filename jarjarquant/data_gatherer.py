@@ -1,6 +1,7 @@
 """The data gatherer minimizes code duplication and simplifies gathering samples for experimentation."""
 
 import asyncio
+import logging
 import os
 import random
 import time
@@ -10,7 +11,9 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 import yfinance as yf
-from ib_async import IB, Contract, Index, Stock, util
+from ib_async import IB, Contract, Forex, Index, Stock, util
+
+logger = logging.getLogger(__name__)
 
 
 class DataGatherer:
@@ -149,8 +152,8 @@ class DataGatherer:
         bar_size: str = "1 day",
         what_to_show="TRADES",
         security_type="STK",
-        **kwags,
-    ):
+        **kwargs,
+    ) -> pd.DataFrame:
         """
         Asynchronously fetches historical market data from Interactive Brokers TWS or Gateway.
         Parameters:
@@ -182,6 +185,9 @@ class DataGatherer:
         elif security_type == "IDX":
             exchange = "CBOE" if exchange == "SMART" else exchange
             contract = Index(ticker, exchange, currency)
+        elif security_type == "FX":
+            exchange = "IDEALPRO"
+            contract = Forex(ticker, exchange, currency)
         else:
             contract = Contract(security_type, 33887599, ticker, exchange=exchange)
 
@@ -206,12 +212,15 @@ class DataGatherer:
                 useRTH=True,
                 formatDate=1,
             )
+            # Convert bars to a DataFrame and display
+            df = util.df(bars)
+            # Disconnect from IB
+            ib.disconnect()
         except Exception as e:
-            ib.disconnect()  # Disconnect to make sure nextr call works
-            raise RuntimeError(f"TWSError: Cannot fetch data from TWS: {e}")
+            ib.disconnect()  # Disconnect to make sure next call works
+            df = None
+            logger.warning(f"TWSError: Cannot fetch data from TWS: {e}")
 
-        # Convert bars to a DataFrame and display
-        df = util.df(bars)
         # Rename 'open', 'high', 'low', 'close' columns to 'Open', 'High', 'Low', 'Close'
         if df is not None:
             df.rename(
@@ -225,11 +234,11 @@ class DataGatherer:
                 inplace=True,
             )
             df.index = pd.DatetimeIndex(df["date"])
+            df.drop(columns=["date"], inplace=True)
 
-        # Disconnect from IB
-        ib.disconnect()
+            return df
 
-        return df
+        return pd.DataFrame()
 
     def get_tws_ticker(
         self,
@@ -242,7 +251,7 @@ class DataGatherer:
         what_to_show="TRADES",
         security_type="STK",
         **kwags,
-    ):
+    ) -> pd.DataFrame:
         """
         Synchronous wrapper to fetch historical market data from Interactive Brokers TWS or Gateway.
         Parameters:
@@ -434,6 +443,7 @@ class DataGatherer:
                 inplace=True,
             )
             df.index = pd.DatetimeIndex(df["date"])
+            df.drop(columns=["date"], inplace=True)
 
         return df
 
@@ -441,7 +451,7 @@ class DataGatherer:
         self,
         years_in_sample: int = 1,
         tickers: Optional[list] = None,
-        num_tickers_to_sample: Optional[int] = 30,
+        num_tickers_to_sample: int = 30,
         persist: Optional[bool] = False,
         bar_size: Optional[str] = "1 day",
         duration: Optional[str] = None,
@@ -481,7 +491,7 @@ class DataGatherer:
         self,
         years_in_sample: int = 1,
         tickers: Optional[list] = None,
-        num_tickers_to_sample: Optional[int] = 30,
+        num_tickers_to_sample: int = 30,
         persist: Optional[bool] = False,
         bar_size: Optional[str] = "1 day",
         duration: Optional[str] = None,

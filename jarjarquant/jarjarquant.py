@@ -55,10 +55,11 @@ class Jarjarquant(Labeller):
         if data_frame is None and data_source is None:
             raise TypeError("Provide a data frame or a data source ('tws' or 'yf')")
 
+        self.data_gatherer = DataGatherer()
+
         if data_frame is not None:
             self._df = data_frame
         else:
-            self.data_gatherer = DataGatherer()
             try:
                 samples = (
                     self.data_gatherer.get_random_price_samples_tws(

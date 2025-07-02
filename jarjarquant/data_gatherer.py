@@ -152,7 +152,7 @@ class DataGatherer:
         bar_size: str = "1 day",
         what_to_show="TRADES",
         security_type="STK",
-        **kwags,
+        **kwargs,
     ) -> pd.DataFrame:
         """
         Asynchronously fetches historical market data from Interactive Brokers TWS or Gateway.

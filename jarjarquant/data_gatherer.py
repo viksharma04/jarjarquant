@@ -768,8 +768,3 @@ class DataGatherer:
                 verbose=verbose,
             )
         )
-
-
-if __name__ == "__main__":
-    dg = DataGatherer()
-    asyncio.run(dg.get_eodhd_ticker(ticker="BRK.A"))

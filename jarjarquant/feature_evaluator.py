@@ -1,4 +1,5 @@
 """The feature evaluator specializes in calculating the efficacy of one or many indicators given a matrix of features X and a target label/series y"""
+
 import concurrent.futures
 from typing import Callable, Optional
 
@@ -11,8 +12,8 @@ from sklearn.model_selection._split import _BaseKFold
 
 from jarjarquant.cython_utils.opt_threshold import optimize_threshold_cython
 
-from .data_gatherer import DataGatherer
 from .data_analyst import DataAnalyst
+from .data_gatherer import DataGatherer
 
 # Define the PurgedKFold class for feature importance scores
 
@@ -67,24 +68,23 @@ class PurgedKFold(_BaseKFold):
 
         # Define test intervals for each fold
         test_intervals = [
-            (i[0], i[-1] + 1) for i in np.array_split(np.arange(X.shape[0]), self.n_splits)
+            (i[0], i[-1] + 1)
+            for i in np.array_split(np.arange(X.shape[0]), self.n_splits)
         ]
 
         for start_idx, end_idx in test_intervals:
             # Identify test indices and corresponding max label end time
             t0 = self.t1.index[start_idx]
             test_indices = indices[start_idx:end_idx]
-            max_t1_idx = self.t1.index.searchsorted(
-                self.t1.iloc[test_indices].max())
+            max_t1_idx = self.t1.index.searchsorted(self.t1.iloc[test_indices].max())
 
             # Train indices: observations ending before the test set starts
-            train_indices = self.t1.index.searchsorted(
-                self.t1[self.t1 <= t0].index)
+            train_indices = self.t1.index.searchsorted(self.t1[self.t1 <= t0].index)
 
             # Include embargo if max_t1_idx is within bounds
             if max_t1_idx < X.shape[0]:
                 train_indices = np.concatenate(
-                    (train_indices, indices[max_t1_idx + embargo_size:])
+                    (train_indices, indices[max_t1_idx + embargo_size :])
                 )
 
             yield train_indices, test_indices
@@ -94,13 +94,22 @@ class FeatureEvaluator:
     """Class to implement common feature evaluation and indicator testing methods"""
 
     def __init__(self, X=None, y=None, sw=None):
-
         self.X = X
         self.y = y
         self.sw = sw
 
     @staticmethod
-    def cv_score(clf, X, y, sample_weight, scoring='neg_log_loss', t1=None, cv=None, cv_gen=None, pct_embargo=None):
+    def cv_score(
+        clf,
+        X,
+        y,
+        sample_weight,
+        scoring="neg_log_loss",
+        t1=None,
+        cv=None,
+        cv_gen=None,
+        pct_embargo=None,
+    ):
         """
         Calculate cross-validation scores using a classifier with purged k-fold splits and optional embargo.
 
@@ -121,9 +130,8 @@ class FeatureEvaluator:
         Returns:
             np.array: Array of scores for each cross-validation fold.
         """
-        if scoring not in ['neg_log_loss', 'accuracy']:
-            raise ValueError(
-                "Scoring method must be 'neg_log_loss' or 'accuracy'.")
+        if scoring not in ["neg_log_loss", "accuracy"]:
+            raise ValueError("Scoring method must be 'neg_log_loss' or 'accuracy'.")
 
         # Initialize purged cross-validation generator if not provided
         if cv_gen is None:
@@ -132,7 +140,8 @@ class FeatureEvaluator:
         # Use a RandomForestClasifier if clf is None
         if clf is None:
             clf = RandomForestClassifier(
-                n_estimators=100, max_features='sqrt', random_state=42)
+                n_estimators=100, max_features="sqrt", random_state=42
+            )
 
         scores = []  # List to store scores for each fold
 
@@ -142,24 +151,24 @@ class FeatureEvaluator:
             model = clf.fit(
                 X=X.iloc[train_indices, :],
                 y=y.iloc[train_indices],
-                sample_weight=sample_weight.iloc[train_indices].values
+                sample_weight=sample_weight.iloc[train_indices].values,
             )
 
             # Evaluate the model on the test set
-            if scoring == 'neg_log_loss':
+            if scoring == "neg_log_loss":
                 probabilities = model.predict_proba(X.iloc[test_indices, :])
                 score = -log_loss(
                     y.iloc[test_indices],
                     probabilities,
                     sample_weight=sample_weight.iloc[test_indices].values,
-                    labels=clf.classes_
+                    labels=clf.classes_,
                 )
             else:
                 predictions = model.predict(X.iloc[test_indices, :])
                 score = accuracy_score(
                     y.iloc[test_indices],
                     predictions,
-                    sample_weight=sample_weight.iloc[test_indices].values
+                    sample_weight=sample_weight.iloc[test_indices].values,
                 )
 
             scores.append(score)
@@ -187,28 +196,42 @@ class FeatureEvaluator:
         """
 
         # Collect feature importances from each tree in the ensemble
-        importance_dict = {i: tree.feature_importances_ for i,
-                           tree in enumerate(fit.estimators_)}
+        importance_dict = {
+            i: tree.feature_importances_ for i, tree in enumerate(fit.estimators_)
+        }
 
         # Convert the dictionary to a DataFrame, with rows as trees and columns as features
-        importance_df = pd.DataFrame.from_dict(importance_dict, orient='index')
+        importance_df = pd.DataFrame.from_dict(importance_dict, orient="index")
         importance_df.columns = feature_names
 
         # Replace zeros with NaN to handle cases where max_features=1, preventing distortions in the mean calculation
         importance_df = importance_df.replace(0, np.nan)
 
         # Calculate mean and standard deviation of feature importances across trees
-        importance_stats = pd.concat({
-            'mean': importance_df.mean(),
-            'std': importance_df.std() * (importance_df.shape[0] ** -0.5)
-        }, axis=1)
+        importance_stats = pd.concat(
+            {
+                "mean": importance_df.mean(),
+                "std": importance_df.std() * (importance_df.shape[0] ** -0.5),
+            },
+            axis=1,
+        )
 
         # Normalize the mean importances to sum to 1
-        importance_stats['mean'] /= importance_stats['mean'].sum()
+        importance_stats["mean"] /= importance_stats["mean"].sum()
 
         return importance_stats
 
-    def feature_importance_MDA(self, X, y, sample_weight, t1, cv: int = 4,  clf=None,  pct_embargo=0.04, scoring='neg_log_loss'):
+    def feature_importance_MDA(
+        self,
+        X,
+        y,
+        sample_weight,
+        t1,
+        cv: int = 4,
+        clf=None,
+        pct_embargo=0.04,
+        scoring="neg_log_loss",
+    ):
         """
         Calculate feature importance using Mean Decrease Accuracy (MDA) with purged cross-validation.
 
@@ -229,41 +252,52 @@ class FeatureEvaluator:
             pd.DataFrame: Mean and standard deviation of feature importance scores.
             float: Mean score of the original, unpermuted model.
         """
-        if scoring not in ['neg_log_loss', 'accuracy']:
-            raise ValueError(
-                "Scoring method must be 'neg_log_loss' or 'accuracy'.")
+        if scoring not in ["neg_log_loss", "accuracy"]:
+            raise ValueError("Scoring method must be 'neg_log_loss' or 'accuracy'.")
 
         # Use a RandomForestClasifier if clf is None
         if clf is None:
-            clf = RandomForestClassifier(n_estimators=100, max_features='sqrt')
+            clf = RandomForestClassifier(n_estimators=100, max_features="sqrt")
 
         # Initialize purged cross-validation generator
-        cv_generator = PurgedKFold(
-            n_splits=cv, t1=t1, pct_embargo=pct_embargo)
+        cv_generator = PurgedKFold(n_splits=cv, t1=t1, pct_embargo=pct_embargo)
         base_scores = pd.Series()  # scores for the original, unpermuted model
         # scores for each permuted feature
         permuted_scores = pd.DataFrame(columns=X.columns)
 
         # Cross-validation loop
-        for fold_index, (train_indices, test_indices) in enumerate(cv_generator.split(X=X)):
+        for fold_index, (train_indices, test_indices) in enumerate(
+            cv_generator.split(X=X)
+        ):
             # Split data into train and test sets
-            X_train, y_train, w_train = X.iloc[train_indices,
-                                               :], y.iloc[train_indices], sample_weight.iloc[train_indices]
-            X_test, y_test, w_test = X.iloc[test_indices,
-                                            :], y.iloc[test_indices], sample_weight.iloc[test_indices]
+            X_train, y_train, w_train = (
+                X.iloc[train_indices, :],
+                y.iloc[train_indices],
+                sample_weight.iloc[train_indices],
+            )
+            X_test, y_test, w_test = (
+                X.iloc[test_indices, :],
+                y.iloc[test_indices],
+                sample_weight.iloc[test_indices],
+            )
 
             # Fit classifier on the training set
             model = clf.fit(X=X_train, y=y_train, sample_weight=w_train.values)
 
             # Score the model on the test set
-            if scoring == 'neg_log_loss':
+            if scoring == "neg_log_loss":
                 probabilities = model.predict_proba(X_test)
                 base_scores.loc[fold_index] = -log_loss(
-                    y_test, probabilities, sample_weight=w_test.values, labels=clf.classes_)
+                    y_test,
+                    probabilities,
+                    sample_weight=w_test.values,
+                    labels=clf.classes_,
+                )
             else:
                 predictions = model.predict(X_test)
                 base_scores.loc[fold_index] = accuracy_score(
-                    y_test, predictions, sample_weight=w_test.values)
+                    y_test, predictions, sample_weight=w_test.values
+                )
 
             # Permute each feature and calculate the impact on model performance
             for feature in X.columns:
@@ -271,31 +305,51 @@ class FeatureEvaluator:
                 # Permute one feature at a time
                 np.random.shuffle(X_test_permuted[feature].values)
 
-                if scoring == 'neg_log_loss':
+                if scoring == "neg_log_loss":
                     probabilities = model.predict_proba(X_test_permuted)
                     permuted_scores.loc[fold_index, feature] = -log_loss(
-                        y_test, probabilities, sample_weight=w_test.values, labels=clf.classes_)
+                        y_test,
+                        probabilities,
+                        sample_weight=w_test.values,
+                        labels=clf.classes_,
+                    )
                 else:
                     predictions = model.predict(X_test_permuted)
                     permuted_scores.loc[fold_index, feature] = accuracy_score(
-                        y_test, predictions, sample_weight=w_test.values)
+                        y_test, predictions, sample_weight=w_test.values
+                    )
 
         # Calculate feature importance as the relative decrease in accuracy
         importance_scores = (-permuted_scores).add(base_scores, axis=0)
-        if scoring == 'neg_log_loss':
+        if scoring == "neg_log_loss":
             importance_scores = importance_scores / -permuted_scores
         else:
             importance_scores = importance_scores / (1.0 - permuted_scores)
 
         # Aggregate mean and standard error for each feature's importance across folds
-        importance_summary = pd.concat({
-            'mean': importance_scores.mean(),
-            'std': importance_scores.std() * importance_scores.shape[0]**-0.5
-        }, axis=1)
+        importance_summary = pd.concat(
+            {
+                "mean": importance_scores.mean(),
+                "std": importance_scores.std() * importance_scores.shape[0] ** -0.5,
+            },
+            axis=1,
+        )
 
         return importance_summary, base_scores.mean()
 
-    def feature_importance_SFI(self, feature_names, X, y, sw, t1, cv: int = 4, pct_embargo: float = 0.04, clf=None, cv_gen=None, scoring='accuracy'):
+    def feature_importance_SFI(
+        self,
+        feature_names,
+        X,
+        y,
+        sw,
+        t1,
+        cv: int = 4,
+        pct_embargo: float = 0.04,
+        clf=None,
+        cv_gen=None,
+        scoring="accuracy",
+    ):
         """
         Calculate Single Feature Importance (SFI) scores for each feature using cross-validation.
 
@@ -314,7 +368,7 @@ class FeatureEvaluator:
         Returns:
             pd.DataFrame: DataFrame with mean and standard deviation of SFI scores for each feature.
         """
-        importance_scores = pd.DataFrame(columns=['mean', 'std'])
+        importance_scores = pd.DataFrame(columns=["mean", "std"])
 
         # Loop through each feature and calculate its importance using cross-validation
         for feature_name in feature_names:
@@ -328,18 +382,25 @@ class FeatureEvaluator:
                 cv=cv,
                 scoring=scoring,
                 cv_gen=cv_gen,
-                pct_embargo=pct_embargo
+                pct_embargo=pct_embargo,
             )
 
             # Record mean and standard deviation of scores for the feature
-            importance_scores.loc[feature_name, 'mean'] = feature_scores.mean()
-            importance_scores.loc[feature_name, 'std'] = feature_scores.std(
-            ) * feature_scores.shape[0]**-0.5
+            importance_scores.loc[feature_name, "mean"] = feature_scores.mean()
+            importance_scores.loc[feature_name, "std"] = (
+                feature_scores.std() * feature_scores.shape[0] ** -0.5
+            )
 
         return importance_scores
 
     @staticmethod
-    def indicator_threshold_search(indicator_values: pd.Series, associated_returns: pd.Series, thresholds: Optional[list] = None,  n_thresholds: Optional[int] = 10, threshold_option: Optional[str] = 'percentile'):
+    def indicator_threshold_search(
+        indicator_values: pd.Series,
+        associated_returns: pd.Series,
+        thresholds: Optional[list] = None,
+        n_thresholds: Optional[int] = 10,
+        threshold_option: Optional[str] = "percentile",
+    ):
         """
         Evaluate profit factors for different thresholds of an indicator.
 
@@ -356,25 +417,23 @@ class FeatureEvaluator:
         # Ensure the inputs are of the same length
         if len(indicator_values) != len(associated_returns):
             raise ValueError(
-                "indicator_values and associated_returns must have the same length.")
+                "indicator_values and associated_returns must have the same length."
+            )
 
         if thresholds is None:
             if n_thresholds is None:
-                raise ValueError(
-                    "Either n_thresholds or thresholds must be provided.")
-            if threshold_option == 'linear':
+                raise ValueError("Either n_thresholds or thresholds must be provided.")
+            if threshold_option == "linear":
                 # Calculate threshold values
                 min_val, max_val = indicator_values.min(), indicator_values.max()
                 # Exclude min and max values
-                thresholds = np.linspace(
-                    min_val, max_val, n_thresholds + 2)[1:-1]
-            elif threshold_option == 'percentile':
+                thresholds = np.linspace(min_val, max_val, n_thresholds + 2)[1:-1]
+            elif threshold_option == "percentile":
                 # Calculate threshold values using percentiles
                 percentiles = np.linspace(0, 100, n_thresholds + 2)[1:-1]
                 thresholds = np.percentile(indicator_values, percentiles)
             else:
-                raise ValueError(
-                    "threshold_option must be 'linear' or 'percentile'.")
+                raise ValueError("threshold_option must be 'linear' or 'percentile'.")
 
         results = []
 
@@ -384,111 +443,130 @@ class FeatureEvaluator:
             below_threshold = indicator_values < threshold
 
             # ABove threshold
-            pf_long_above = associated_returns[above_threshold & (associated_returns > 0)].sum() / \
-                -associated_returns[above_threshold &
-                                    (associated_returns < 0)].sum()
-            pf_short_above = -associated_returns[above_threshold & (associated_returns < 0)].sum() / \
-                associated_returns[above_threshold &
-                                   (associated_returns > 0)].sum()
+            pf_long_above = (
+                associated_returns[above_threshold & (associated_returns > 0)].sum()
+                / -associated_returns[above_threshold & (associated_returns < 0)].sum()
+            )
+            pf_short_above = (
+                -associated_returns[above_threshold & (associated_returns < 0)].sum()
+                / associated_returns[above_threshold & (associated_returns > 0)].sum()
+            )
 
             # Calculate mean and median return, standard deviation of return, 25th percentile and 75th percentile return above each threshold
-            mean_return_above = associated_returns[above_threshold.values].mean(
-            )
+            mean_return_above = associated_returns[above_threshold.values].mean()
             std_return_above = associated_returns[above_threshold.values].std()
-            median_return_above = associated_returns[above_threshold.values].median(
-            )
-            q25_return_above = associated_returns[above_threshold.values].quantile(
-                0.25)
-            q75_return_above = associated_returns[above_threshold.values].quantile(
-                0.75)
+            median_return_above = associated_returns[above_threshold.values].median()
+            q25_return_above = associated_returns[above_threshold.values].quantile(0.25)
+            q75_return_above = associated_returns[above_threshold.values].quantile(0.75)
 
             # Calculate spearman rank correlation above threshold
             spearman_corr_above = spearmanr(
-                indicator_values[above_threshold.values], associated_returns[above_threshold.values])[0]
+                indicator_values[above_threshold.values],
+                associated_returns[above_threshold.values],
+            )[0]
 
             # Below threshold
-            pf_long_below = associated_returns[below_threshold & (associated_returns > 0)].sum() / \
-                -associated_returns[below_threshold &
-                                    (associated_returns < 0)].sum()
-            pf_short_below = -associated_returns[below_threshold & (associated_returns < 0)].sum() / \
-                associated_returns[below_threshold &
-                                   (associated_returns > 0)].sum()
+            pf_long_below = (
+                associated_returns[below_threshold & (associated_returns > 0)].sum()
+                / -associated_returns[below_threshold & (associated_returns < 0)].sum()
+            )
+            pf_short_below = (
+                -associated_returns[below_threshold & (associated_returns < 0)].sum()
+                / associated_returns[below_threshold & (associated_returns > 0)].sum()
+            )
 
             # Calculate mean and median return, standard deviation of return, 25th percentile and 75th percentile return below each threshold
-            mean_return_below = associated_returns[below_threshold.values].mean(
-            )
+            mean_return_below = associated_returns[below_threshold.values].mean()
             std_return_below = associated_returns[below_threshold.values].std()
-            median_return_below = associated_returns[below_threshold.values].median(
-            )
-            q25_return_below = associated_returns[below_threshold.values].quantile(
-                0.25)
-            q75_return_below = associated_returns[below_threshold.values].quantile(
-                0.75)
+            median_return_below = associated_returns[below_threshold.values].median()
+            q25_return_below = associated_returns[below_threshold.values].quantile(0.25)
+            q75_return_below = associated_returns[below_threshold.values].quantile(0.75)
 
             # Calculate spearman rank correlation below threshold
             spearman_corr_below = spearmanr(
-                indicator_values[below_threshold.values], associated_returns[below_threshold.values])[0]
+                indicator_values[below_threshold.values],
+                associated_returns[below_threshold.values],
+            )[0]
 
-            results.append({
-                'Threshold': threshold,
-                '% values > threshold': above_threshold.mean()*100,
-                'Spearman correlation above threshold': spearman_corr_above,
-                'Mean return above threshold': mean_return_above,
-                'Std dev return above threshold': std_return_above,
-                'Median return above threshold': median_return_above,
-                'Q25 return above threshold': q25_return_above,
-                'Q75 return above threshold': q75_return_above,
-                'PF Long above threshold': np.nan_to_num(pf_long_above, nan=0.0, posinf=0.0, neginf=0.0),
-                'PF Short above threshold': np.nan_to_num(pf_short_above, nan=0.0, posinf=0.0, neginf=0.0),
-                '% values < threshold': below_threshold.mean()*100,
-                'Spearman correlation below threshold': spearman_corr_below,
-                'Mean return below threshold': mean_return_below,
-                'Std dev return below threshold': std_return_below,
-                'Median return below threshold': median_return_below,
-                'Q25 return below threshold': q25_return_below,
-                'Q75 return below threshold': q75_return_below,
-                'PF Long below threshold': np.nan_to_num(pf_long_below, nan=0.0, posinf=0.0, neginf=0.0),
-                'PF Short below threshold': np.nan_to_num(pf_short_below, nan=0.0, posinf=0.0, neginf=0.0)
-            })
+            results.append(
+                {
+                    "Threshold": threshold,
+                    "% values > threshold": above_threshold.mean() * 100,
+                    "Spearman correlation above threshold": spearman_corr_above,
+                    "Mean return above threshold": mean_return_above,
+                    "Std dev return above threshold": std_return_above,
+                    "Median return above threshold": median_return_above,
+                    "Q25 return above threshold": q25_return_above,
+                    "Q75 return above threshold": q75_return_above,
+                    "PF Long above threshold": np.nan_to_num(
+                        pf_long_above, nan=0.0, posinf=0.0, neginf=0.0
+                    ),
+                    "PF Short above threshold": np.nan_to_num(
+                        pf_short_above, nan=0.0, posinf=0.0, neginf=0.0
+                    ),
+                    "% values < threshold": below_threshold.mean() * 100,
+                    "Spearman correlation below threshold": spearman_corr_below,
+                    "Mean return below threshold": mean_return_below,
+                    "Std dev return below threshold": std_return_below,
+                    "Median return below threshold": median_return_below,
+                    "Q25 return below threshold": q25_return_below,
+                    "Q75 return below threshold": q75_return_below,
+                    "PF Long below threshold": np.nan_to_num(
+                        pf_long_below, nan=0.0, posinf=0.0, neginf=0.0
+                    ),
+                    "PF Short below threshold": np.nan_to_num(
+                        pf_short_below, nan=0.0, posinf=0.0, neginf=0.0
+                    ),
+                }
+            )
 
         return pd.DataFrame(results)
 
     @staticmethod
     def single_indicator_threshold_search(inputs: dict):
-
         ohlcv_df = inputs["ohlcv_df"]
         indicator_values = inputs["indicator_values"]
         thresholds = inputs["thresholds"]
 
-        ohlcv_df['returns'] = ohlcv_df['Open'].pct_change().shift(-1)
-        ohlcv_df['ind'] = indicator_values
-        ohlcv_df['ind'] = ohlcv_df['ind'].shift(1)
+        ohlcv_df["returns"] = ohlcv_df["Open"].pct_change().shift(-1)
+        ohlcv_df["ind"] = indicator_values
+        ohlcv_df["ind"] = ohlcv_df["ind"].shift(1)
 
-        results = FeatureEvaluator.indicator_threshold_search(indicator_values=ohlcv_df['ind'].dropna(
-        ), associated_returns=ohlcv_df['returns'].dropna(), thresholds=thresholds)
+        results = FeatureEvaluator.indicator_threshold_search(
+            indicator_values=ohlcv_df["ind"].dropna(),
+            associated_returns=ohlcv_df["returns"].dropna(),
+            thresholds=thresholds,
+        )
 
         return results
 
     @staticmethod
-    def parallel_indicator_threshold_search(indicator_func: Callable, n_runs: int = 10, n_thresholds: int = 10, **kwargs):
-
+    def parallel_indicator_threshold_search(
+        indicator_func: Callable, n_runs: int = 10, n_thresholds: int = 10, **kwargs
+    ):
         inputs_list = []
         indicator_values_list = []
 
         # Generate dataframes and calculate indicator values in parallel
         with concurrent.futures.ProcessPoolExecutor() as executor:
             data_gatherer = DataGatherer()
-            futures = [executor.submit(
-                data_gatherer.get_random_price_samples_tws, num_tickers_to_sample=1) for _ in range(n_runs)]
+            futures = [
+                executor.submit(
+                    data_gatherer.get_random_price_samples_tws, num_tickers_to_sample=1
+                )
+                for _ in range(n_runs)
+            ]
             for future in concurrent.futures.as_completed(futures):
                 ohlcv_df = future.result()[0]
-                indicator_values = indicator_func(
-                    ohlcv_df, **kwargs).calculate() if kwargs else indicator_func(ohlcv_df).calculate()
+                indicator_values = (
+                    indicator_func(ohlcv_df, **kwargs).calculate()
+                    if kwargs
+                    else indicator_func(ohlcv_df).calculate()
+                )
                 indicator_values_list.append(indicator_values)
-                inputs_list.append({
-                    "ohlcv_df": ohlcv_df,
-                    "indicator_values": indicator_values
-                })
+                inputs_list.append(
+                    {"ohlcv_df": ohlcv_df, "indicator_values": indicator_values}
+                )
 
         # Determine thresholds based on the entire range of indicator values across all runs
         all_indicator_values = np.concatenate(indicator_values_list)
@@ -505,17 +583,19 @@ class FeatureEvaluator:
 
         # Run threshold search in parallel
         with concurrent.futures.ProcessPoolExecutor() as executor:
-            results = list(executor.map(
-                FeatureEvaluator.single_indicator_threshold_search, inputs_list))
+            results = list(
+                executor.map(
+                    FeatureEvaluator.single_indicator_threshold_search, inputs_list
+                )
+            )
 
         # Concatenate results and average across runs
-        results = pd.concat(results).groupby('Threshold').mean().reset_index()
+        results = pd.concat(results).groupby("Threshold").mean().reset_index()
 
         return results
 
     @staticmethod
     def indicator_distribution_study(inputs: dict):
-
         outputs = []
 
         indicator_func = inputs["indicator_func"]
@@ -530,34 +610,46 @@ class FeatureEvaluator:
         indicator_instance.indicator_evaluation_report()
 
         outputs.append(
-            True if indicator_instance.adf_test == "passed" else False)
-        outputs.append(True if indicator_instance.jb_normality_test ==
-                       "passed" else False)
-        outputs.append(indicator_instance.relative_entropy)
-        outputs.append(indicator_instance.range_iqr_ratio)
+            True if indicator_instance.eval_result.adf_test == "passed" else False
+        )
+        outputs.append(
+            True
+            if indicator_instance.eval_result.jb_normality_test == "passed"
+            else False
+        )
+        outputs.append(indicator_instance.eval_result.relative_entropy)
+        outputs.append(indicator_instance.eval_result.range_iqr_ratio)
 
         return outputs
 
     @staticmethod
-    def parallel_indicator_distribution_study(indicator_func: Callable, n_runs: int = 10, custom_sample: Optional[str] = None, **kwargs):
-
+    def parallel_indicator_distribution_study(
+        indicator_func: Callable,
+        n_runs: Optional[int] = 10,
+        custom_sample: Optional[str] = None,
+        **kwargs,
+    ):
         inputs_list = []
         data_gatherer = DataGatherer()
-        ohlcv_dfs = data_gatherer.get_random_price_samples_tws(
-            num_tickers_to_sample=n_runs) if custom_sample is None else data_gatherer.get_custom_sample(sample_name=custom_sample)
+        ohlcv_dfs = (
+            data_gatherer.get_random_price_samples_tws(num_tickers_to_sample=n_runs)
+            if custom_sample is None
+            else data_gatherer.get_custom_sample(sample_name=custom_sample)
+        )
 
         # Create multiple instances of the indicator with a different data sample each time
         for _, ohlcv_df in enumerate(ohlcv_dfs):
             inputs = {
                 "indicator_func": indicator_func,
                 "ohlcv_df": ohlcv_df,
-                "kwargs": kwargs
+                "kwargs": kwargs,
             }
             inputs_list.append(inputs)
 
         with concurrent.futures.ProcessPoolExecutor() as executor:
-            results = list(executor.map(
-                FeatureEvaluator.indicator_distribution_study, inputs_list))
+            results = list(
+                executor.map(FeatureEvaluator.indicator_distribution_study, inputs_list)
+            )
 
         # results is a list of lists - average across the lists to get the final results
         adf_test = [result[0] for result in results]
@@ -565,15 +657,30 @@ class FeatureEvaluator:
         relative_entropy = [result[2] for result in results]
         range_iqr_ratio = [result[3] for result in results]
 
-        results = [np.mean(adf_test), np.mean(jb_test),
-                   np.mean([x for x in relative_entropy if not (np.isnan(x) or np.isinf(x))]), np.mean([x for x in range_iqr_ratio if not (np.isnan(x) or np.isinf(x))])]
+        results = [
+            np.mean(adf_test),
+            np.mean(jb_test),
+            np.mean([x for x in relative_entropy if not (np.isnan(x) or np.isinf(x))]),
+            np.mean([x for x in range_iqr_ratio if not (np.isnan(x) or np.isinf(x))]),
+        ]
         # results = np.mean(results, axis=0)
         results = [round(value, 2) for value in results]
 
-        return {'ADF Test': results[0], 'Jarque-Bera Test': results[1], 'Relative Entropy': results[2], 'Range-IQR Ratio': results[3]}
+        return {
+            "ADF Test": results[0],
+            "Jarque-Bera Test": results[1],
+            "Relative Entropy": results[2],
+            "Range-IQR Ratio": results[3],
+        }
 
     @staticmethod
-    def optimize_threshold(indicator_values, return_values, min_kept: float = 0.1, flip_sign: bool = False, return_pval: bool = True):
+    def optimize_threshold(
+        indicator_values,
+        return_values,
+        min_kept: float = 0.1,
+        flip_sign: bool = False,
+        return_pval: bool = True,
+    ):
         """
         Optimize the threshold for a given indicator to maximize the performance factor (PF).
         Parameters:
@@ -603,7 +710,7 @@ class FeatureEvaluator:
             raise ValueError("Input arrays must have at least one element.")
 
         # Enforce that min_kept is at least 1.
-        min_kept = max(int(n*min_kept), 1)
+        min_kept = max(int(n * min_kept), 1)
 
         # Calculate the spearman rank correlation between the indicator and returns.
         spearman_corr = spearmanr(indicator_values, return_values)[0]
@@ -632,8 +739,9 @@ class FeatureEvaluator:
         work_signal = work_signal[sort_index]
         work_return = work_return[sort_index]
 
-        best_high_index, best_low_index, best_high_pf, best_low_pf = optimize_threshold_cython(
-            work_signal, work_return, int(min_kept))
+        best_high_index, best_low_index, best_high_pf, best_low_pf = (
+            optimize_threshold_cython(work_signal, work_return, int(min_kept))
+        )
 
         # The best thresholds are the signal values at the recorded indices.
         high_thresh = work_signal[best_high_index]
@@ -648,9 +756,11 @@ class FeatureEvaluator:
 
             for _ in range(1000):
                 permuted_returns = np.random.choice(
-                    work_return, size=len(work_return), replace=True)
+                    work_return, size=len(work_return), replace=True
+                )
                 _, _, high_pf, low_pf = optimize_threshold_cython(
-                    work_signal, permuted_returns, int(min_kept))
+                    work_signal, permuted_returns, int(min_kept)
+                )
                 permuted_pf = max(high_pf, low_pf)
                 if permuted_pf >= best_overall_pf:
                     i += 1
@@ -660,21 +770,37 @@ class FeatureEvaluator:
         else:
             best_pf_pval = None
 
-        return {'spearman_corr': spearman_corr, 'optimal_long_thresh': high_thresh, 'optimal_long_pf': pf_high, 'optimal_short_thresh': low_thresh, 'optimal_short_pf': pf_low, 'best_bf': best_overall_pf, 'best_pf_pval': best_pf_pval}
+        return {
+            "spearman_corr": spearman_corr,
+            "optimal_long_thresh": high_thresh,
+            "optimal_long_pf": pf_high,
+            "optimal_short_thresh": low_thresh,
+            "optimal_short_pf": pf_low,
+            "best_bf": best_overall_pf,
+            "best_pf_pval": best_pf_pval,
+        }
 
     @staticmethod
-    def co_distribution_analysis(indicator_values: np.ndarray, associated_returns: np.ndarray):
-
+    def co_distribution_analysis(
+        indicator_values: np.ndarray, associated_returns: np.ndarray
+    ):
         data_analyst = DataAnalyst()
         indicator_values = np.asarray(indicator_values)
         associated_returns = np.asarray(associated_returns)
 
         spearman_results = data_analyst.get_spearman_correlation(
-            indicator_values, associated_returns)
+            indicator_values, associated_returns
+        )
 
         # 1. Plot a LOESS scatter plot of the indicator values and associated returns
-        data_analyst.plot_loess(x=indicator_values, y=associated_returns,
-                                x_label='Indicator Values', y_label='Returns', title='Overall LOESS Scatter Plot', annotation=spearman_results['spearman_corr'])
+        data_analyst.plot_loess(
+            x=indicator_values,
+            y=associated_returns,
+            x_label="Indicator Values",
+            y_label="Returns",
+            title="Overall LOESS Scatter Plot",
+            annotation=spearman_results["spearman_corr"],
+        )
 
         # 2. Co sort the returns and indicator values and then create 4 LOESS plots for each quartile of indicator values
         sorted_indices = np.argsort(indicator_values)
@@ -687,9 +813,15 @@ class FeatureEvaluator:
 
         for i in range(4):
             start = bin_edges[i]
-            end = bin_edges[i+1]
+            end = bin_edges[i + 1]
             s1_bin = sorted_indicator[start:end]
             s2_bin = sorted_returns[start:end]
 
-            data_analyst.plot_loess(x=s1_bin, y=s2_bin,
-                                    x_label='Indicator Values', y_label='Returns', title=f'Quartile {i+1} LOESS Scatter Plot', annotation=spearman_results['spearman_corr_quartile'][i])
+            data_analyst.plot_loess(
+                x=s1_bin,
+                y=s2_bin,
+                x_label="Indicator Values",
+                y_label="Returns",
+                title=f"Quartile {i + 1} LOESS Scatter Plot",
+                annotation=spearman_results["spearman_corr_quartile"][i],
+            )

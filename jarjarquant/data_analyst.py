@@ -247,14 +247,14 @@ class DataAnalyst:
             if n_bins is None:
                 #  Determine the number of bins based on sample size
                 if n >= 10000:
-                    nbins = 20
+                    n_bins = 20
                 elif n >= 1000:
-                    nbins = 10
+                    n_bins = 10
                 elif n >= 100:
-                    nbins = 5
+                    n_bins = 5
                 else:
-                    nbins = 3
-            array = DataAnalyst.discretize_array(array, n_bins=nbins)
+                    n_bins = 3
+            array = DataAnalyst.discretize_array(array, n_bins=n_bins)
 
         for i in range(1, lag + 1):
             # Create lagged array

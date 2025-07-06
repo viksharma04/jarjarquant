@@ -174,5 +174,6 @@ compare_with_file.py
 test_nb.ipynb
 copilot-instructions.md
 
-# Data folder
+# Data folders
 data/
+sample_data/

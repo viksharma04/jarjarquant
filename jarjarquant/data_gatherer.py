@@ -291,8 +291,24 @@ class DataGatherer:
         duration: Duration = Duration.ONE_MONTH,
         bar_size: BarSize = BarSize.ONE_DAY,
     ):
+        """
+        Fetches historical price data for a given ticker from Alpha Vantage.
+        Parameters:
+            ticker (str): The ticker symbol to fetch data for. Defaults to "SPY".
+            end_date (Optional[str]): The end date for the data in "YYYY-MM-DD" format. Defaults to today if not provided.
+            duration (Duration): The duration of data to fetch (e.g., ONE_MONTH, ONE_YEAR). Defaults to Duration.ONE_MONTH.
+            bar_size (BarSize): The granularity of the data (e.g., ONE_DAY, ONE_MINUTE). Defaults to BarSize.ONE_DAY.
+        Returns:
+            pl.DataFrame: A Polars DataFrame containing the historical price data with columns for datetime/date, Open, High, Low, Close, and Volume.
+        Raises:
+            ValueError: If the Alpha Vantage API key is not provided, or if an invalid bar size or duration is specified.
+        Notes:
+            - For intraday data (minute/hour bars), only the most recent data (up to 30 days) is available due to Alpha Vantage API limitations.
+            - For daily, weekly, or monthly bars, adjusted close and volume are returned.
+            - The function prints a warning and returns an empty DataFrame if data fetching fails.
+        """
         if self.alpha_vantage_api_key is None:
-            raise ValueError("Alpha advantage API key is not provided!")
+            raise ValueError("Alpha Vantage API key is not provided!")
 
         if end_date is None:
             end_date = datetime.today().strftime("%Y-%m-%d")

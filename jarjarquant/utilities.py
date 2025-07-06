@@ -46,5 +46,5 @@ class Duration(StrEnum):
     FIVE_YEARS = "5 Y"
     TEN_YEARS = "10 Y"
     FIFTY_YEARS = "50 Y"
-    HUNDERED_YEARS = "100 Y"
+    HUNDRED_YEARS = "100 Y"
     MAX = "MAX"

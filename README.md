@@ -1,9 +1,9 @@
-# JarJarQuant
+# jarjarquant
 
 [![PyPI version](https://badge.fury.io/py/jarjarquant.svg)](https://badge.fury.io/py/jarjarquant)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**JarJarQuant** is a Python library for quantitative finance, providing a toolkit for financial machine learning. It is inspired by the concepts in *Advances in Financial Machine Learning* by Marcos López de Prado.
+**jarjarquant** is a Python library for quantitative finance, providing a toolkit for financial machine learning. It is inspired by the concepts in *Advances in Financial Machine Learning* by Marcos López de Prado.
 
 ## Key Features
 
@@ -132,7 +132,7 @@ print(result)
 
 ## Installation
 
-To install JarJarQuant, use pip:
+To install jarjarquant, use pip:
 
 ```bash
 pip install jarjarquant
@@ -140,7 +140,7 @@ pip install jarjarquant
 
 ## Getting Started
 
-Here is a complete example of how to use JarJarQuant for a basic financial machine learning workflow:
+Here is a complete example of how to use jarjarquant for a basic financial machine learning workflow:
 
 ```python
 from jarjarquant import Jarjarquant
@@ -176,7 +176,7 @@ This will output a JSON string with the available indicators and their configura
 
 ## Dependencies
 
-JarJarQuant relies on several open-source libraries, including:
+jarjarquant relies on several open-source libraries, including:
 
 -   [pandas](https://pandas.pydata.org/)
 -   [numpy](https://numpy.org/)

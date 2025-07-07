@@ -3,7 +3,7 @@ name = "jarjarquant"
 version = "0.1.0"
 description = "Implements common financial ML techniques"
 readme = "README.md"
-license = "MIT"
+license = { file = "LICENSE" }
 requires-python = ">=3.12"
 dependencies = [
     "asttokens==2.4.1",

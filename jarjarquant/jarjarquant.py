@@ -9,6 +9,7 @@ from typing import Optional
 import pandas as pd
 
 import jarjarquant.indicators as indicators_pkg
+from jarjarquant.data_gatherer import DataGatherer
 from jarjarquant.indicators import (
     ADX,
     CMMA,
@@ -27,7 +28,6 @@ from jarjarquant.indicators import (
 )
 
 from .data_analyst import DataAnalyst
-from .data_gatherer import DataGatherer
 from .feature_engineer import FeatureEngineer
 from .feature_evaluator import FeatureEvaluator
 from .labeller import Labeller
@@ -38,11 +38,7 @@ class Jarjarquant(Labeller):
     Jarjarquant integrates data gathering, labeling, and feature engineering for financial time series.
     """
 
-    def __init__(
-        self,
-        data_frame: Optional[pd.DataFrame] = None,
-        data_source: Optional[str] = None,
-    ):
+    def __init__(self):
         """_summary_
 
         Args:
@@ -52,32 +48,11 @@ class Jarjarquant(Labeller):
         Raises:
             ValueError: _description_
         """
-        if data_frame is None and data_source is None:
-            raise TypeError("Provide a data frame or a data source ('tws' or 'yf')")
-
-        self.data_gatherer = DataGatherer()
-
-        if data_frame is not None:
-            self._df = data_frame
-        else:
-            try:
-                samples = (
-                    self.data_gatherer.get_random_price_samples_tws(
-                        num_tickers_to_sample=1
-                    )
-                    if data_source == "tws"
-                    else self.data_gatherer.get_random_price_samples_yf(
-                        num_tickers_to_sample=1
-                    )
-                )
-                self._df = samples[0]
-            except Exception as e:
-                raise ValueError(
-                    f"Unable to fetch price sample from {data_source}: {e}"
-                )
+        self._df = pd.DataFrame()
 
         # Super init
         super().__init__(self._df)
+        self.data_gatherer = DataGatherer()
         self.feature_engineer = FeatureEngineer()
         self.data_analyst = DataAnalyst()
         self.feature_evaluator = FeatureEvaluator()

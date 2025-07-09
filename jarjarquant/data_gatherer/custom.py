@@ -1,35 +1,62 @@
 import os
+from datetime import datetime
+from typing import Optional
 
-import pandas as pd
+import duckdb
+from dateutil.relativedelta import relativedelta
 
 from .base import DataSource, register_data_source
+from .utils import DURATION_TO_DAYS_MAP, BarSize, Duration
 
 
 @register_data_source("custom")
 class CustomDataSource(DataSource):
-    async def fetch(self, sample_name: str):
-        """Reads csv files in a given folder and returns a list of DataFrames
+    async def fetch(
+        self,
+        ticker: str = "MSFT",
+        bar_size: BarSize = BarSize.ONE_DAY,
+        duration: Duration = Duration.ONE_MONTH,
+        end_date: Optional[str] = None,
+        security_type: str = "STK",
+        database_folder: str = "sample_data/",
+    ):
+        security_map = {"STK": "equities"}
+        sec_folder = security_map.get(security_type, security_type.lower())
+        # Map bar_size to folder name
+        bar_size_map = {
+            BarSize.ONE_MINUTE: "1min",
+            BarSize.ONE_HOUR: "1hour",
+            BarSize.ONE_DAY: "1d",
+            # Add more mappings as needed
+        }
+        bar_folder = bar_size_map.get(bar_size, str(bar_size).lower())
 
-        Args:
-            sample_name (str): Path to the folder with the custom sample files
-        """
-        folder_path = os.path.join(
-            os.path.dirname(__file__), "ticker_samples", "data", sample_name
+        # Build path to parquet file
+        parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        parquet_path = os.path.join(
+            parent_dir,
+            database_folder,
+            "data",
+            "prices",
+            sec_folder,
+            bar_folder,
+            f"{ticker}.parquet",
         )
-        data = []
+        parquet_path = os.path.normpath(parquet_path)
 
-        for file_name in os.listdir(folder_path):
-            if file_name.endswith(".csv"):
-                file_path = os.path.join(folder_path, file_name)
+        con = duckdb.connect(database=":memory:")
+        query = f"SELECT * FROM '{parquet_path}'"
 
-                df = pd.read_csv(
-                    file_path,
-                    index_col=0,
-                    parse_dates=["date"],
-                    date_format="%Y-%m-%d %H:%M:%S%z",
-                )
-                df.set_index("date", inplace=True)
-                df.index = pd.to_datetime(df.index, utc=True).tz_localize(None)
-                data.append(df)
+        if end_date:
+            duration_days = DURATION_TO_DAYS_MAP[duration]
+            parsed_end_date = datetime.strptime(end_date, "%Y-%m-%d")
+            start_date = parsed_end_date - relativedelta(days=duration_days)
+            query += (
+                f" WHERE datetime > '{start_date.strftime('%Y-%m-%d')}'"
+                f" AND datetime <= '{parsed_end_date.strftime('%Y-%m-%d')}'"
+            )
 
-        return data
+        df = con.execute(query).fetch_df()
+        con.close()
+
+        return df

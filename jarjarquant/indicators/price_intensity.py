@@ -3,8 +3,10 @@ import pandas as pd
 from scipy.stats import norm
 
 from jarjarquant.indicators.base import Indicator
+from jarjarquant.indicators.registry import register_indicator, IndicatorType
 
 
+@register_indicator(IndicatorType.PRICE_INTENSITY)
 class PriceIntensity(Indicator):
     def __init__(
         self, ohlcv_df: pd.DataFrame, smoothing_factor: int = 2, transform=None

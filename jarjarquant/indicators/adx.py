@@ -2,8 +2,10 @@ import numpy as np
 import pandas as pd
 
 from jarjarquant.indicators.base import Indicator
+from jarjarquant.indicators.registry import register_indicator, IndicatorType
 
 
+@register_indicator(IndicatorType.ADX)
 class ADX(Indicator):
     def __init__(self, ohlcv_df: pd.DataFrame, lookback: int = 14, transform=None):
         super().__init__(ohlcv_df)

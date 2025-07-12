@@ -2,11 +2,13 @@ import numpy as np
 import pandas as pd
 
 from jarjarquant.indicators.base import Indicator
+from jarjarquant.indicators.registry import register_indicator, IndicatorType
 
 from .rsi import RSI
 from .stochastic import Stochastic
 
 
+@register_indicator(IndicatorType.STOCHASTIC_RSI)
 class StochasticRSI(Indicator):
     """Class to calculate the Stochastic RSI indicator"""
 

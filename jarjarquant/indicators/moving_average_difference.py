@@ -3,8 +3,10 @@ import pandas as pd
 from scipy.stats import norm
 
 from jarjarquant.indicators.base import Indicator
+from jarjarquant.indicators.registry import register_indicator, IndicatorType
 
 
+@register_indicator(IndicatorType.MOVING_AVERAGE_DIFFERENCE)
 class MovingAverageDifference(Indicator):
     """
     A class to calculate the Moving Average Difference (MAD) indicator.

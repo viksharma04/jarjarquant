@@ -143,8 +143,8 @@ class TestJarjarquantAddIndicator:
         """Test adding Stochastic indicator."""
         initial_columns = len(jjq_instance._df.columns)
         
-        # Add Stochastic indicator (using correct parameter name 'lookback')
-        jjq_instance.add_indicator(IndicatorType.STOCHASTIC, "stoch", lookback=14, n_smooth=3)
+        # Add Stochastic indicator (using correct parameter name 'period')
+        jjq_instance.add_indicator(IndicatorType.STOCHASTIC, "stoch", period=14, n_smooth=3)
         
         # Check that column was added
         assert len(jjq_instance._df.columns) == initial_columns + 1

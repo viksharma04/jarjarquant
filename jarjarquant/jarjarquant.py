@@ -43,52 +43,6 @@ class Jarjarquant(Labeller):
         self.feature_evaluator = FeatureEvaluator()
 
     @classmethod
-    def from_random_normal(
-        cls, loc: float = 0.005, volatility: float = 0.05, periods: int = 252, **kwargs
-    ):
-        """
-        Create a random price series using returns from a normal distribution.
-
-        Args:
-            loc (float): Mean return. Defaults to 0.005.
-            volatility (float): Period volatility. Defaults to 0.05.
-            periods (int): Number of data points. Defaults to 252.
-
-        Returns:
-            Jarjarquant: Instance of Jarjarquant with generated series.
-        """
-        data_gatherer = DataGatherer()
-        series = data_gatherer.generate_random_normal(
-            loc=loc, volatility=volatility, periods=periods, **kwargs
-        )
-        return cls(series, data_source=None)
-
-    @classmethod
-    def from_random_sample(
-        cls, num_tickers_to_sample: int = 1, years_in_sample: int = 10, **kwargs
-    ):
-        """
-        Create a random price series using a random sample of tickers.
-
-        Args:
-            num_tickers_to_sample (int): Number of tickers to sample. Defaults to 1.
-
-        Returns:
-            Jarjarquant: Instance of Jarjarquant with generated series.
-        """
-        data_gatherer = DataGatherer()
-        samples = data_gatherer.get_random_price_samples_tws(
-            num_tickers_to_sample=num_tickers_to_sample,
-            years_in_sample=years_in_sample,
-            **kwargs,
-        )
-        if not samples:
-            raise ValueError(
-                "No price samples were returned. Please check the data source."
-            )
-        return cls(samples[0], data_source=None)
-
-    @classmethod
     def from_yf_ticker(cls, ticker: str = "SPY", **kwargs):
         """
         Initialize from a Yahoo Finance ticker.
@@ -99,9 +53,9 @@ class Jarjarquant(Labeller):
         Returns:
             Jarjarquant: Instance of Jarjarquant with data from the ticker.
         """
-        data_gatherer = DataGatherer()  # or access via composition
+        data_gatherer = DataGatherer()
         try:
-            series = data_gatherer.get_yf_ticker(ticker, **kwargs)
+            series = data_gatherer.get_sync(ticker, source="yf", **kwargs)
         except Exception as e:
             raise ValueError(
                 f"Failed to fetch data for ticker '{ticker}'. Error: {e}"

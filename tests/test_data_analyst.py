@@ -1,6 +1,9 @@
-import pytest
+import matplotlib
 import numpy as np
 import pandas as pd
+import pytest
+
+matplotlib.use("Agg")  # Use non-interactive backend for testing
 from jarjarquant.data_analyst import DataAnalyst
 
 
@@ -53,8 +56,7 @@ def test_atr():
     high_series = pd.Series(np.random.randn(100))
     low_series = pd.Series(np.random.randn(100))
     close_series = pd.Series(np.random.randn(100))
-    atr_values = DataAnalyst.atr(
-        atr_length, high_series, low_series, close_series)
+    atr_values = DataAnalyst.atr(atr_length, high_series, low_series, close_series)
     assert len(atr_values) == len(high_series)
 
 
@@ -68,13 +70,12 @@ def test_compute_legendre_coefficients():
 def test_calculate_regression_coefficient():
     prices = np.random.randn(10)
     legendre_coeffs = DataAnalyst.compute_legendre_coefficients(10, 2)
-    slope = DataAnalyst.calculate_regression_coefficient(
-        prices, legendre_coeffs)
+    slope = DataAnalyst.calculate_regression_coefficient(prices, legendre_coeffs)
     assert isinstance(slope, float)
 
 
 def test_get_daily_vol():
-    date_range = pd.date_range(start='2022-01-01', periods=100, freq='D')
+    date_range = pd.date_range(start="2022-01-01", periods=100, freq="D")
     close_series = pd.Series(np.random.randn(100), index=date_range)
     daily_vol = DataAnalyst.get_daily_vol(close_series)
     assert len(daily_vol) == len(close_series)
@@ -84,6 +85,6 @@ def test_get_spearman_correlation():
     series1 = pd.Series(np.random.randn(100))
     series2 = pd.Series(np.random.randn(100))
     result = DataAnalyst.get_spearman_correlation(series1, series2)
-    assert 'spearman_corr' in result
-    assert 'spearman_corr_quartile' in result
-    assert len(result['spearman_corr_quartile']) == 4
+    assert "spearman_corr" in result
+    assert "spearman_corr_quartile" in result
+    assert len(result["spearman_corr_quartile"]) == 4

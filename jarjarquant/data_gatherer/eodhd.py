@@ -18,8 +18,6 @@ from .utils import (
 @register_data_source("eodhd")
 class EODHDDataSource(DataSource):
     def __init__(self, api_key: str):
-        if not api_key:
-            raise ValueError("EODHD API key not configured.")
         self.api_key = api_key
 
     async def fetch(
@@ -31,6 +29,9 @@ class EODHDDataSource(DataSource):
         security_type: str = "STK",
         **kwargs,
     ) -> pl.DataFrame:
+        if not self.api_key:
+            raise ValueError("EODHD API key not configured.")
+
         if end_date is None:
             end_date = datetime.today().strftime("%Y-%m-%d")
 

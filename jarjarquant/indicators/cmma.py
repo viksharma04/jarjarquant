@@ -3,8 +3,10 @@ import pandas as pd
 from scipy.stats import norm
 
 from jarjarquant.indicators.base import Indicator
+from jarjarquant.indicators.registry import register_indicator, IndicatorType
 
 
+@register_indicator(IndicatorType.CMMA)
 class CMMA(Indicator):
     """Close Minus Moving Average (CMMA) Indicator
     This class calculates the CMMA indicator, which is a normalized measure of the

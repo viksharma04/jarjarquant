@@ -2,8 +2,10 @@ import numpy as np
 import pandas as pd
 
 from jarjarquant.indicators.base import Indicator
+from jarjarquant.indicators.registry import register_indicator, IndicatorType
 
 
+@register_indicator(IndicatorType.AROON)
 class Aroon(Indicator):
     """Class to calculate the Aroon indicator"""
 

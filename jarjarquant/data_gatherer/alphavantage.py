@@ -22,8 +22,6 @@ API_COLUMN_MAP = {
 @register_data_source("alphavantage")
 class AlphaVantageDataSource(DataSource):
     def __init__(self, api_key: str):
-        if not api_key:
-            raise ValueError("Alpha Vantage API key not configured.")
         self.api_key = api_key
 
     async def fetch(
@@ -48,6 +46,8 @@ class AlphaVantageDataSource(DataSource):
             - For daily, weekly, or monthly bars, adjusted close and volume are returned.
             - The function prints a warning and returns an empty DataFrame if data fetching fails.
         """
+        if not self.api_key:
+            raise ValueError("Alpha Vantage API key not configured.")
 
         period_map = BAR_SIZE_TO_STR_MAP["alphavantage"]
         if bar_size not in list(period_map.keys()):

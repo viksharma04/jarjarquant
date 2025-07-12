@@ -4,8 +4,10 @@ from scipy.stats import norm
 
 from jarjarquant.cython_utils.indicators import compute_trend_indicator
 from jarjarquant.indicators.base import Indicator
+from jarjarquant.indicators.registry import register_indicator, IndicatorType
 
 
+@register_indicator(IndicatorType.REGRESSION_TREND)
 class RegressionTrend(Indicator):
     def __init__(
         self,

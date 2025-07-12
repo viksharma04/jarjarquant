@@ -2,10 +2,12 @@ import numpy as np
 import pandas as pd
 
 from jarjarquant.indicators.base import Indicator
+from jarjarquant.indicators.registry import register_indicator, IndicatorType
 
 from .rsi import RSI
 
 
+@register_indicator(IndicatorType.DETRENDED_RSI)
 class DetrendedRSI(Indicator):
     """Class to calculate the Detrended RSI"""
 

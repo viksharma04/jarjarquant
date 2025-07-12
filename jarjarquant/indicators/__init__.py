@@ -8,6 +8,12 @@ from .macd import MACD
 from .moving_average_difference import MovingAverageDifference
 from .price_change_oscillator import PriceChangeOscillator
 from .price_intensity import PriceIntensity
+from .registry import (
+    IndicatorType,
+    get_indicator_class,
+    get_indicator_parameters,
+    list_available_indicators,
+)
 from .regression_trend import RegressionTrend
 from .regression_trend_deviation import RegressionTrendDeviation
 from .rsi import RSI
@@ -16,6 +22,10 @@ from .stochastic_rsi import StochasticRSI
 
 __all__ = [
     "Indicator",
+    "IndicatorType",
+    "get_indicator_class",
+    "list_available_indicators",
+    "get_indicator_parameters",
     "RSI",
     "DetrendedRSI",
     "Stochastic",

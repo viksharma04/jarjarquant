@@ -3,8 +3,10 @@ import pandas as pd
 from scipy.stats import norm
 
 from jarjarquant.indicators.base import Indicator
+from jarjarquant.indicators.registry import register_indicator, IndicatorType
 
 
+@register_indicator(IndicatorType.REGRESSION_TREND_DEVIATION)
 class RegressionTrendDeviation(Indicator):
     def __init__(
         self,

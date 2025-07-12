@@ -42,26 +42,6 @@ class Jarjarquant(Labeller):
         self.data_analyst = DataAnalyst()
         self.feature_evaluator = FeatureEvaluator()
 
-    @classmethod
-    def from_yf_ticker(cls, ticker: str = "SPY", **kwargs):
-        """
-        Initialize from a Yahoo Finance ticker.
-
-        Args:
-            ticker (str): Ticker symbol. Defaults to "SPY".
-
-        Returns:
-            Jarjarquant: Instance of Jarjarquant with data from the ticker.
-        """
-        data_gatherer = DataGatherer()
-        try:
-            series = data_gatherer.get_sync(ticker, source="yf", **kwargs)
-        except Exception as e:
-            raise ValueError(
-                f"Failed to fetch data for ticker '{ticker}'. Error: {e}"
-            ) from e
-        return cls(series, data_source=None)
-
     @property
     def df(self):
         """

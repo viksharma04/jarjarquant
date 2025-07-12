@@ -170,9 +170,12 @@ cython_debug/
 #.idea/
 
 # Specific files
+.claude
+chatmodes/
 compare_with_file.py
 test_nb.ipynb
 copilot-instructions.md
+CLAUDE.local.md
 
 # Data folders
 data/

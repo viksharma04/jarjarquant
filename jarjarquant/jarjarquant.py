@@ -1,30 +1,15 @@
 """Main module for jarjarquant package."""
 
-import importlib
-import inspect
-import json
-import pkgutil
-from typing import Optional
+from typing import Dict
 
 import pandas as pd
 
-import jarjarquant.indicators as indicators_pkg
 from jarjarquant.data_gatherer import DataGatherer
 from jarjarquant.indicators import (
-    ADX,
-    CMMA,
-    MACD,
-    RSI,
-    Aroon,
-    ChaikinMoneyFlow,
-    DetrendedRSI,
-    MovingAverageDifference,
-    PriceChangeOscillator,
-    PriceIntensity,
-    RegressionTrend,
-    RegressionTrendDeviation,
-    Stochastic,
-    StochasticRSI,
+    IndicatorType,
+    get_indicator_class,
+    get_indicator_parameters,
+    list_available_indicators,
 )
 
 from .data_analyst import DataAnalyst
@@ -162,366 +147,59 @@ class Jarjarquant(Labeller):
         """
         del self._df
 
-    def list_indicators(self) -> str:
+    def list_indicators(
+        self, verbose: bool = False
+    ) -> list[IndicatorType] | Dict[IndicatorType, dict]:
         """
         Discover all classes in jarjarquant.indicators and
         return their __init__ signature parameters (excluding self & ohlcv_df)
         as a JSON string.
         """
-        result = {}
-        for _, module_name, _ in pkgutil.iter_modules(indicators_pkg.__path__):
-            module = importlib.import_module(f"{indicators_pkg.__name__}.{module_name}")
-            for cls_name, cls in inspect.getmembers(module, inspect.isclass):
-                # only own classes (skip imported ones)
-                if cls.__module__ != module.__name__:
-                    continue
-                if cls_name in ("Indicator", "IndicatorEvalResult"):
-                    continue
-                sig = inspect.signature(cls.__init__)
-                # drop 'self' and the first 'ohlcv_df' argument
-                params = []
-                for p in list(sig.parameters.values())[2:]:
-                    default = p.default if p.default is not inspect._empty else None
-                    ann = (
-                        p.annotation.__name__
-                        if hasattr(p.annotation, "__name__")
-                        else str(p.annotation)
-                        if p.annotation is not inspect._empty
-                        else None
-                    )
-                    params.append({"name": p.name, "type": ann, "default": default})
-                result[cls_name] = params
-        # pretty-print JSON
-        return json.dumps(result, indent=2)
+
+        return list_available_indicators(verbose=verbose)
+
+    def get_indicator_details(self, indicator: IndicatorType) -> dict[str, dict]:
+        return get_indicator_parameters(indicator_type=indicator)
 
     # Indicator methods
-    # Add any additional methods or functionality here
-    @staticmethod
-    def rsi(ohlcv_df, period: int = 14, transform=None):
+    def add_indicator(
+        self, indicator_type: IndicatorType, column_name: str, *args, **kwargs
+    ):
         """
-        Calculate the Relative Strength Index (RSI) for a given OHLCV DataFrame.
+        Generic method to add an indicator column to the DataFrame using the indicator registry.
 
         Parameters:
-        ohlcv_df (pd.DataFrame): DataFrame containing OHLCV (Open, High, Low, Close, Volume) data.
-                                 Must include a 'Close' column.
-        period (int): The period over which to calculate the RSI. Default is 14.
-
-        Returns:
-        pd.Series: A pandas Series containing the RSI values.
-
-        Raises:
-        ValueError: If the input DataFrame does not contain a 'Close' column.
-        """
-        _df = ohlcv_df.copy()
-        if "Close" not in _df.columns:
-            raise ValueError(
-                "The input DataFrame must contain a 'Close' column for RSI calculation."
-            )
-        rsi_indicator = RSI(_df, period, transform)
-        return rsi_indicator
-
-    @staticmethod
-    def detrended_rsi(
-        ohlcv_df,
-        short_period: int = 2,
-        long_period: int = 21,
-        regression_length: int = 120,
-        transform=None,
-    ):
-        """
-        Calculate the Detrended Relative Strength Index (RSI) for a given OHLCV DataFrame.
-
-        Parameters:
-        ohlcv_df (pd.DataFrame): DataFrame containing OHLCV data. Must include a 'Close' column.
-        short_period (int, optional): The short period for RSI calculation. Default is 2.
-        long_period (int, optional): The long period for RSI calculation. Default is 21.
-        regression_length (int, optional): The length of the regression window. Default is 120.
-
-        Returns:
-        pd.Series: A pandas Series containing the Detrended RSI values.
-
-        Raises:
-        ValueError: If the input DataFrame does not contain a 'Close' column.
-        """
-        _df = ohlcv_df.copy()
-        if "Close" not in _df.columns:
-            raise ValueError(
-                "The input DataFrame must contain a 'Close' column for Detrended RSI calculation."
-            )
-        detrended_rsi_indicator = DetrendedRSI(
-            _df, short_period, long_period, regression_length, transform
-        )
-        return detrended_rsi_indicator
-
-    @staticmethod
-    def stochastic(
-        ohlcv_df: pd.DataFrame, period: int = 14, n_smooth: int = 2, transform=None
-    ):
-        """
-        Calculate the Stochastic indicator for the given OHLCV DataFrame.
-        Parameters:
-        ohlcv_df (pd.DataFrame): DataFrame containing OHLCV (Open, High, Low, Close, Volume) data.
-        period (int, optional): The look-back period for the Stochastic calculation. Default is 14.
-        n_smooth (int, optional): The smoothing factor for the Stochastic calculation. Default is 2.
-        Returns:
-        pd.DataFrame: DataFrame containing the Stochastic indicator values.
-        Raises:
-        ValueError: If the input DataFrame does not contain a 'Close' column.
-        """
-        _df = ohlcv_df.copy()
-        if "Close" not in _df.columns:
-            raise ValueError(
-                "The input dataframe must contain a 'Close' column for Stochastic calculation"
-            )
-        stochastic_indicator = Stochastic(_df, period, n_smooth, transform)
-
-        return stochastic_indicator
-
-    @staticmethod
-    def stochastic_rsi(
-        ohlcv_df: pd.DataFrame,
-        rsi_period: int = 14,
-        stochastic_period: int = 14,
-        n_smooth: int = 2,
-        transform=None,
-    ):
-        """
-        Calculate the Stochastic RSI (Relative Strength Index) for a given OHLCV (Open, High, Low, Close, Volume) DataFrame.
-
-        Parameters:
-            ohlcv_df (pd.DataFrame): DataFrame containing OHLCV data. Must include a 'Close' column.
-            rsi_period (int): The period for calculating the RSI. Default is 14.
-            stochastic_period (int): The period for calculating the Stochastic RSI. Default is 14.
-            n_smooth (int): The smoothing factor for the Stochastic RSI. Default is 2.
-
-        Returns:
-            pd.Series: A pandas Series containing the Stochastic RSI values.
-
-        Raises:
-            ValueError: If the input DataFrame does not contain a 'Close' column.
-        """
-        _df = ohlcv_df.copy()
-        if "Close" not in _df.columns:
-            raise ValueError(
-                "The input dataframe must contain a 'Close' column for Stochastic RSI calculation"
-            )
-        stochastic_rsi_indicator = StochasticRSI(
-            ohlcv_df, rsi_period, stochastic_period, n_smooth, transform
-        )
-
-        return stochastic_rsi_indicator
-
-    @staticmethod
-    def moving_average_difference(
-        ohlcv_df: pd.DataFrame,
-        short_period: int = 5,
-        long_period: int = 20,
-        transform=None,
-    ):
-        """
-        Calculate the Moving Average Difference for the given OHLCV DataFrame.
-
-        Parameters:
-            ohlcv_df (pd.DataFrame): A pandas DataFrame containing OHLCV data.
-                                 Must include a 'Close' column.
-            short_period (int): The short moving average window. Default is 5.
-            long_period (int): The long moving average window. Default is 20.
-
-        Returns:
-            pd.Series: A pandas Series containing the Moving Average Difference values.
-
-        Raises:
-            ValueError: If the input DataFrame does not contain a 'Close' column.
-        """
-        if short_period >= long_period:
-            raise ValueError("short_window must be less than long_window")
-
-        _df = ohlcv_df.copy()
-        if "Close" not in _df.columns:
-            raise ValueError(
-                "The input dataframe must contain a 'Close' column for Moving Average Difference calculation"
-            )
-        mad_indicator = MovingAverageDifference(
-            _df, short_period, long_period, transform
-        )
-
-        return mad_indicator
-
-    @staticmethod
-    def cmma(
-        ohlcv_df: pd.DataFrame, lookback: int = 21, atr_length: int = 21, transform=None
-    ):
-        """
-        Calculate the Custom Moving Average (CMMA) for the given OHLCV DataFrame.
-
-        Parameters:
-            ohlcv_df (pd.DataFrame): A pandas DataFrame containing OHLCV data.
-                                 Must include a 'Close' column.
-            lookback (int): The lookback period for the CMMA calculation. Default is 21.
-            atr_length (int): The length of the Average True Range (ATR) period. Default is 21.
-
-        Returns:
-            pd.Series: A pandas Series containing the CMMA values.
-
-        Raises:
-            ValueError: If the input DataFrame does not contain a 'Close' column.
-        """
-        _df = ohlcv_df.copy()
-        if "Close" not in _df.columns:
-            raise ValueError(
-                "The input dataframe must contain a 'Close' column for CMMA calculation"
-            )
-        cmma_indicator = CMMA(_df, lookback, atr_length, transform)
-
-        return cmma_indicator
-
-    @staticmethod
-    def macd(
-        ohlcv_df: pd.DataFrame,
-        short_period: int = 5,
-        long_period: int = 20,
-        smoothing_factor: int = 2,
-        transform: Optional[bool] = None,
-    ):
-        _df = ohlcv_df.copy()
-        if "Close" not in _df.columns:
-            raise ValueError(
-                "The input dataframe must contain a 'Close' column for MACD calculation"
-            )
-        if transform is None:
-            transform = False
-
-        macd_indicator = MACD(
-            _df, short_period, long_period, smoothing_factor, transform
-        )
-
-        return macd_indicator
-
-    @staticmethod
-    def regression_trend(
-        ohlcv_df: pd.DataFrame,
-        lookback: int = 21,
-        atr_length_mult: int = 3,
-        degree: int = 1,
-        transform=None,
-    ):
-        _df = ohlcv_df.copy()
-        if "Close" not in _df.columns:
-            raise ValueError(
-                "The input dataframe must contain a 'Close' column for Regression Trend calculation"
-            )
-        regression_trend_indicator = RegressionTrend(
-            _df, lookback, atr_length_mult, degree, transform
-        )
-
-        return regression_trend_indicator
-
-    @staticmethod
-    def price_intensity(
-        ohlcv_df: pd.DataFrame, smoothing_factor: int = 2, transform=None
-    ):
-        _df = ohlcv_df.copy()
-        if "Close" not in _df.columns:
-            raise ValueError(
-                "The input dataframe must contain a 'Close' column for Price Intensity calculation"
-            )
-        price_intensity_indicator = PriceIntensity(_df, smoothing_factor, transform)
-
-        return price_intensity_indicator
-
-    @staticmethod
-    def adx(ohlcv_df: pd.DataFrame, lookback: int = 14, transform=None):
-        _df = ohlcv_df.copy()
-        if "Close" not in _df.columns:
-            raise ValueError(
-                "The input dataframe must contain a 'Close' column for Price Intensity calculation"
-            )
-        adx_indicator = ADX(_df, lookback, transform)
-
-        return adx_indicator
-
-    @staticmethod
-    def aroon(ohlcv_df: pd.DataFrame, lookback: int = 14, transform=None):
-        _df = ohlcv_df.copy()
-        if "Close" not in _df.columns:
-            raise ValueError(
-                "The input dataframe must contain a 'Close' column for Aroon calculation"
-            )
-        aroon_indicator = Aroon(_df, lookback, transform)
-
-        return aroon_indicator
-
-    @staticmethod
-    def regression_trend_deviation(
-        ohlcv_df: pd.DataFrame, lookback: int = 14, fit_degree: int = 1, transform=None
-    ):
-        _df = ohlcv_df.copy()
-        if "Close" not in _df.columns:
-            raise ValueError(
-                "The input dataframe must contain a 'Close' column for Regression Trend Deviation calculation"
-            )
-        regression_trend_deviation_indicator = RegressionTrendDeviation(
-            _df, lookback, fit_degree, transform
-        )
-
-        return regression_trend_deviation_indicator
-
-    @staticmethod
-    def pco(
-        ohlcv_df: pd.DataFrame,
-        short_lookback: int = 5,
-        long_lookback_multiplier: int = 3,
-        transform=None,
-    ):
-        _df = ohlcv_df.copy()
-        if "Close" not in _df.columns:
-            raise ValueError(
-                "The input dataframe must contain a 'Close' column for Price Channel Oscillator calculation"
-            )
-        pco_indicator = PriceChangeOscillator(
-            _df, short_lookback, long_lookback_multiplier, transform
-        )
-
-        return pco_indicator
-
-    @staticmethod
-    def chaikin_money_flow(
-        ohlcv_df: pd.DataFrame,
-        smoothing_lookback: int = 21,
-        volume_lookback: int = 21,
-        return_cmf: bool = False,
-        transform=None,
-    ):
-        _df = ohlcv_df.copy()
-        if "Close" not in _df.columns:
-            raise ValueError(
-                "The input dataframe must contain a 'Close' column for Chaikin Money Flow calculation"
-            )
-        cmf_indicator = ChaikinMoneyFlow(
-            _df, smoothing_lookback, volume_lookback, return_cmf, transform
-        )
-
-        return cmf_indicator
-
-    def add_indicator(self, indicator_func, column_name: str, *args, **kwargs):
-        """
-        Generic method to add an indicator column to the DataFrame.
-
-        Parameters:
-            indicator_func (callable): The indicator function to compute the indicator.
+            indicator_type (IndicatorType): The type of indicator to add from the registry.
             column_name (str): The name of the column to add.
-            *args: Positional arguments to pass to the indicator function.
-            **kwargs: Keyword arguments to pass to the indicator function.
+            *args: Positional arguments to pass to the indicator constructor.
+            **kwargs: Keyword arguments to pass to the indicator constructor.
 
         Returns:
             None: The method modifies the DataFrame in place by adding the new column.
 
+        Raises:
+            ValueError: If the DataFrame is empty or lacks required columns.
+            KeyError: If the indicator type is not registered.
+
         Example usage:
             # Add RSI indicator
-            jq.add_indicator(Jarjarquant.rsi, "rsi", period=14)
+            jq.add_indicator(IndicatorType.RSI, "rsi_14", period=14)
             # Add Stochastic indicator
-            jq.add_indicator(Jarjarquant.stochastic, "stochastic", period=14, n_smooth=2)
+            jq.add_indicator(IndicatorType.STOCHASTIC, "stoch_14", period=14, n_smooth=3)
+            # Add MACD indicator
+            jq.add_indicator(IndicatorType.MACD, "macd", short_period=12, long_period=26)
         """
-        self._df = self._df.assign(
-            **{column_name: indicator_func(self._df, *args, **kwargs).calculate()}
-        )
+        if self._df.empty:
+            raise ValueError(
+                "DataFrame is empty. Cannot add indicators to empty DataFrame."
+            )
+
+        # Get the indicator class from the registry
+        indicator_class = get_indicator_class(indicator_type)
+
+        # Create the indicator instance and calculate values
+        indicator_instance = indicator_class(self._df, *args, **kwargs)
+        indicator_values = indicator_instance.calculate()
+
+        # Add the indicator values as a new column
+        self._df = self._df.assign(**{column_name: indicator_values})

@@ -55,11 +55,48 @@ class DataGatherer:
             raise ValueError(
                 f"Unknown source '{source}'. Available: {self.available_sources()}"
             )
+        if ticker.lower() == "random":
+            ticker = self.get_random_tickers(1)[0]
         return await self._sources[source].fetch(ticker, **kwargs)
 
     def get_sync(self, ticker: str, source: str = "eodhd", **kwargs):
         """Sync wrapper around `get`."""
         return asyncio.run(self.get(ticker, source, **kwargs))
+
+    async def generate_synthetic(self, **kwargs):
+        """
+        Generate synthetic OHLCV data using various statistical distributions.
+
+        This is a convenience method for accessing the synthetic data source.
+
+        Args:
+            **kwargs: Parameters passed to SyntheticDataSource.fetch()
+
+        Returns:
+            DataFrame with synthetic OHLCV data
+
+        Example:
+            # Generate 252 days of normally distributed returns
+            data = await dg.generate_synthetic(
+                distribution_type="normal",
+                periods=252,
+                return_mean=0.001,
+                return_std=0.02
+            )
+
+            # Generate jump diffusion model
+            data = await dg.generate_synthetic(
+                distribution_type="jump_diffusion",
+                periods=1000,
+                jump_intensity=0.1,
+                jump_size_mean=0.02
+            )
+        """
+        return await self.get("", source="synthetic", **kwargs)
+
+    def generate_synthetic_sync(self, **kwargs):
+        """Sync wrapper around generate_synthetic."""
+        return asyncio.run(self.generate_synthetic(**kwargs))
 
 
 # Auto-import all modules in this package's directory

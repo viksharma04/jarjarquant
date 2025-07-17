@@ -24,14 +24,11 @@ class Jarjarquant(Labeller):
     """
 
     def __init__(self):
-        """_summary_
-
-        Args:
-            ohlcv_df (pd.DataFrame): _description_
-            data_source (Optional[str]): _description_
-
-        Raises:
-            ValueError: _description_
+        """Initialize a new Jarjarquant instance.
+        
+        Creates a new Jarjarquant instance with empty DataFrame and initialized
+        component classes for data gathering, feature engineering, labeling,
+        and analysis.
         """
         self._df = pd.DataFrame()
 

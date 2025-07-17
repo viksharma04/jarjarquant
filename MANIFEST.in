@@ -1,0 +1,27 @@
+# Include the license file
+include LICENSE
+
+# Include the README
+include README.md
+
+# Include Cython source files
+recursive-include jarjarquant/cython_utils *.pyx
+recursive-include jarjarquant/cython_utils *.c
+
+# Include data files if any
+recursive-include jarjarquant *.py
+
+# Exclude compiled files and cache
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude *.pyd
+global-exclude __pycache__
+global-exclude .git*
+global-exclude .DS_Store
+
+# Include test files
+recursive-include tests *.py
+
+# Include examples
+recursive-include examples *.py
+recursive-include notebooks *.ipynb

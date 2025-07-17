@@ -1,8 +1,11 @@
 import os
 
-from dotenv import load_dotenv
-
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # python-dotenv is optional - environment variables can be set directly
+    pass
 
 # pull keys from env once
 EODHD_API_KEY = os.getenv("EODHD_API_KEY")

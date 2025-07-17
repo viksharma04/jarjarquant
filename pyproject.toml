@@ -3,7 +3,7 @@ name = "jarjarquant"
 version = "0.1.0"
 description = "Implements common financial ML techniques"
 readme = "README.md"
-license = { file = "LICENSE" }
+license = "MIT"
 requires-python = ">=3.12"
 dependencies = [
     "altair>=5.5.0",
@@ -96,5 +96,6 @@ build-backend = "setuptools.build_meta"
 
 [dependency-groups]
 dev = [
+    "psutil>=6.0.0",
     "ruff>=0.12.0",
 ]

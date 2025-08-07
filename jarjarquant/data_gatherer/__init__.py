@@ -5,6 +5,8 @@ import os
 import pkgutil
 import random
 
+import polars as pl
+
 from jarjarquant.config import DATA_SOURCE_CONFIG
 
 from .base import DataSource, get_all_data_sources, list_data_sources
@@ -46,7 +48,7 @@ class DataGatherer:
 
         return random.sample(tickers, min(num_tickers, len(tickers)))
 
-    async def get(self, ticker: str, source: str = "eodhd", **kwargs):
+    async def get(self, ticker: str, source: str = "eodhd", **kwargs) -> pl.DataFrame:
         """
         Fetch from `source`.  E.g.
           await dg.get("AAPL", source="eodhd", start="2025-07-01", end="2025-07-06")
@@ -59,7 +61,7 @@ class DataGatherer:
             ticker = self.get_random_tickers(1)[0]
         return await self._sources[source].fetch(ticker, **kwargs)
 
-    def get_sync(self, ticker: str, source: str = "eodhd", **kwargs):
+    def get_sync(self, ticker: str, source: str = "eodhd", **kwargs) -> pl.DataFrame:
         """Sync wrapper around `get`."""
         return asyncio.run(self.get(ticker, source, **kwargs))
 

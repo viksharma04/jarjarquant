@@ -37,6 +37,7 @@ class IndicatorType(Enum):
     PRICE_INTENSITY = "price_intensity"
     REGRESSION_TREND = "regression_trend"
     REGRESSION_TREND_DEVIATION = "regression_trend_deviation"
+    ANCHORED_VWAP = "anchored_vwap"
 
 
 # Global registry mapping indicator types to their classes

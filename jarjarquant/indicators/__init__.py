@@ -1,4 +1,5 @@
 from .adx import ADX
+from .anchored_vwap import AnchoredVWAP
 from .aroon import Aroon
 from .base import Indicator
 from .chaikin_money_flow import ChaikinMoneyFlow
@@ -36,6 +37,7 @@ __all__ = [
     "RegressionTrend",
     "PriceIntensity",
     "ADX",
+    "AnchoredVWAP",
     "Aroon",
     "RegressionTrendDeviation",
     "PriceChangeOscillator",

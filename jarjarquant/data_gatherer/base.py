@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 
+import polars as pl
+
 _DATA_SOURCE_REGISTRY: dict[str, type["DataSource"]] = {}
 
 
@@ -32,4 +34,4 @@ def get_all_data_sources() -> dict[str, type["DataSource"]]:
 
 class DataSource(ABC):
     @abstractmethod
-    async def fetch(self, ticker: str, **kwargs): ...
+    async def fetch(self, ticker: str, **kwargs) -> pl.DataFrame: ...

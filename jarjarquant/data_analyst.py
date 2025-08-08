@@ -519,3 +519,35 @@ class DataAnalyst:
         plt.ylabel(y_label)
         plt.title(title)
         plt.show()
+
+    @staticmethod
+    def directional_change_pivots(
+        series: np.ndarray,
+        threshold_type: Optional[str] = "static",
+        threshold_value: Optional[float] = 0.01,
+    ):
+        if threshold_value is None:
+            raise ValueError("threshold_value must not be None.")
+
+        up = True
+        current_pivot = series[0]
+        pivots = [0]
+
+        for i in range(1, len(series)):
+            value = series[i]
+            if up:
+                if value > current_pivot:
+                    current_pivot = value
+                change = (value - current_pivot) / current_pivot
+                if change < -threshold_value:
+                    up = not up
+                    pivots.append(i)
+            else:
+                if value < current_pivot:
+                    current_pivot = value
+                change = (value - current_pivot) / current_pivot
+                if change > threshold_value:
+                    up = not up
+                    pivots.append(i)
+
+        return pivots

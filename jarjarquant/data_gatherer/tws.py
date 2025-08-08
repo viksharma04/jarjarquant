@@ -19,6 +19,7 @@ class TWSDataSource(DataSource):
         bar_size: BarSize = BarSize.ONE_DAY,
         what_to_show="TRADES",
         security_type="STK",
+        client_id: int = 1,
         **kwargs,
     ) -> pd.DataFrame:
         """
@@ -32,6 +33,7 @@ class TWSDataSource(DataSource):
             bar_size (str): The size of each bar, e.g., '1 day' (default: "1 day").
             what_to_show (str): The type of data to show, e.g., "TRADES" (default: "TRADES").
             security_type (str): The type of security, e.g., "STK" for stock (default: "STK").
+            client_id (int): The client ID to use for TWS connection (default: 1).
             **kwags: Additional keyword arguments.
         Returns:
             pandas.DataFrame: DataFrame containing the historical data with columns renamed to standard format.
@@ -42,7 +44,7 @@ class TWSDataSource(DataSource):
 
         # Connect to the IB Gateway or TWS
         try:
-            await ib.connectAsync("127.0.0.1", 7496, clientId=1)
+            await ib.connectAsync("127.0.0.1", 7497, clientId=client_id)
         except Exception as e:
             raise RuntimeError(f"TWSError: Cannot establish TWS connection: {e}")
 

@@ -1,9 +1,10 @@
 import numpy as np
 import pandas as pd
+from jarjarquant.data_analyst import atr
 from scipy.stats import norm
 
 from jarjarquant.indicators.base import Indicator
-from jarjarquant.indicators.registry import register_indicator, IndicatorType
+from jarjarquant.indicators.registry import IndicatorType, register_indicator
 
 
 @register_indicator(IndicatorType.MACD)
@@ -36,7 +37,7 @@ class MACD(Indicator):
             dtype=np.float64,
         )
 
-        atr_values = self.data_analyst.atr(
+        atr_values = atr(
             self.short_period + self.long_period,
             self.df["High"],
             self.df["Low"],

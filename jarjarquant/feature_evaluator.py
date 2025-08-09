@@ -12,7 +12,7 @@ from sklearn.model_selection._split import _BaseKFold
 
 from jarjarquant.cython_utils.opt_threshold import optimize_threshold_cython
 
-from .data_analyst import adf_test, get_spearman_correlation, plot_loess
+from .data_analyst import get_spearman_correlation, plot_loess
 from .data_gatherer import DataGatherer
 
 # Define the PurgedKFold class for feature importance scores
@@ -817,7 +817,7 @@ class FeatureEvaluator:
             s1_bin = sorted_indicator[start:end]
             s2_bin = sorted_returns[start:end]
 
-            data_analyst.plot_loess(
+            plot_loess(
                 x=s1_bin,
                 y=s2_bin,
                 x_label="Indicator Values",

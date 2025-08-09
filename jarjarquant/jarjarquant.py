@@ -12,7 +12,7 @@ from jarjarquant.indicators import (
     list_available_indicators,
 )
 
-from .data_analyst import DataAnalyst
+# DataAnalyst is no longer a class - functions are standalone
 from .feature_engineer import FeatureEngineer
 from .feature_evaluator import FeatureEvaluator
 from .labeller import Labeller
@@ -39,7 +39,7 @@ class Jarjarquant(Labeller):
         super().__init__(self._df)
         self.data_gatherer = DataGatherer()
         self.feature_engineer = FeatureEngineer()
-        self.data_analyst = DataAnalyst()
+        # DataAnalyst is no longer a class - functions are standalone
         self.feature_evaluator = FeatureEvaluator()
 
     @property

@@ -3,7 +3,7 @@ import pandas as pd
 
 from jarjarquant.indicators.base import Indicator
 from jarjarquant.indicators.registry import register_indicator, IndicatorType
-from jarjarquant.data_analyst import DataAnalyst
+# DataAnalyst is no longer a class - functions are standalone
 
 
 @register_indicator(IndicatorType.ANCHORED_VWAP)

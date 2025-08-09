@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from .data_analyst import DataAnalyst
+from .data_analyst import get_daily_vol
 
 
 class Labeller:
@@ -63,10 +63,8 @@ class Labeller:
         contraction and expansion are defined based on three parameters: long lookback, short lookback, and threshold
         """
         price_series = self._df[price]
-        data_analyst = DataAnalyst()
-
-        long_vol = data_analyst.get_daily_vol(price_series, long_lookback)
-        short_vol = data_analyst.get_daily_vol(price_series, short_lookback)
+        long_vol = get_daily_vol(price_series, long_lookback)
+        short_vol = get_daily_vol(price_series, short_lookback)
 
         if method == "vol_contraction":
             ratio = long_vol / short_vol
@@ -166,8 +164,7 @@ class Labeller:
 
         # If scale pt_sl is True pt_sl is multiplied by the average period volatility over the scale_lookback period
         if scale_pt_sl:
-            data_analyst = DataAnalyst()
-            vol = data_analyst.get_daily_vol(close=Close, span=span)
+            vol = get_daily_vol(close=Close, span=span)
             # returns = Close.pct_change()
             # vol = returns.rolling(
             #     window=scale_lookback, min_periods=1).std()*np.sqrt(n_days)

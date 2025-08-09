@@ -42,6 +42,7 @@ dependencies = [
     "matplotlib-inline>=0.1.7",
     "multitasking>=0.0.11",
     "nest-asyncio>=1.6.0",
+    "numba>=0.61.2",
     "numpy>=2.1.1",
     "orjson>=3.10.18",
     "packaging>=24.1",

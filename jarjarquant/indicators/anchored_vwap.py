@@ -3,7 +3,7 @@ import pandas as pd
 
 from jarjarquant.indicators.base import Indicator
 from jarjarquant.indicators.registry import register_indicator, IndicatorType
-from jarjarquant.data_analyst import DataAnalyst
+from jarjarquant.data_analyst import directional_change_pivots, atr
 
 
 @register_indicator(IndicatorType.ANCHORED_VWAP)
@@ -50,7 +50,7 @@ class AnchoredVWAP(Indicator):
         close_prices = self.df["Close"].values
 
         # Step 1: Find pivot points using directional change algorithm
-        pivots = DataAnalyst.directional_change_pivots(
+        pivots = directional_change_pivots(
             series=close_prices, threshold_value=self.threshold_value
         )
 
@@ -68,7 +68,7 @@ class AnchoredVWAP(Indicator):
         typical_price_values = typical_price.values
 
         # Step 3: Calculate ATR for normalization
-        atr_values = DataAnalyst.atr(
+        atr_values = atr(
             atr_length=self.atr_period,
             high_series=self.df["High"],
             low_series=self.df["Low"],

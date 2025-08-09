@@ -12,7 +12,7 @@ from sklearn.model_selection._split import _BaseKFold
 
 from jarjarquant.cython_utils.opt_threshold import optimize_threshold_cython
 
-from .data_analyst import DataAnalyst
+from .data_analyst import get_spearman_correlation, plot_loess
 from .data_gatherer import DataGatherer
 
 # Define the PurgedKFold class for feature importance scores
@@ -784,16 +784,16 @@ class FeatureEvaluator:
     def co_distribution_analysis(
         indicator_values: np.ndarray, associated_returns: np.ndarray
     ):
-        data_analyst = DataAnalyst()
+        # Use standalone function instead of DataAnalyst class
         indicator_values = np.asarray(indicator_values)
         associated_returns = np.asarray(associated_returns)
 
-        spearman_results = data_analyst.get_spearman_correlation(
+        spearman_results = get_spearman_correlation(
             indicator_values, associated_returns
         )
 
         # 1. Plot a LOESS scatter plot of the indicator values and associated returns
-        data_analyst.plot_loess(
+        plot_loess(
             x=indicator_values,
             y=associated_returns,
             x_label="Indicator Values",
@@ -817,7 +817,7 @@ class FeatureEvaluator:
             s1_bin = sorted_indicator[start:end]
             s2_bin = sorted_returns[start:end]
 
-            data_analyst.plot_loess(
+            plot_loess(
                 x=s1_bin,
                 y=s2_bin,
                 x_label="Indicator Values",

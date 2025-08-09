@@ -4,7 +4,7 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
-from jarjarquant.data_analyst import DataAnalyst
+from jarjarquant.data_analyst import adf_test, jb_normality_test, relative_entropy, range_iqr_ratio, mutual_information, visual_stationary_test
 from jarjarquant.feature_engineer import FeatureEngineer
 from jarjarquant.feature_evaluator import FeatureEvaluator
 
@@ -27,7 +27,6 @@ class Indicator:
 
         self.df = ohlcv_df.copy()
         self.indicator_type = None
-        self.data_analyst = DataAnalyst()
         self.feature_engineer = FeatureEngineer()
         self.feature_evaluator = FeatureEvaluator()
 
@@ -66,23 +65,23 @@ class Indicator:
             if not isinstance(values, np.ndarray):
                 values = np.asarray(values)
 
-        self.data_analyst.visual_stationary_test(values)
-        self.eval_result.adf_test = self.data_analyst.adf_test(values, verbose)
-        self.eval_result.jb_normality_test = self.data_analyst.jb_normality_test(
-            values, verbose
-        )
-        self.eval_result.relative_entropy = self.data_analyst.relative_entropy(
-            values, verbose
-        )
-        self.eval_result.range_iqr_ratio = self.data_analyst.range_iqr_ratio(
-            values, verbose
-        )
+        visual_stationary_test(values)
+        self.eval_result.adf_test = adf_test(values, verbose=verbose).decision
+        self.eval_result.jb_normality_test = jb_normality_test(
+            values, verbose=verbose
+        ).decision
+        self.eval_result.relative_entropy = relative_entropy(
+            values, verbose=verbose
+        ).normalized_entropy
+        self.eval_result.range_iqr_ratio = range_iqr_ratio(
+            values, verbose=verbose
+        ).ratio
 
         if self.indicator_type == "continuous":
             n_bins_to_discretize = (
                 n_bins_to_discretize if n_bins_to_discretize is not None else 10
             )
-            self.eval_result.mutual_information = self.data_analyst.mutual_information(
+            self.eval_result.mutual_information = mutual_information(
                 array=values,
                 lag=10,
                 n_bins=n_bins_to_discretize,
@@ -90,7 +89,7 @@ class Indicator:
                 verbose=verbose,
             )
         else:
-            self.eval_result.mutual_information = self.data_analyst.mutual_information(
+            self.eval_result.mutual_information = mutual_information(
                 array=values,
                 lag=10,
                 n_bins=None,
@@ -100,5 +99,3 @@ class Indicator:
 
         for i in range(1, 11):
             print(f"NMI @ lag {i} = {self.eval_result.mutual_information[i - 1]}")
-
-    # TODO: Implement a robust indicator evaluation report method which creates multiple instances of the indicator and averages the results

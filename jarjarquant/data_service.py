@@ -232,7 +232,8 @@ class DataService:
 
         if filters:
             for col, val in filters.items():
-                quoted_col = self._quote_column_name(col)
+                # Simple column quoting for SQL safety
+                quoted_col = f'"{col}"'
                 if isinstance(val, str):
                     conditions.append(f"{quoted_col} = '{val}'")
                 elif isinstance(val, (list, tuple)):

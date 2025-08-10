@@ -23,6 +23,34 @@ API_COLUMN_MAP = {
 class AlphaVantageDataSource(DataSource):
     def __init__(self, api_key: str):
         self.api_key = api_key
+        self._client: Optional[httpx.AsyncClient] = None
+
+    async def _get_client(self) -> httpx.AsyncClient:
+        """Get or create a reusable HTTP client with connection pooling."""
+        if self._client is None or self._client.is_closed:
+            self._client = httpx.AsyncClient(
+                timeout=30.0,
+                limits=httpx.Limits(
+                    max_keepalive_connections=10,
+                    max_connections=20,
+                    keepalive_expiry=60.0,
+                ),
+            )
+        return self._client
+
+    async def __aenter__(self):
+        """Async context manager entry."""
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit - cleanup client."""
+        if self._client and not self._client.is_closed:
+            await self._client.aclose()
+
+    async def close(self):
+        """Explicitly close the HTTP client."""
+        if self._client and not self._client.is_closed:
+            await self._client.aclose()
 
     async def fetch(
         self,
@@ -68,7 +96,8 @@ class AlphaVantageDataSource(DataSource):
             if month:
                 url += f"&month={month}"
             try:
-                r = httpx.get(url, timeout=30.0)
+                client = await self._get_client()
+                r = await client.get(url)
                 r.raise_for_status()
                 result = r.json()
             except Exception as e:
@@ -84,13 +113,13 @@ class AlphaVantageDataSource(DataSource):
                         "High": [float(d["2. high"]) for d in data.values()],
                         "Low": [float(d["3. low"]) for d in data.values()],
                         "Close": [float(d["4. close"]) for d in data.values()],
-                        "Volume": [int(d["5. volume"]) for d in data.values()],
+                        "Volume": [float(d["5. volume"]) for d in data.values()],
                     }
                 )
                 .with_columns(
                     pl.col("datetime")
                     .str.strptime(pl.Datetime("ns"), "%Y-%m-%d %H:%M:%S")
-                    .dt.convert_time_zone("US/Eastern")
+                    .dt.convert_time_zone("UTC")
                 )
                 .sort("datetime")
             )
@@ -98,7 +127,9 @@ class AlphaVantageDataSource(DataSource):
             time_series_function = API_FUNCTION_MAP[bar_size]
             url = f"https://www.alphavantage.co/query?function={time_series_function}&symbol={ticker}&apikey={self.api_key}"
             try:
-                r = httpx.get(url)
+                client = await self._get_client()
+                r = await client.get(url)
+                r.raise_for_status()
                 result = r.json()
             except Exception as e:
                 print(f"Warning: {e}")
@@ -112,7 +143,7 @@ class AlphaVantageDataSource(DataSource):
                     "High": [float(d["2. high"]) for d in data.values()],
                     "Low": [float(d["3. low"]) for d in data.values()],
                     "Close": [float(d["5. adjusted close"]) for d in data.values()],
-                    "Volume": [int(d["6. volume"]) for d in data.values()],
+                    "Volume": [float(d["6. volume"]) for d in data.values()],
                 }
             ).with_columns(pl.col("date").str.strptime(pl.Date, "%Y-%m-%d"))
 

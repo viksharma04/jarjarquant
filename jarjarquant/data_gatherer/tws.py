@@ -1,6 +1,6 @@
 from datetime import datetime
 
-import pandas as pd
+import polars as pl
 from ib_async import IB, Contract, Forex, Index, Stock, util
 
 from .base import DataSource, register_data_source
@@ -21,7 +21,7 @@ class TWSDataSource(DataSource):
         security_type="STK",
         client_id: int = 1,
         **kwargs,
-    ) -> pd.DataFrame:
+    ) -> pl.DataFrame:
         """
         Asynchronously fetches historical market data from Interactive Brokers TWS or Gateway.
         Parameters:
@@ -36,7 +36,7 @@ class TWSDataSource(DataSource):
             client_id (int): The client ID to use for TWS connection (default: 1).
             **kwags: Additional keyword arguments.
         Returns:
-            pandas.DataFrame: DataFrame containing the historical data with columns renamed to standard format.
+            polars.DataFrame: DataFrame containing the historical data with columns renamed to standard format.
         Raises:
             RuntimeError: If data cannot be fetched from TWS.
         """
@@ -68,7 +68,8 @@ class TWSDataSource(DataSource):
                 dt = datetime.strptime(end_date, "%Y%m%d %H:%M:%S")
 
             # Format date according to IB API requirements: yyyymmdd hh:mm:ss TZ
-            end_date = dt.strftime("%Y%m%d %H:%M:%S") + " US/Eastern"
+            # Use UTC to avoid timezone conversion issues
+            end_date = dt.strftime("%Y%m%d %H:%M:%S") + " UTC"
 
         # Request historical implied volatility data
         try:
@@ -89,8 +90,8 @@ class TWSDataSource(DataSource):
             ib.disconnect()  # Disconnect to make sure next call works
             df = None
 
-        # Rename 'open', 'high', 'low', 'close' columns to 'Open', 'High', 'Low', 'Close'
-        if df is not None:
+        # Convert to Polars and rename columns to standard format
+        if df is not None and not df.empty:
             df.rename(
                 columns={
                     "open": "Open",
@@ -101,9 +102,27 @@ class TWSDataSource(DataSource):
                 },
                 inplace=True,
             )
-            df.index = pd.DatetimeIndex(df["date"])
-            df.drop(columns=["date"], inplace=True)
 
-            return df
+            # Convert to Polars DataFrame first
+            pl_df = pl.from_pandas(df)
 
-        return pd.DataFrame()
+            # Handle date/datetime column based on bar size
+            if bar_size == BarSize.ONE_DAY:
+                # Daily data should have 'date' column (cast datetime to date)
+                pl_df = pl_df.with_columns(pl.col("date").dt.date().alias("date"))
+            else:
+                # Intraday data should have 'datetime' column
+                pl_df = pl_df.rename({"date": "datetime"})
+                # Ensure timezone-aware UTC
+                try:
+                    pl_df = pl_df.with_columns(
+                        pl.col("datetime").dt.convert_time_zone("UTC").alias("datetime")
+                    )
+                except Exception:
+                    pl_df = pl_df.with_columns(
+                        pl.col("datetime").dt.replace_time_zone("UTC").alias("datetime")
+                    )
+
+            return pl_df
+
+        return pl.DataFrame()

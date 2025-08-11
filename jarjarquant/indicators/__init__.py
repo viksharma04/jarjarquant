@@ -1,7 +1,7 @@
 from .adx import ADX
 from .anchored_vwap import AnchoredVWAP
 from .aroon import Aroon
-from .base import Indicator
+from .base import Indicator, IndicatorSpec
 from .chaikin_money_flow import ChaikinMoneyFlow
 from .cmma import CMMA
 from .detrended_rsi import DetrendedRSI
@@ -23,6 +23,7 @@ from .stochastic_rsi import StochasticRSI
 
 __all__ = [
     "Indicator",
+    "IndicatorSpec",
     "IndicatorType",
     "get_indicator_class",
     "list_available_indicators",

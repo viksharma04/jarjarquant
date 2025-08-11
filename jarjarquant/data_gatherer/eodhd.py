@@ -19,6 +19,34 @@ from .utils import (
 class EODHDDataSource(DataSource):
     def __init__(self, api_key: str):
         self.api_key = api_key
+        self._client: Optional[httpx.AsyncClient] = None
+
+    async def _get_client(self) -> httpx.AsyncClient:
+        """Get or create a reusable HTTP client with connection pooling."""
+        if self._client is None or self._client.is_closed:
+            self._client = httpx.AsyncClient(
+                timeout=30.0,
+                limits=httpx.Limits(
+                    max_keepalive_connections=10,
+                    max_connections=20,
+                    keepalive_expiry=60.0,
+                ),
+            )
+        return self._client
+
+    async def __aenter__(self):
+        """Async context manager entry."""
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit - cleanup client."""
+        if self._client and not self._client.is_closed:
+            await self._client.aclose()
+
+    async def close(self):
+        """Explicitly close the HTTP client."""
+        if self._client and not self._client.is_closed:
+            await self._client.aclose()
 
     async def fetch(
         self,
@@ -65,7 +93,9 @@ class EODHDDataSource(DataSource):
             if end_date is not None:
                 url += f"&to={end_date}"
             try:
-                r = httpx.get(url)
+                client = await self._get_client()
+                r = await client.get(url)
+                r.raise_for_status()
                 series = r.json()
             except Exception:
                 return pl.DataFrame()
@@ -83,7 +113,9 @@ class EODHDDataSource(DataSource):
                     url += f"&from={from_unix_time}"
                 if to_unix_time is not None:
                     url += f"&to={to_unix_time}"
-                r = httpx.get(url)
+                client = await self._get_client()
+                r = await client.get(url)
+                r.raise_for_status()
                 series = r.json()
 
             except Exception as e:
@@ -103,14 +135,16 @@ class EODHDDataSource(DataSource):
                 "volume": "Volume",
             }
         )
+
+        # Ensure Volume is Float64 for consistency across all data sources
+        if "Volume" in df.columns:
+            df = df.with_columns(pl.col("Volume").cast(pl.Float64))
         if "date" in df.columns:
             df = df.with_columns(pl.col("date").str.strptime(pl.Date(), "%Y-%m-%d"))
         elif "datetime" in df.columns:
-            # Convert index to datetime and localize to UTC, then convert to US/Eastern
+            # Parse datetime and keep in native UTC format (no timezone conversion)
             df = df.with_columns(
-                pl.col("datetime")
-                .str.strptime(pl.Datetime("ns"), "%Y-%m-%d %H:%M:%S")
-                .dt.convert_time_zone("US/Eastern")
+                pl.col("datetime").str.strptime(pl.Datetime("ns"), "%Y-%m-%d %H:%M:%S")
             )
         else:
             print("Warning: date or datetime column not present")

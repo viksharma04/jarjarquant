@@ -1,12 +1,62 @@
-from dataclasses import dataclass
-from typing import Optional
+from dataclasses import dataclass, field
+from typing import Any, Dict, Optional
 
 import numpy as np
 import pandas as pd
 
-from jarjarquant.data_analyst import adf_test, jb_normality_test, relative_entropy, range_iqr_ratio, mutual_information, visual_stationary_test
+from jarjarquant.data_analyst import (
+    adf_test,
+    jb_normality_test,
+    mutual_information,
+    range_iqr_ratio,
+    relative_entropy,
+    visual_stationary_test,
+)
 from jarjarquant.feature_engineer import FeatureEngineer
 from jarjarquant.feature_evaluator import FeatureEvaluator
+
+
+@dataclass
+class IndicatorSpec:
+    """
+    Specification for creating an indicator instance with type-safe parameters.
+
+    This dataclass provides a convenient way to specify an indicator along with
+    its parameters, allowing for easy configuration and instantiation of indicators.
+
+    Attributes:
+        indicator_type: The type of indicator to create (from IndicatorType enum)
+        parameters: Dictionary of parameters to pass to the indicator constructor
+                   (excluding the required ohlcv_df parameter)
+
+    Example:
+        spec = IndicatorSpec(
+            indicator_type=IndicatorType.RSI,
+            parameters={'period': 21, 'transform': 'log'}
+        )
+    """
+
+    indicator_type: "IndicatorType"  # Forward reference to avoid circular imports
+    parameters: Dict[str, Any] = field(default_factory=dict)
+
+    def create_indicator(self, ohlcv_df: pd.DataFrame) -> "Indicator":
+        """
+        Create an indicator instance using this specification.
+
+        Args:
+            ohlcv_df: The OHLCV DataFrame to pass to the indicator constructor
+
+        Returns:
+            Configured indicator instance
+
+        Raises:
+            KeyError: If the indicator type is not registered
+            TypeError: If invalid parameters are provided
+        """
+        from jarjarquant.indicators.registry import get_indicator_class
+
+        indicator_class = get_indicator_class(self.indicator_type)
+        return indicator_class(ohlcv_df, **self.parameters)
 
 
 @dataclass
@@ -25,7 +75,7 @@ class Indicator:
         if ohlcv_df is None or ohlcv_df.empty:
             raise ValueError("Please provide a valid OHLCV DataFrame!")
 
-        self.df = ohlcv_df.copy()
+        self.df = ohlcv_df
         self.indicator_type = None
         self.feature_engineer = FeatureEngineer()
         self.feature_evaluator = FeatureEvaluator()

@@ -1,4 +1,5 @@
 import numpy as np
+import polars as pl
 import pandas as pd
 from jarjarquant.data_analyst import atr
 from scipy.stats import norm
@@ -11,7 +12,7 @@ from jarjarquant.indicators.registry import IndicatorType, register_indicator
 class MACD(Indicator):
     def __init__(
         self,
-        ohlcv_df: pd.DataFrame,
+        ohlcv_df: pl.DataFrame,
         short_period: int = 5,
         long_period: int = 20,
         smoothing_factor: int = 2,
@@ -27,7 +28,7 @@ class MACD(Indicator):
         self.transform = transform
 
     def calculate(self) -> np.ndarray:
-        close = self.df["Close"].values
+        close = self.df["Close"].to_numpy()
         short_ema = np.asarray(
             pd.Series(close).ewm(span=self.short_period, adjust=False).mean().values,
             dtype=np.float64,
@@ -39,9 +40,9 @@ class MACD(Indicator):
 
         atr_values = atr(
             self.short_period + self.long_period,
-            self.df["High"],
-            self.df["Low"],
-            self.df["Close"],
+            pd.Series(self.df["High"].to_numpy()),
+            pd.Series(self.df["Low"].to_numpy()),
+            pd.Series(self.df["Close"].to_numpy()),
         ).values
 
         denom = atr_values * np.sqrt(
@@ -57,7 +58,7 @@ class MACD(Indicator):
         macd = np.where(np.isnan(macd), 0, macd)
 
         if self.transform is not None:
-            macd = self.feature_engineer.transform(pd.Series(macd), self.transform)
+            macd = self.feature_engineer.transform(macd, self.transform)
             macd = np.asarray(macd)
 
         if self.return_raw_macd:

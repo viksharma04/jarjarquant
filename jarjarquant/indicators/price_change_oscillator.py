@@ -1,4 +1,5 @@
 import numpy as np
+import polars as pl
 import pandas as pd
 from scipy.stats import norm
 
@@ -10,7 +11,7 @@ from jarjarquant.indicators.registry import register_indicator, IndicatorType
 class PriceChangeOscillator(Indicator):
     def __init__(
         self,
-        ohlcv_df: pd.DataFrame,
+        ohlcv_df: pl.DataFrame,
         short_lookback: int = 5,
         long_lookback_multiplier: int = 5,
         transform=None,
@@ -22,7 +23,7 @@ class PriceChangeOscillator(Indicator):
         self.transform = transform
 
     def calculate(self) -> np.ndarray:
-        close = np.asarray(self.df["Close"].values)
+        close = self.df["Close"].to_numpy()
         prices = np.log(close)
         n = len(close)
 
@@ -30,8 +31,12 @@ class PriceChangeOscillator(Indicator):
         long_lookback = self.long_lookback_multiplier * self.short_lookback
 
         # Calculate ATR over the long lookback period
-        atr = self.data_analyst.atr(
-            long_lookback, self.df["High"], self.df["Low"], self.df["Close"]
+        from jarjarquant.data_analyst import atr
+        atr_values = atr(
+            long_lookback, 
+            pd.Series(self.df["High"].to_numpy()), 
+            pd.Series(self.df["Low"].to_numpy()), 
+            pd.Series(self.df["Close"].to_numpy())
         ).values
 
         for i in range(long_lookback, n):
@@ -49,7 +54,7 @@ class PriceChangeOscillator(Indicator):
                 + (1 / self.short_lookback)
                 + 0.7 * np.log(0.5 * self.long_lookback_multiplier) / 1.609
             )
-            denom = atr[i] * const
+            denom = atr_values[i] * const
             denom = np.maximum(denom, 1e-8)
 
             raw = (short_ma - long_ma) / denom
@@ -59,7 +64,7 @@ class PriceChangeOscillator(Indicator):
         output = np.where(np.isnan(output), 0, output)
 
         if self.transform is not None:
-            output = self.feature_engineer.transform(pd.Series(output), self.transform)
+            output = self.feature_engineer.transform(output, self.transform)
             output = np.asarray(output)
 
         return output

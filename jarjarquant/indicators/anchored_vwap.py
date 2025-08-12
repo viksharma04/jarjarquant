@@ -1,5 +1,5 @@
 import numpy as np
-import pandas as pd
+import polars as pl
 
 from jarjarquant.indicators.base import Indicator
 from jarjarquant.indicators.registry import register_indicator, IndicatorType
@@ -19,7 +19,7 @@ class AnchoredVWAP(Indicator):
 
     def __init__(
         self,
-        ohlcv_df: pd.DataFrame,
+        ohlcv_df: pl.DataFrame,
         threshold_value: float = 0.02,
         atr_period: int = 14,
         price_formula: str = "ohlc4",
@@ -47,7 +47,7 @@ class AnchoredVWAP(Indicator):
         n = len(self.df)
 
         # Get price series for pivot detection (using close)
-        close_prices = self.df["Close"].values
+        close_prices = self.df["Close"].to_numpy()
 
         # Step 1: Find pivot points using directional change algorithm
         pivots = directional_change_pivots(
@@ -64,15 +64,16 @@ class AnchoredVWAP(Indicator):
         else:
             raise ValueError("price_formula must be 'ohlc4' or 'hlc3'")
 
-        volume = self.df["Volume"].values
-        typical_price_values = typical_price.values
+        volume = self.df["Volume"].to_numpy()
+        typical_price_values = typical_price.to_numpy()
 
         # Step 3: Calculate ATR for normalization
+        import pandas as pd
         atr_values = atr(
             atr_length=self.atr_period,
-            high_series=self.df["High"],
-            low_series=self.df["Low"],
-            close_series=self.df["Close"],
+            high_series=pd.Series(self.df["High"].to_numpy()),
+            low_series=pd.Series(self.df["Low"].to_numpy()),
+            close_series=pd.Series(self.df["Close"].to_numpy()),
         ).values
 
         # Initialize output array
@@ -117,7 +118,7 @@ class AnchoredVWAP(Indicator):
 
         # Apply transformation if specified
         if self.transform is not None:
-            output = self.feature_engineer.transform(pd.Series(output), self.transform)
+            output = self.feature_engineer.transform(output, self.transform)
             output = np.asarray(output)
 
         return output

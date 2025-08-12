@@ -1,4 +1,5 @@
 import numpy as np
+import polars as pl
 import pandas as pd
 
 from jarjarquant.indicators.base import Indicator
@@ -9,7 +10,7 @@ from jarjarquant.indicators.registry import register_indicator, IndicatorType
 class ChaikinMoneyFlow(Indicator):
     def __init__(
         self,
-        ohlcv_df: pd.DataFrame,
+        ohlcv_df: pl.DataFrame,
         smoothing_lookback: int = 21,
         volume_lookback: int = 21,
         return_cmf: bool = False,
@@ -23,10 +24,10 @@ class ChaikinMoneyFlow(Indicator):
         self.indicator_type = "continuous"
 
     def calculate(self) -> np.ndarray:
-        Close = self.df["Close"].values
-        High = self.df["High"].values
-        Low = self.df["Low"].values
-        Volume = self.df["Volume"].values
+        Close = self.df["Close"].to_numpy()
+        High = self.df["High"].to_numpy()
+        Low = self.df["Low"].to_numpy()
+        Volume = self.df["Volume"].to_numpy()
 
         output = np.full(len(Close), 0.0)
 
@@ -70,7 +71,7 @@ class ChaikinMoneyFlow(Indicator):
         output = np.where(np.isnan(output), 0, output)
 
         if self.transform is not None:
-            output = self.feature_engineer.transform(pd.Series(output), self.transform)
+            output = self.feature_engineer.transform(output, self.transform)
             output = np.asarray(output)
 
         return output

@@ -1,4 +1,5 @@
 import numpy as np
+import polars as pl
 import pandas as pd
 from scipy.stats import norm
 
@@ -9,7 +10,7 @@ from jarjarquant.indicators.registry import register_indicator, IndicatorType
 @register_indicator(IndicatorType.PRICE_INTENSITY)
 class PriceIntensity(Indicator):
     def __init__(
-        self, ohlcv_df: pd.DataFrame, smoothing_factor: int = 2, transform=None
+        self, ohlcv_df: pl.DataFrame, smoothing_factor: int = 2, transform=None
     ):
         super().__init__(ohlcv_df)
         self.smoothing_factor = smoothing_factor
@@ -17,10 +18,10 @@ class PriceIntensity(Indicator):
         self.transform = transform
 
     def calculate(self) -> np.ndarray:
-        close = self.df["Close"].values
-        high = self.df["High"].values
-        low = self.df["Low"].values
-        _open = self.df["Open"].values
+        close = self.df["Close"].to_numpy()
+        high = self.df["High"].to_numpy()
+        low = self.df["Low"].to_numpy()
+        _open = self.df["Open"].to_numpy()
 
         n = len(close)
         output = np.full(n, 0.0)
@@ -50,7 +51,7 @@ class PriceIntensity(Indicator):
         output = np.where(np.isnan(output), 0, output)
 
         if self.transform is not None:
-            output = self.feature_engineer.transform(pd.Series(output), self.transform)
+            output = self.feature_engineer.transform(output, self.transform)
             output = np.asarray(output)
 
         return output

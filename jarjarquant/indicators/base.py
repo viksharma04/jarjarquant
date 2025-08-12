@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 
 import numpy as np
-import pandas as pd
+import polars as pl
 
 from jarjarquant.data_analyst import (
     adf_test,
@@ -14,6 +14,8 @@ from jarjarquant.data_analyst import (
 )
 from jarjarquant.feature_engineer import FeatureEngineer
 from jarjarquant.feature_evaluator import FeatureEvaluator
+
+from .registry import IndicatorType
 
 
 @dataclass
@@ -39,7 +41,7 @@ class IndicatorSpec:
     indicator_type: "IndicatorType"  # Forward reference to avoid circular imports
     parameters: Dict[str, Any] = field(default_factory=dict)
 
-    def create_indicator(self, ohlcv_df: pd.DataFrame) -> "Indicator":
+    def create_indicator(self, ohlcv_df: pl.DataFrame) -> "Indicator":
         """
         Create an indicator instance using this specification.
 
@@ -71,8 +73,8 @@ class IndicatorEvalResult:
 class Indicator:
     """Base class to implement indicators"""
 
-    def __init__(self, ohlcv_df: pd.DataFrame):
-        if ohlcv_df is None or ohlcv_df.empty:
+    def __init__(self, ohlcv_df: pl.DataFrame):
+        if ohlcv_df is None or ohlcv_df.height == 0:
             raise ValueError("Please provide a valid OHLCV DataFrame!")
 
         self.df = ohlcv_df

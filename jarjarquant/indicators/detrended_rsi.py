@@ -1,5 +1,5 @@
 import numpy as np
-import pandas as pd
+import polars as pl
 
 from jarjarquant.indicators.base import Indicator
 from jarjarquant.indicators.registry import register_indicator, IndicatorType
@@ -13,7 +13,7 @@ class DetrendedRSI(Indicator):
 
     def __init__(
         self,
-        ohlcv_df: pd.DataFrame,
+        ohlcv_df: pl.DataFrame,
         short_period: int = 2,
         long_period: int = 21,
         regression_length: int = 120,
@@ -27,7 +27,7 @@ class DetrendedRSI(Indicator):
         self.transform = transform
 
     def calculate(self) -> np.ndarray:
-        close = self.df["Close"].values
+        close = self.df["Close"].to_numpy()
         n = len(close)
         output = np.full(n, 0.0)
 
@@ -54,7 +54,7 @@ class DetrendedRSI(Indicator):
             output[i] = (y[-1] - y_mean) - coef * (x[-1] - x_mean)
 
         if self.transform is not None:
-            output = self.feature_engineer.transform(pd.Series(output), self.transform)
+            output = self.feature_engineer.transform(output, self.transform)
             output = np.asarray(output)
 
         return output

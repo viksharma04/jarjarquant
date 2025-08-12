@@ -1,4 +1,5 @@
 import numpy as np
+import polars as pl
 import pandas as pd
 from scipy.stats import norm
 
@@ -25,7 +26,7 @@ class CMMA(Indicator):
 
     def __init__(
         self,
-        ohlcv_df: pd.DataFrame,
+        ohlcv_df: pl.DataFrame,
         lookback: int = 21,
         atr_length: int = 21,
         transform=None,
@@ -50,9 +51,9 @@ class CMMA(Indicator):
         """
 
         # Extract the relevant columns from the DataFrame
-        Close = self.df["Close"]
-        Low = self.df["Low"]
-        High = self.df["High"]
+        Close = self.df["Close"].to_numpy()
+        Low = self.df["Low"].to_numpy()
+        High = self.df["High"].to_numpy()
 
         # Compute the natural logarithm of the close prices
         log_close = np.log(Close)
@@ -61,9 +62,10 @@ class CMMA(Indicator):
         rolling_mean = pd.Series(log_close).ewm(span=self.lookback).mean()
 
         # Calculate the denominator using the ATR function and adjust by the sqrt of (lookback + 1)
-        denom = self.data_analyst.atr(
-            self.atr_length, High, Low, Close, ema=True
-        ) * np.sqrt(self.lookback + 1)
+        from jarjarquant.data_analyst import atr
+        denom = atr(
+            self.atr_length, pd.Series(High), pd.Series(Low), pd.Series(Close), ema=True
+        ).values * np.sqrt(self.lookback + 1)
 
         # Normalize the output by dividing the difference between log_close and rolling_mean by denom
         # If denom is 0 or negative, set the normalized output to 0
@@ -72,9 +74,9 @@ class CMMA(Indicator):
         # Transform the normalized output using the cumulative distribution function (CDF) of the normal distribution
         output = 100 * norm.cdf(normalized_output) - 50
 
-        # Return the final CMMA values as a pandas Series with the same index as the input DataFrame
+        # Return the final CMMA values
         if self.transform is not None:
-            output = self.feature_engineer.transform(pd.Series(output), self.transform)
+            output = self.feature_engineer.transform(output, self.transform)
             output = np.asarray(output)
 
         return output

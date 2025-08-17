@@ -37,7 +37,11 @@ class RegressionTrendDeviation(Indicator):
         output = np.full(n, 0.0)
 
         # Calculate the Legendre polynomials for 1, 2, and 3 degrees
-        from jarjarquant.data_analyst import compute_legendre_coefficients, calculate_regression_coefficient
+        from jarjarquant.data_analyst import (
+            compute_legendre_coefficients,
+            calculate_regression_coefficient,
+        )
+
         lgdre_1 = compute_legendre_coefficients(self.lookback, 1)
         lgdre_2 = compute_legendre_coefficients(self.lookback, 2)
         lgdre_3 = compute_legendre_coefficients(self.lookback, 3)
@@ -46,15 +50,9 @@ class RegressionTrendDeviation(Indicator):
         for i in range(self.lookback - 1, n):
             prices = np.log(np.asarray(close[i - self.lookback + 1 : i + 1]))
 
-            reg_coeff_1 = calculate_regression_coefficient(
-                prices, lgdre_1
-            )
-            reg_coeff_2 = calculate_regression_coefficient(
-                prices, lgdre_2
-            )
-            reg_coeff_3 = calculate_regression_coefficient(
-                prices, lgdre_3
-            )
+            reg_coeff_1 = calculate_regression_coefficient(prices, lgdre_1)
+            reg_coeff_2 = calculate_regression_coefficient(prices, lgdre_2)
+            reg_coeff_3 = calculate_regression_coefficient(prices, lgdre_3)
 
             intercept = sum(prices) / self.lookback
 

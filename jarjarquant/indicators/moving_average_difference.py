@@ -54,6 +54,7 @@ class MovingAverageDifference(Indicator):
 
         # See pg 116 eq. 4.7 and 4.8 of Statistically Sound Indicators
         from jarjarquant.data_analyst import atr
+
         atr_values = atr(
             self.short_period + self.long_period,
             pd.Series(self.df["High"].to_numpy()),

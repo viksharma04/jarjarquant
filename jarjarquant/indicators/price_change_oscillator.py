@@ -32,11 +32,12 @@ class PriceChangeOscillator(Indicator):
 
         # Calculate ATR over the long lookback period
         from jarjarquant.data_analyst import atr
+
         atr_values = atr(
-            long_lookback, 
-            pd.Series(self.df["High"].to_numpy()), 
-            pd.Series(self.df["Low"].to_numpy()), 
-            pd.Series(self.df["Close"].to_numpy())
+            long_lookback,
+            pd.Series(self.df["High"].to_numpy()),
+            pd.Series(self.df["Low"].to_numpy()),
+            pd.Series(self.df["Close"].to_numpy()),
         ).values
 
         for i in range(long_lookback, n):

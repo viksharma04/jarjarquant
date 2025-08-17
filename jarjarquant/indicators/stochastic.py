@@ -10,7 +10,13 @@ from jarjarquant.indicators.registry import register_indicator, IndicatorType
 class Stochastic(Indicator):
     """Class to calculate the stochastic oscillator"""
 
-    def __init__(self, ohlcv_df: pl.DataFrame, lookback: int = 14, n_smooth: int = 2, transform=None):
+    def __init__(
+        self,
+        ohlcv_df: pl.DataFrame,
+        lookback: int = 14,
+        n_smooth: int = 2,
+        transform=None,
+    ):
         super().__init__(ohlcv_df)
         self.lookback = lookback
         self.n_smooth = n_smooth

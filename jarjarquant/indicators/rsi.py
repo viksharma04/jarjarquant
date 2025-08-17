@@ -2,7 +2,7 @@ import numpy as np
 import polars as pl
 
 from jarjarquant.indicators.base import Indicator
-from jarjarquant.indicators.registry import register_indicator, IndicatorType
+from jarjarquant.indicators.registry import IndicatorType, register_indicator
 
 
 @register_indicator(IndicatorType.RSI)

@@ -69,6 +69,7 @@ class AnchoredVWAP(Indicator):
 
         # Step 3: Calculate ATR for normalization
         import pandas as pd
+
         atr_values = atr(
             atr_length=self.atr_period,
             high_series=pd.Series(self.df["High"].to_numpy()),

@@ -37,15 +37,15 @@ class RegressionTrend(Indicator):
 
         # Calculate the Legendre polynomials
         from jarjarquant.data_analyst import compute_normalized_legendre_coefficients
-        lgdre = compute_normalized_legendre_coefficients(
-            self.lookback, self.degree
-        )
+
+        lgdre = compute_normalized_legendre_coefficients(self.lookback, self.degree)
         if self.atr_length < 1:
             self.atr_length = self.lookback
             expanding_atr = True
         else:
             expanding_atr = False
         from jarjarquant.data_analyst import atr
+
         atr_values = atr(
             self.atr_length,
             pd.Series(self.df["High"].to_numpy()),

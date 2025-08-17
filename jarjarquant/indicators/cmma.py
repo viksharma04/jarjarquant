@@ -63,6 +63,7 @@ class CMMA(Indicator):
 
         # Calculate the denominator using the ATR function and adjust by the sqrt of (lookback + 1)
         from jarjarquant.data_analyst import atr
+
         denom = atr(
             self.atr_length, pd.Series(High), pd.Series(Low), pd.Series(Close), ema=True
         ).values * np.sqrt(self.lookback + 1)

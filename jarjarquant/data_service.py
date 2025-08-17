@@ -89,23 +89,35 @@ class DataService:
         BarSize.ONE_DAY: "1d",
     }
 
-    def __init__(self, data_path: Union[str, Path] = "jarjarquant/sample_data/data/"):
+    def __init__(self, data_path: Optional[Union[str, Path]] = None):
         """
         Initialize the DataService.
 
         Args:
             data_path: Base path to the data directory. Defaults to sample_data/data/
         """
-        self.data_path = Path(data_path)
+        # If using default path, make it relative to this file's location
+        if data_path is None:
+            # Get the directory where this file is located
+            current_file_dir = Path(__file__).parent
+            # Navigate to the project root and then to the data path
+            self.data_path = current_file_dir / "sample_data" / "data"
+        else:
+            self.data_path = Path(data_path)
+
         self.prices_path = self.data_path / "prices"
         self.equities_path = self.prices_path / "equities"
         self.forex_path = self.prices_path / "forex"
+        self.db_path = Path(__file__).parent / "db"
 
         # Verify paths exist
         if not self.data_path.exists():
             logger.error(f"Current working directory: {Path.cwd()}")
             logger.error(f"Resolved data path: {self.data_path.resolve()}")
             raise ValueError(f"Data path {self.data_path} does not exist")
+
+        # Ensure db path exists
+        self.db_path.mkdir(exist_ok=True)
 
         # Initialize DuckDB connection (in-memory by default)
         try:
@@ -722,3 +734,88 @@ class DataService:
         self.close()
         # Don't suppress exceptions
         return False
+
+    def save_to_database(
+        self,
+        data: Union[pd.DataFrame, pl.DataFrame],
+        table_name: str,
+        append: bool = True,
+    ) -> None:
+        """
+        Save tabular data to a parquet file in the database folder.
+
+        Args:
+            data: DataFrame to save (pandas or polars)
+            table_name: Name of the table/file (without .parquet extension)
+            append: If True, append to existing file. If False, overwrite.
+
+        Raises:
+            ValueError: If data is empty or invalid
+            IOError: If unable to write to file
+        """
+        if (
+            data is None
+            or (hasattr(data, "empty") and data.empty)
+            or (hasattr(data, "height") and data.height == 0)
+        ):
+            raise ValueError("Cannot save empty or None data")
+
+        file_path = self.db_path / f"{table_name}.parquet"
+
+        # Convert to polars if pandas
+        if isinstance(data, pd.DataFrame):
+            pl_data = pl.from_pandas(data)
+        else:
+            pl_data = data
+
+        try:
+            if append and file_path.exists():
+                # Read existing data and append
+                try:
+                    existing_data = pl.read_parquet(file_path)
+                    combined_data = pl.concat([existing_data, pl_data], how="vertical")
+                    combined_data.write_parquet(file_path)
+                    logger.info(f"Appended {pl_data.height} rows to {file_path}")
+                except Exception as e:
+                    logger.warning(
+                        f"Could not read existing file {file_path}: {e}. Overwriting."
+                    )
+                    pl_data.write_parquet(file_path)
+                    logger.info(
+                        f"Saved {pl_data.height} rows to {file_path} (overwrite)"
+                    )
+            else:
+                # Create new file or overwrite
+                pl_data.write_parquet(file_path)
+                logger.info(f"Saved {pl_data.height} rows to {file_path}")
+
+        except Exception as e:
+            logger.error(f"Failed to save data to {file_path}: {e}")
+            raise IOError(f"Unable to write to database file {file_path}: {e}")
+
+    def load_from_database(self, table_name: str) -> Optional[pl.DataFrame]:
+        """
+        Load data from a parquet file in the database folder.
+
+        Args:
+            table_name: Name of the table/file (without .parquet extension)
+
+        Returns:
+            Polars DataFrame if file exists, None otherwise
+
+        Raises:
+            IOError: If unable to read the file
+        """
+        file_path = self.db_path / f"{table_name}.parquet"
+
+        if not file_path.exists():
+            logger.warning(f"Database file {file_path} does not exist")
+            return None
+
+        try:
+            data = pl.read_parquet(file_path)
+            logger.debug(f"Loaded {data.height} rows from {file_path}")
+            return data
+        except Exception as e:
+            logger.error(f"Failed to load data from {file_path}: {e}")
+            raise IOError(f"Unable to read database file {file_path}: {e}")

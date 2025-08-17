@@ -91,18 +91,18 @@ DURATION_TO_DAYS_MAP = {
 def convert_date_to_unixtime(start_date: str, end_date: str) -> List[int]:
     """
     Convert date strings to Unix timestamps for EODHD intraday API.
-    
+
     EODHD's intraday API expects Unix timestamps that represent market time.
     This function converts dates like "2023-01-01" to Unix timestamps representing
     midnight Eastern time on that date, which is what EODHD expects.
-    
+
     Note: This is ONLY for API parameter conversion. The returned data from EODHD
     is processed and stored in UTC format.
-    
+
     Args:
         start_date: Date string in "YYYY-MM-DD" format
         end_date: Date string in "YYYY-MM-DD" format
-    
+
     Returns:
         List of [from_timestamp, to_timestamp] as Unix timestamps
     """

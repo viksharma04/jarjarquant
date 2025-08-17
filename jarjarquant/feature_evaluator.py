@@ -1,7 +1,9 @@
 """The feature evaluator specializes in calculating the efficacy of one or many indicators given a matrix of features X and a target label/series y"""
 
 import concurrent.futures
-from typing import Callable, Optional
+import logging
+import time
+from typing import TYPE_CHECKING, Callable, Optional
 
 import numpy as np
 import pandas as pd
@@ -14,6 +16,11 @@ from jarjarquant.cython_utils.opt_threshold import optimize_threshold_cython
 
 from .data_analyst import get_spearman_correlation, plot_loess
 from .data_gatherer import DataGatherer
+from .data_service import DataService, SampleRequest
+
+if TYPE_CHECKING:
+    # Imported only for type checking to avoid circular import at runtime
+    from .indicators.base import IndicatorSpec
 
 # Define the PurgedKFold class for feature importance scores
 
@@ -97,6 +104,7 @@ class FeatureEvaluator:
         self.X = X
         self.y = y
         self.sw = sw
+        self.ds = DataService()
 
     @staticmethod
     def cv_score(
@@ -595,83 +603,219 @@ class FeatureEvaluator:
         return results
 
     @staticmethod
-    def indicator_distribution_study(inputs: dict):
-        outputs = []
-
-        indicator_func = inputs["indicator_func"]
-        kwargs = inputs["kwargs"]
+    def indicator_distribution_study(inputs: dict) -> dict:
+        indicator_spec = inputs["indicator_spec"]
         ohlcv_df = inputs["ohlcv_df"]
+        include_detailed_data = inputs.get("include_detailed_data", False)
 
-        # data_gatherer = DataGatherer()
-        # ohlcv_df = data_gatherer.get_random_price_samples_tws(
-        #     num_tickers_to_sample=1)[0]
-        indicator_instance = indicator_func(ohlcv_df, **kwargs)
+        # Timer: Indicator creation
+        indicator_instance = indicator_spec.create_indicator(ohlcv_df)
 
+        # Timer: Indicator evaluation report
         indicator_instance.indicator_evaluation_report()
 
-        outputs.append(
-            True if indicator_instance.eval_result.adf_test == "passed" else False
-        )
-        outputs.append(
-            True
-            if indicator_instance.eval_result.jb_normality_test == "passed"
-            else False
-        )
-        outputs.append(indicator_instance.eval_result.relative_entropy)
-        outputs.append(indicator_instance.eval_result.range_iqr_ratio)
+        # Basic outputs for backward compatibility
+        basic_outputs = [
+            indicator_instance.eval_result.adf_test.is_stationary,
+            indicator_instance.eval_result.jb_normality_test.is_normal,
+            indicator_instance.eval_result.relative_entropy.entropy,
+            indicator_instance.eval_result.range_iqr_ratio.ratio,
+        ]
 
-        return outputs
+        if include_detailed_data:
+            # Return detailed data for database saving
+            return {
+                "basic_outputs": basic_outputs,
+                "ticker": inputs.get("ticker", ""),
+                "indicator_spec": indicator_spec,
+                "eval_result": indicator_instance.eval_result,
+            }
+        else:
+            # Return just basic outputs for backward compatibility
+            return {"basic_outputs": basic_outputs}
 
-    @staticmethod
     def parallel_indicator_distribution_study(
-        indicator_func: Callable,
-        n_runs: Optional[int] = 10,
-        custom_sample: Optional[str] = None,
-        **kwargs,
+        self,
+        indicator_spec: "IndicatorSpec",
+        sample_request: Optional[SampleRequest],
+        save_run: bool = True,
     ):
-        inputs_list = []
-        data_gatherer = DataGatherer()
-        ohlcv_dfs = (
-            data_gatherer.get_random_price_samples_tws(num_tickers_to_sample=n_runs)
-            if custom_sample is None
-            else data_gatherer.get_custom_sample(sample_name=custom_sample)
-        )
+        start_time = time.time()
+        logger = logging.getLogger(__name__)
 
-        # Create multiple instances of the indicator with a different data sample each time
-        for _, ohlcv_df in enumerate(ohlcv_dfs):
+        # Timer: Sample request setup
+        sample_setup_start = time.time()
+        if sample_request is None:
+            sample_request = SampleRequest(
+                sample_type="equities",
+                start_date=(pd.Timestamp.now() - pd.Timedelta(days=1)).strftime(
+                    "%Y-%m-%d"
+                ),
+                end_date=pd.Timestamp.now().strftime("%Y-%m-%d"),
+            )
+        sample_setup_time = time.time() - sample_setup_start
+        logger.info(f"Sample request setup time: {sample_setup_time:.4f}s")
+
+        # Timer: Data gathering
+        data_gather_start = time.time()
+        sample = self.ds.get_sample(sample_request)
+        df = sample.data
+        data_gather_time = time.time() - data_gather_start
+        logger.info(f"Data gathering time: {data_gather_time:.4f}s")
+
+        # Timer: Data preparation
+        data_prep_start = time.time()
+        grouped_data = list(df.group_by("ticker", maintain_order=True))
+        inputs_list = []
+
+        for ticker, ohlcv_df in grouped_data:
             inputs = {
-                "indicator_func": indicator_func,
+                "indicator_spec": indicator_spec,
                 "ohlcv_df": ohlcv_df,
-                "kwargs": kwargs,
+                "ticker": ticker[0],
+                "include_detailed_data": save_run,
             }
             inputs_list.append(inputs)
+        data_prep_time = time.time() - data_prep_start
+        logger.info(f"Data preparation time: {data_prep_time:.4f}s")
+        logger.info(f"Processing {len(inputs_list)} ticker datasets")
 
+        # Timer: Parallel processing
+        parallel_start = time.time()
         with concurrent.futures.ProcessPoolExecutor() as executor:
             results = list(
                 executor.map(FeatureEvaluator.indicator_distribution_study, inputs_list)
             )
+        parallel_time = time.time() - parallel_start
+        logger.info(f"Parallel processing time: {parallel_time:.4f}s")
 
-        # results is a list of lists - average across the lists to get the final results
-        adf_test = [result[0] for result in results]
-        jb_test = [result[1] for result in results]
-        relative_entropy = [result[2] for result in results]
-        range_iqr_ratio = [result[3] for result in results]
+        # Extract outputs and save detailed data if requested
+        if save_run:
+            # Save detailed data to database
+            self._save_detailed_results(results, sample_request, indicator_spec)
 
-        results = [
+            # Extract basic outputs for aggregation
+            basic_outputs_list = [result["basic_outputs"] for result in results]
+        else:
+            # Handle backward compatibility - results are basic outputs
+            basic_outputs_list = [
+                result["basic_outputs"] if isinstance(result, dict) else result
+                for result in results
+            ]
+
+        adf_test = [output[0] for output in basic_outputs_list]
+        jb_test = [output[1] for output in basic_outputs_list]
+        relative_entropy = [output[2] for output in basic_outputs_list]
+        range_iqr_ratio = [output[3] for output in basic_outputs_list]
+
+        final_results = [
             np.mean(adf_test),
             np.mean(jb_test),
             np.mean([x for x in relative_entropy if not (np.isnan(x) or np.isinf(x))]),
             np.mean([x for x in range_iqr_ratio if not (np.isnan(x) or np.isinf(x))]),
         ]
-        # results = np.mean(results, axis=0)
-        results = [round(value, 2) for value in results]
+        final_results = [round(value, 2) for value in final_results]
+
+        total_time = time.time() - start_time
+        logger.info(
+            f"Total parallel_indicator_distribution_study time: {total_time:.4f}s"
+        )
 
         return {
-            "ADF Test": results[0],
-            "Jarque-Bera Test": results[1],
-            "Relative Entropy": results[2],
-            "Range-IQR Ratio": results[3],
+            "ADF Test": final_results[0],
+            "Jarque-Bera Test": final_results[1],
+            "Relative Entropy": final_results[2],
+            "Range-IQR Ratio": final_results[3],
         }
+
+    def _save_detailed_results(
+        self,
+        results: list,
+        sample_request: SampleRequest,
+        indicator_spec: "IndicatorSpec",
+    ) -> None:
+        """
+        Save detailed results to the database.
+
+        Args:
+            results: List of detailed result dictionaries
+            sample_request: The original sample request
+            indicator_spec: The indicator specification used
+        """
+        import json
+        from datetime import datetime
+
+        import polars as pl
+
+        rows = []
+
+        for result in results:
+            if not isinstance(result, dict) or "eval_result" not in result:
+                continue
+
+            ticker = result["ticker"]
+            eval_result = result["eval_result"]
+
+            # Create row with all required fields
+            row = {
+                # Main identification fields
+                "indicator": indicator_spec.indicator_type.value
+                if hasattr(indicator_spec.indicator_type, "value")
+                else str(indicator_spec.indicator_type),
+                "ticker": ticker,
+                "bar_size": sample_request.bar_size.value
+                if hasattr(sample_request.bar_size, "value")
+                else str(sample_request.bar_size),
+                "start_date": sample_request.start_date,
+                "end_date": sample_request.end_date,
+                "indicator_params": json.dumps(indicator_spec.parameters),
+                "timestamp": datetime.now().isoformat(),
+                # ADF Test results (prefixed to avoid naming conflicts)
+                "adf_statistic": eval_result.adf_test.statistic,
+                "adf_pvalue": eval_result.adf_test.pvalue,
+                "adf_lags": eval_result.adf_test.lags,
+                "adf_nobs": eval_result.adf_test.nobs,
+                "adf_critical_values": json.dumps(eval_result.adf_test.critical_values),
+                "adf_decision": eval_result.adf_test.decision,
+                "adf_is_stationary": eval_result.adf_test.is_stationary,
+                # Normality Test results (prefixed to avoid naming conflicts)
+                "jb_statistic": eval_result.jb_normality_test.statistic,
+                "jb_pvalue": eval_result.jb_normality_test.pvalue,
+                "jb_method": eval_result.jb_normality_test.method,
+                "jb_decision": eval_result.jb_normality_test.decision,
+                "jb_is_normal": eval_result.jb_normality_test.is_normal,
+                # Entropy results
+                "entropy": eval_result.relative_entropy.entropy,
+                "normalized_entropy": eval_result.relative_entropy.normalized_entropy,
+                "entropy_n_bins": eval_result.relative_entropy.n_bins,
+                "entropy_n_observations": eval_result.relative_entropy.n_observations,
+                "entropy_quality_assessment": eval_result.relative_entropy.quality_assessment,
+                "entropy_is_concerning": eval_result.relative_entropy.is_concerning,
+                # Range-IQR results
+                "range_iqr_ratio": eval_result.range_iqr_ratio.ratio,
+                "range_value": eval_result.range_iqr_ratio.range_value,
+                "iqr_value": eval_result.range_iqr_ratio.iqr_value,
+                "quality_assessment": eval_result.range_iqr_ratio.quality_assessment,
+                "has_excessive_outliers": eval_result.range_iqr_ratio.has_excessive_outliers,
+            }
+
+            rows.append(row)
+
+        if rows:
+            # Convert to Polars DataFrame and save
+            df = pl.DataFrame(rows)
+
+            try:
+                self.ds.save_to_database(df, "ind_dist_studies_db", append=True)
+                logging.getLogger(__name__).info(
+                    f"Saved {len(rows)} rows to ind_dist_studies_db.parquet"
+                )
+            except Exception as e:
+                logging.getLogger(__name__).error(
+                    f"Failed to save detailed results: {e}"
+                )
+        else:
+            logging.getLogger(__name__).warning("No valid results to save")
 
     @staticmethod
     def optimize_threshold(

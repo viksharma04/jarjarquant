@@ -5,9 +5,12 @@ import numpy as np
 import polars as pl
 
 from jarjarquant.data_analyst import (
-    adf_test,
+    ADFTestResult,
+    EntropyResult,
+    NormalityTestResult,
+    RangeIQRResult,
+    adf_test_ultra_fast,
     jb_normality_test,
-    mutual_information,
     range_iqr_ratio,
     relative_entropy,
     visual_stationary_test,
@@ -17,6 +20,9 @@ from jarjarquant.feature_evaluator import FeatureEvaluator
 
 from .registry import IndicatorType
 
+FEATURE_ENGINEER = FeatureEngineer()
+FEATURE_EVALUATOR = FeatureEvaluator()
+
 
 @dataclass
 class IndicatorSpec:
@@ -25,6 +31,8 @@ class IndicatorSpec:
 
     This dataclass provides a convenient way to specify an indicator along with
     its parameters, allowing for easy configuration and instantiation of indicators.
+    Default parameters are automatically populated from the indicator class, and user
+    parameters override defaults with validation.
 
     Attributes:
         indicator_type: The type of indicator to create (from IndicatorType enum)
@@ -40,6 +48,42 @@ class IndicatorSpec:
 
     indicator_type: "IndicatorType"  # Forward reference to avoid circular imports
     parameters: Dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self):
+        """
+        Post-initialization hook to populate default parameters and validate user inputs.
+        """
+        from jarjarquant.indicators.registry import get_indicator_parameters
+
+        # Get the default parameters for this indicator type
+        default_params = get_indicator_parameters(self.indicator_type)
+        
+        # Remove 'ohlcv_df' from default parameters as it's handled separately
+        if 'ohlcv_df' in default_params:
+            del default_params['ohlcv_df']
+        
+        # Validate that user-provided parameters are valid for this indicator
+        invalid_params = set(self.parameters.keys()) - set(default_params.keys())
+        if invalid_params:
+            valid_params = list(default_params.keys())
+            raise ValueError(
+                f"Invalid parameters for {self.indicator_type.value}: {list(invalid_params)}. "
+                f"Valid parameters are: {valid_params}"
+            )
+        
+        # Create final parameters by merging defaults with user overrides
+        final_params = {}
+        for param_name, param_info in default_params.items():
+            if param_name in self.parameters:
+                # User provided this parameter - use their value
+                final_params[param_name] = self.parameters[param_name]
+            elif not param_info['required']:
+                # Parameter has a default value - use it
+                final_params[param_name] = param_info['default']
+            # Required parameters without defaults will be caught during indicator instantiation
+        
+        # Update the parameters dict with the final merged parameters
+        self.parameters = final_params
 
     def create_indicator(self, ohlcv_df: pl.DataFrame) -> "Indicator":
         """
@@ -63,11 +107,10 @@ class IndicatorSpec:
 
 @dataclass
 class IndicatorEvalResult:
-    adf_test: Optional[str] = None
-    jb_normality_test: Optional[str] = None
-    relative_entropy: Optional[np.float64] = None
-    range_iqr_ratio: Optional[np.float64] = None
-    mutual_information: Optional[np.ndarray] = None
+    adf_test: ADFTestResult
+    jb_normality_test: NormalityTestResult
+    relative_entropy: EntropyResult
+    range_iqr_ratio: RangeIQRResult
 
 
 class Indicator:
@@ -79,8 +122,8 @@ class Indicator:
 
         self.df = ohlcv_df
         self.indicator_type = None
-        self.feature_engineer = FeatureEngineer()
-        self.feature_evaluator = FeatureEvaluator()
+        self.feature_engineer = FEATURE_ENGINEER
+        self.feature_evaluator = FEATURE_EVALUATOR
 
         self.eval_result = None
 
@@ -98,7 +141,7 @@ class Indicator:
         self,
         verbose: bool = False,
         transform: Optional[str] = None,
-        n_bins_to_discretize: Optional[int] = None,
+        visual_test: Optional[bool] = False,
         **kwargs,
     ):
         """Runs a set of statistical tests to examine various properties of the
@@ -110,44 +153,32 @@ class Indicator:
             n_bins_to_discretize (int, optional): Number of bins to use if indicator
             is continuous. Used for mutual information calculation. Defaults to 10.
         """
-        self.eval_result = IndicatorEvalResult()
         values = self.calculate()
         if transform is not None:
             values = self.feature_engineer.transform(values, transform, **kwargs)
             if not isinstance(values, np.ndarray):
                 values = np.asarray(values)
 
-        visual_stationary_test(values)
-        self.eval_result.adf_test = adf_test(values, verbose=verbose).decision
-        self.eval_result.jb_normality_test = jb_normality_test(
-            values, verbose=verbose
-        ).decision
-        self.eval_result.relative_entropy = relative_entropy(
-            values, verbose=verbose
-        ).normalized_entropy
-        self.eval_result.range_iqr_ratio = range_iqr_ratio(
-            values, verbose=verbose
-        ).ratio
+        if visual_test:
+            visual_stationary_test(values)
+        import concurrent.futures
 
-        if self.indicator_type == "continuous":
-            n_bins_to_discretize = (
-                n_bins_to_discretize if n_bins_to_discretize is not None else 10
+        # Run statistical tests in parallel using ThreadPoolExecutor
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            # Submit all tests to the executor
+            adf_future = executor.submit(adf_test_ultra_fast, values, verbose=verbose)
+            normality_future = executor.submit(
+                jb_normality_test, values, verbose=verbose
             )
-            self.eval_result.mutual_information = mutual_information(
-                array=values,
-                lag=10,
-                n_bins=n_bins_to_discretize,
-                is_discrete=False,
-                verbose=verbose,
-            )
-        else:
-            self.eval_result.mutual_information = mutual_information(
-                array=values,
-                lag=10,
-                n_bins=None,
-                is_discrete=True,
-                verbose=verbose,
-            )
+            entropy_future = executor.submit(relative_entropy, values, verbose=verbose)
+            r_iqr_future = executor.submit(range_iqr_ratio, values, verbose=verbose)
 
-        for i in range(1, 11):
-            print(f"NMI @ lag {i} = {self.eval_result.mutual_information[i - 1]}")
+            # Wait for all results
+            adf_test_result = adf_future.result()
+            normality_test_result = normality_future.result()
+            entropy_result = entropy_future.result()
+            r_iqr_result = r_iqr_future.result()
+
+        self.eval_result = IndicatorEvalResult(
+            adf_test_result, normality_test_result, entropy_result, r_iqr_result
+        )

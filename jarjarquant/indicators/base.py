@@ -57,11 +57,11 @@ class IndicatorSpec:
 
         # Get the default parameters for this indicator type
         default_params = get_indicator_parameters(self.indicator_type)
-        
+
         # Remove 'ohlcv_df' from default parameters as it's handled separately
-        if 'ohlcv_df' in default_params:
-            del default_params['ohlcv_df']
-        
+        if "ohlcv_df" in default_params:
+            del default_params["ohlcv_df"]
+
         # Validate that user-provided parameters are valid for this indicator
         invalid_params = set(self.parameters.keys()) - set(default_params.keys())
         if invalid_params:
@@ -70,18 +70,18 @@ class IndicatorSpec:
                 f"Invalid parameters for {self.indicator_type.value}: {list(invalid_params)}. "
                 f"Valid parameters are: {valid_params}"
             )
-        
+
         # Create final parameters by merging defaults with user overrides
         final_params = {}
         for param_name, param_info in default_params.items():
             if param_name in self.parameters:
                 # User provided this parameter - use their value
                 final_params[param_name] = self.parameters[param_name]
-            elif not param_info['required']:
+            elif not param_info["required"]:
                 # Parameter has a default value - use it
-                final_params[param_name] = param_info['default']
+                final_params[param_name] = param_info["default"]
             # Required parameters without defaults will be caught during indicator instantiation
-        
+
         # Update the parameters dict with the final merged parameters
         self.parameters = final_params
 
@@ -127,7 +127,7 @@ class Indicator:
 
         self.eval_result = None
 
-    def calculate(self):
+    def calculate(self) -> np.ndarray:
         """Implemented in derived classes
 
         Raises:

@@ -22,6 +22,24 @@ if TYPE_CHECKING:
     # Imported only for type checking to avoid circular import at runtime
     from .indicators.base import IndicatorSpec
 
+
+def _format_ind_dist_outputs(basic_outputs_list: list) -> list:
+    adf_test = [output[0] for output in basic_outputs_list]
+    jb_test = [output[1] for output in basic_outputs_list]
+    relative_entropy = [output[2] for output in basic_outputs_list]
+    range_iqr_ratio = [output[3] for output in basic_outputs_list]
+
+    final_results = [
+        np.mean(adf_test),
+        np.mean(jb_test),
+        np.mean([x for x in relative_entropy if not (np.isnan(x) or np.isinf(x))]),
+        np.mean([x for x in range_iqr_ratio if not (np.isnan(x) or np.isinf(x))]),
+    ]
+    final_results = [round(value, 2) for value in final_results]
+
+    return final_results
+
+
 # Define the PurgedKFold class for feature importance scores
 
 
@@ -468,10 +486,10 @@ class FeatureEvaluator:
             q75_return_above = associated_returns[above_threshold.values].quantile(0.75)
 
             # Calculate spearman rank correlation above threshold
-            spearman_corr_above = spearmanr(
+            spearman_corr_above, _ = spearmanr(
                 indicator_values[above_threshold.values],
                 associated_returns[above_threshold.values],
-            )[0]
+            )
 
             # Below threshold
             pf_long_below = (
@@ -491,10 +509,10 @@ class FeatureEvaluator:
             q75_return_below = associated_returns[below_threshold.values].quantile(0.75)
 
             # Calculate spearman rank correlation below threshold
-            spearman_corr_below = spearmanr(
+            spearman_corr_below, _ = spearmanr(
                 indicator_values[below_threshold.values],
                 associated_returns[below_threshold.values],
-            )[0]
+            )
 
             results.append(
                 {
@@ -656,6 +674,19 @@ class FeatureEvaluator:
         sample_setup_time = time.time() - sample_setup_start
         logger.info(f"Sample request setup time: {sample_setup_time:.4f}s")
 
+        # Check if results already exist in database
+        logger.info("Checking for existing results in database...")
+        existing_results = self._check_existing_results(sample_request, indicator_spec)
+
+        if existing_results is not None:
+            total_time = time.time() - start_time
+            logger.info(
+                f"Found existing results in database! Total time: {total_time:.4f}s"
+            )
+            return existing_results
+
+        logger.info("No existing results found. Running new study...")
+
         # Timer: Data gathering
         data_gather_start = time.time()
         sample = self.ds.get_sample(sample_request)
@@ -703,18 +734,7 @@ class FeatureEvaluator:
                 for result in results
             ]
 
-        adf_test = [output[0] for output in basic_outputs_list]
-        jb_test = [output[1] for output in basic_outputs_list]
-        relative_entropy = [output[2] for output in basic_outputs_list]
-        range_iqr_ratio = [output[3] for output in basic_outputs_list]
-
-        final_results = [
-            np.mean(adf_test),
-            np.mean(jb_test),
-            np.mean([x for x in relative_entropy if not (np.isnan(x) or np.isinf(x))]),
-            np.mean([x for x in range_iqr_ratio if not (np.isnan(x) or np.isinf(x))]),
-        ]
-        final_results = [round(value, 2) for value in final_results]
+        final_results = _format_ind_dist_outputs(basic_outputs_list)
 
         total_time = time.time() - start_time
         logger.info(
@@ -808,7 +828,7 @@ class FeatureEvaluator:
             try:
                 self.ds.save_to_database(df, "ind_dist_studies_db", append=True)
                 logging.getLogger(__name__).info(
-                    f"Saved {len(rows)} rows to ind_dist_studies_db.parquet"
+                    f"Saved {len(rows)} rows to ind_dist_studies_db table"
                 )
             except Exception as e:
                 logging.getLogger(__name__).error(
@@ -816,6 +836,127 @@ class FeatureEvaluator:
                 )
         else:
             logging.getLogger(__name__).warning("No valid results to save")
+
+    def _check_existing_results(
+        self, sample_request: SampleRequest, indicator_spec: "IndicatorSpec"
+    ) -> Optional[dict]:
+        """
+        Check if results already exist in the database for the given sample request and indicator spec.
+
+        Args:
+            sample_request: The sample request parameters
+            indicator_spec: The indicator specification
+
+        Returns:
+            Dictionary with aggregated results if found, None otherwise
+        """
+        import json
+
+        import duckdb
+
+        logger = logging.getLogger(__name__)
+        db_file_path = self.ds.db_path / "ind_dist_studies_db.duckdb"
+
+        if not db_file_path.exists():
+            logger.debug("Database file does not exist")
+            return None
+
+        try:
+            # Connect to the database
+            conn = duckdb.connect(str(db_file_path))
+
+            try:
+                # Check if table exists
+                result = conn.execute(
+                    "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'ind_dist_studies_db'"
+                ).fetchone()
+
+                if result is None or result[0] == 0:
+                    logger.debug("Table ind_dist_studies_db does not exist")
+                    return None
+
+                # Build query parameters
+                indicator_name = (
+                    indicator_spec.indicator_type.value
+                    if hasattr(indicator_spec.indicator_type, "value")
+                    else str(indicator_spec.indicator_type)
+                )
+
+                bar_size = (
+                    sample_request.bar_size.value
+                    if hasattr(sample_request.bar_size, "value")
+                    else str(sample_request.bar_size)
+                )
+
+                indicator_params_json = json.dumps(indicator_spec.parameters)
+
+                # Query for existing results
+                query = """
+                SELECT 
+                    adf_is_stationary,
+                    jb_is_normal,
+                    entropy,
+                    range_iqr_ratio
+                FROM ind_dist_studies_db 
+                WHERE indicator = ? 
+                    AND bar_size = ? 
+                    AND start_date = ? 
+                    AND end_date = ? 
+                    AND indicator_params = ?
+                """
+
+                result_df = conn.execute(
+                    query,
+                    [
+                        indicator_name,
+                        bar_size,
+                        sample_request.start_date,
+                        sample_request.end_date,
+                        indicator_params_json,
+                    ],
+                ).pl()
+
+                if result_df.height == 0:
+                    logger.debug("No existing results found for the given parameters")
+                    return None
+
+                # Calculate aggregated results
+                adf_tests = result_df["adf_is_stationary"].to_list()
+                jb_tests = result_df["jb_is_normal"].to_list()
+                relative_entropies = result_df["entropy"].to_list()
+                range_iqr_ratios = result_df["range_iqr_ratio"].to_list()
+
+                # Filter out NaN and inf values for entropy and range_iqr_ratio
+                filtered_entropies = [
+                    x for x in relative_entropies if not (np.isnan(x) or np.isinf(x))
+                ]
+                filtered_ratios = [
+                    x for x in range_iqr_ratios if not (np.isnan(x) or np.isinf(x))
+                ]
+
+                final_results = [
+                    np.mean(adf_tests),
+                    np.mean(jb_tests),
+                    np.mean(filtered_entropies) if filtered_entropies else 0.0,
+                    np.mean(filtered_ratios) if filtered_ratios else 0.0,
+                ]
+                final_results = [round(value, 2) for value in final_results]
+
+                logger.info(f"Found {result_df.height} existing results in database")
+
+                return {
+                    "ADF Test": final_results[0],
+                    "Jarque-Bera Test": final_results[1],
+                    "Relative Entropy": final_results[2],
+                    "Range-IQR Ratio": final_results[3],
+                }
+
+            finally:
+                conn.close()
+
+        except Exception as e:
+            logger.error(f"Error checking existing results: {e}")
+            return None
 
     @staticmethod
     def optimize_threshold(
@@ -857,7 +998,12 @@ class FeatureEvaluator:
         min_kept = max(int(n * min_kept), 1)
 
         # Calculate the spearman rank correlation between the indicator and returns.
-        spearman_corr = spearmanr(indicator_values, return_values)[0]
+        spearman_result = spearmanr(indicator_values, return_values)
+        spearman_corr = (
+            spearman_result[0]
+            if isinstance(spearman_result, tuple)
+            else spearman_result
+        )
         if spearman_corr < 0.0:
             indicator_sign = -1.0
         else:

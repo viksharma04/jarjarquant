@@ -7,6 +7,7 @@ IndicatorType enum, registration, and the updated add_indicator method.
 
 import numpy as np
 import pandas as pd
+import polars as pl
 import pytest
 
 from jarjarquant.indicators import MACD, RSI
@@ -93,6 +94,7 @@ class TestJarjarquantAddIndicator:
 
         # Create OHLCV data
         data = {
+            "Date": dates,
             "Open": prices * (1 + np.random.normal(0, 0.001, 100)),
             "High": prices * (1 + np.abs(np.random.normal(0, 0.01, 100))),
             "Low": prices * (1 - np.abs(np.random.normal(0, 0.01, 100))),
@@ -100,7 +102,7 @@ class TestJarjarquantAddIndicator:
             "Volume": np.random.randint(10000, 100000, 100),
         }
 
-        return pd.DataFrame(data, index=dates)
+        return pl.DataFrame(data)
 
     @pytest.fixture
     def jjq_instance(self, sample_data):
@@ -121,10 +123,10 @@ class TestJarjarquantAddIndicator:
         assert "rsi_14" in jjq_instance._df.columns
 
         # Check that values exist (this RSI is normalized: (RSI - 50) / 10)
-        rsi_values = jjq_instance._df["rsi_14"].dropna()
+        rsi_values = jjq_instance._df["rsi_14"].drop_nulls()
         assert len(rsi_values) > 0, "Should have RSI values"
         # The normalized RSI should be centered around 0
-        assert not rsi_values.isna().all(), "RSI values should not be all NaN"
+        assert not rsi_values.is_null().all(), "RSI values should not be all NaN"
 
     def test_add_indicator_macd(self, jjq_instance):
         """Test adding MACD indicator."""
@@ -140,7 +142,7 @@ class TestJarjarquantAddIndicator:
         assert "macd" in jjq_instance._df.columns
 
         # Check that we have MACD values
-        macd_values = jjq_instance._df["macd"].dropna()
+        macd_values = jjq_instance._df["macd"].drop_nulls()
         assert len(macd_values) > 0, "Should have MACD values"
 
     def test_add_indicator_stochastic(self, jjq_instance):
@@ -157,9 +159,11 @@ class TestJarjarquantAddIndicator:
         assert "stoch" in jjq_instance._df.columns
 
         # Check that we have Stochastic values
-        stoch_values = jjq_instance._df["stoch"].dropna()
+        stoch_values = jjq_instance._df["stoch"].drop_nulls()
         assert len(stoch_values) > 0, "Should have Stochastic values"
-        assert not stoch_values.isna().all(), "Stochastic values should not be all NaN"
+        assert not stoch_values.is_null().all(), (
+            "Stochastic values should not be all NaN"
+        )
 
     def test_add_multiple_indicators(self, jjq_instance):
         """Test adding multiple indicators."""

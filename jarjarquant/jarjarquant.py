@@ -3,6 +3,7 @@
 from typing import Dict
 
 import pandas as pd
+import polars as pl
 
 from jarjarquant.data_gatherer import DataGatherer
 from jarjarquant.indicators import (
@@ -123,7 +124,7 @@ class Jarjarquant(Labeller):
             # Add MACD indicator
             jq.add_indicator(IndicatorType.MACD, "macd", short_period=12, long_period=26)
         """
-        if self._df.empty:
+        if len(self._df) == 0:
             raise ValueError(
                 "DataFrame is empty. Cannot add indicators to empty DataFrame."
             )
@@ -136,4 +137,9 @@ class Jarjarquant(Labeller):
         indicator_values = indicator_instance.calculate()
 
         # Add the indicator values as a new column
-        self._df = self._df.assign(**{column_name: indicator_values})
+        if isinstance(self._df, pd.DataFrame):
+            self._df = self._df.assign(**{column_name: indicator_values})
+        elif isinstance(self._df, pl.DataFrame):
+            self._df = self._df.with_columns(pl.Series(column_name, indicator_values))
+        else:
+            raise ValueError("DataFrame must be either pandas or polars DataFrame.")

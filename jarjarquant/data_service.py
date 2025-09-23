@@ -101,7 +101,7 @@ class DataService:
             # Get the directory where this file is located
             current_file_dir = Path(__file__).parent
             # Navigate to the project root and then to the data path
-            self.data_path = current_file_dir / "sample_data" / "data"
+            self.data_path = current_file_dir / "db" / "sample_data"
         else:
             self.data_path = Path(data_path)
 
@@ -742,25 +742,24 @@ class DataService:
         append: bool = True,
     ) -> None:
         """
-        Save tabular data to a parquet file in the database folder.
+        Save tabular data to a DuckDB table.
 
         Args:
             data: DataFrame to save (pandas or polars)
-            table_name: Name of the table/file (without .parquet extension)
-            append: If True, append to existing file. If False, overwrite.
+            table_name: Name of the table
+            append: If True, append to existing table. If False, overwrite.
 
         Raises:
             ValueError: If data is empty or invalid
-            IOError: If unable to write to file
+            IOError: If unable to write to database
         """
         if (
             data is None
-            or (hasattr(data, "empty") and data.empty)
-            or (hasattr(data, "height") and data.height == 0)
+            or (isinstance(data, pd.DataFrame) and data.empty)
+            or (isinstance(data, pl.DataFrame) and data.height == 0)
+            or (hasattr(data, "__len__") and len(data) == 0)
         ):
             raise ValueError("Cannot save empty or None data")
-
-        file_path = self.db_path / f"{table_name}.parquet"
 
         # Convert to polars if pandas
         if isinstance(data, pd.DataFrame):
@@ -769,53 +768,97 @@ class DataService:
             pl_data = data
 
         try:
-            if append and file_path.exists():
-                # Read existing data and append
-                try:
-                    existing_data = pl.read_parquet(file_path)
-                    combined_data = pl.concat([existing_data, pl_data], how="vertical")
-                    combined_data.write_parquet(file_path)
-                    logger.info(f"Appended {pl_data.height} rows to {file_path}")
-                except Exception as e:
-                    logger.warning(
-                        f"Could not read existing file {file_path}: {e}. Overwriting."
+            # Create database file path for persistent storage
+            db_file_path = self.db_path / f"{table_name}.duckdb"
+            # Create parent directory if it doesn't exist
+            db_file_path.parent.mkdir(parents=True, exist_ok=True)
+            logger.info(f"db file path type: {type(db_file_path)}")
+            # Use persistent database connection for this table
+            # DuckDB will create the file automatically if it doesn't exist
+            table_conn = duckdb.connect(db_file_path)
+
+            try:
+                if append and self._table_exists(table_conn, table_name):
+                    # Insert into existing table
+                    table_conn.execute(
+                        f"INSERT INTO {table_name} SELECT * FROM pl_data"
                     )
-                    pl_data.write_parquet(file_path)
+                    logger.info(f"Appended {pl_data.height} rows to table {table_name}")
+                else:
+                    # Create new table or replace existing
+                    if not append and self._table_exists(table_conn, table_name):
+                        table_conn.execute(f"DROP TABLE {table_name}")
+
+                    table_conn.execute(
+                        f"CREATE TABLE {table_name} AS SELECT * FROM pl_data"
+                    )
                     logger.info(
-                        f"Saved {pl_data.height} rows to {file_path} (overwrite)"
+                        f"Created table {table_name} with {pl_data.height} rows"
                     )
-            else:
-                # Create new file or overwrite
-                pl_data.write_parquet(file_path)
-                logger.info(f"Saved {pl_data.height} rows to {file_path}")
+
+            finally:
+                table_conn.close()
 
         except Exception as e:
-            logger.error(f"Failed to save data to {file_path}: {e}")
-            raise IOError(f"Unable to write to database file {file_path}: {e}")
+            logger.error(f"Failed to save data to table {table_name}: {e}")
+            raise IOError(f"Unable to write to database table {table_name}: {e}")
+
+    def _table_exists(self, conn: duckdb.DuckDBPyConnection, table_name: str) -> bool:
+        """
+        Check if a table exists in the database.
+
+        Args:
+            conn: DuckDB connection
+            table_name: Name of the table to check
+
+        Returns:
+            True if table exists, False otherwise
+        """
+        try:
+            result = conn.execute(
+                "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = ?",
+                [table_name],
+            ).fetchone()
+            return result is not None and result[0] > 0
+        except Exception:
+            return False
 
     def load_from_database(self, table_name: str) -> Optional[pl.DataFrame]:
         """
-        Load data from a parquet file in the database folder.
+        Load data from a DuckDB table.
 
         Args:
-            table_name: Name of the table/file (without .parquet extension)
+            table_name: Name of the table
 
         Returns:
-            Polars DataFrame if file exists, None otherwise
+            Polars DataFrame if table exists, None otherwise
 
         Raises:
-            IOError: If unable to read the file
+            IOError: If unable to read the table
         """
-        file_path = self.db_path / f"{table_name}.parquet"
+        db_file_path = self.db_path / f"{table_name}.duckdb"
 
-        if not file_path.exists():
-            logger.warning(f"Database file {file_path} does not exist")
+        if not db_file_path.exists():
+            logger.warning(f"Database file {db_file_path} does not exist")
             return None
 
         try:
-            data = pl.read_parquet(file_path)
-            logger.debug(f"Loaded {data.height} rows from {file_path}")
-            return data
+            # Use persistent database connection for this table
+            table_conn = duckdb.connect(str(db_file_path))
+
+            try:
+                if not self._table_exists(table_conn, table_name):
+                    logger.warning(f"Table {table_name} does not exist in database")
+                    return None
+
+                # Query the table and convert to Polars DataFrame
+                result = table_conn.execute(f"SELECT * FROM {table_name}").pl()
+                logger.debug(f"Loaded {result.height} rows from table {table_name}")
+                return result
+
+            finally:
+                table_conn.close()
+
         except Exception as e:
-            logger.error(f"Failed to load data from {file_path}: {e}")
-            raise IOError(f"Unable to read database file {file_path}: {e}")
+            logger.error(f"Failed to load data from table {table_name}: {e}")
+            raise IOError(f"Unable to read database table {table_name}: {e}")

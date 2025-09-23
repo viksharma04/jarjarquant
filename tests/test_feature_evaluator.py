@@ -169,7 +169,8 @@ def test_indicator_threshold_search_no_thresholds_provided():
 
 
 class TestDataServiceDatabase:
-    def test_save_to_database_with_polars_dataframe(self):
+    @patch('jarjarquant.data_service.DataService.__init__', return_value=None)
+    def test_save_to_database_with_polars_dataframe(self, mock_init):
         """Test saving a Polars DataFrame to database."""
         # Create test data
         data = pl.DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", "c"]})
@@ -188,7 +189,8 @@ class TestDataServiceDatabase:
                 mock_connect.assert_called_once_with(mock_db_file_path)
                 mock_conn.execute.assert_called_once()
 
-    def test_save_to_database_with_pandas_dataframe(self):
+    @patch('jarjarquant.data_service.DataService.__init__', return_value=None)
+    def test_save_to_database_with_pandas_dataframe(self, mock_init):
         """Test saving a Pandas DataFrame to database."""
         # Create test data
         data = pd.DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", "c"]})
@@ -207,7 +209,8 @@ class TestDataServiceDatabase:
                 mock_connect.assert_called_once_with(mock_db_file_path)
                 mock_conn.execute.assert_called_once()
 
-    def test_save_to_database_empty_data(self):
+    @patch('jarjarquant.data_service.DataService.__init__', return_value=None)
+    def test_save_to_database_empty_data(self, mock_init):
         """Test that saving empty data raises ValueError."""
         ds = DataService()
 
@@ -219,7 +222,8 @@ class TestDataServiceDatabase:
         with pytest.raises(ValueError, match="Cannot save empty or None data"):
             ds.save_to_database(None, "test_table")  # type: ignore
 
-    def test_load_from_database_existing_file(self):
+    @patch('jarjarquant.data_service.DataService.__init__', return_value=None)
+    def test_load_from_database_existing_file(self, mock_init):
         """Test loading data from existing database file."""
         from pathlib import Path
 
@@ -240,7 +244,8 @@ class TestDataServiceDatabase:
                 assert result is not None
                 assert result.equals(expected_data)
 
-    def test_load_from_database_nonexistent_file(self):
+    @patch('jarjarquant.data_service.DataService.__init__', return_value=None)
+    def test_load_from_database_nonexistent_file(self, mock_init):
         """Test loading data from non-existent database file returns None."""
         from pathlib import Path
 
@@ -258,7 +263,8 @@ class TestParallelIndicatorDistributionStudy:
     @patch(
         "jarjarquant.feature_evaluator.FeatureEvaluator.indicator_distribution_study"
     )
-    def test_parallel_indicator_distribution_study_save_run_false(self, mock_study):
+    @patch('jarjarquant.data_service.DataService.__init__', return_value=None)
+    def test_parallel_indicator_distribution_study_save_run_false(self, mock_ds_init, mock_study):
         """Test parallel_indicator_distribution_study with save_run=False."""
         # Mock the static method to return basic outputs
         mock_study.return_value = {"basic_outputs": [True, False, 0.5, 1.2]}
@@ -310,8 +316,9 @@ class TestParallelIndicatorDistributionStudy:
     @patch(
         "jarjarquant.feature_evaluator.FeatureEvaluator.indicator_distribution_study"
     )
+    @patch('jarjarquant.data_service.DataService.__init__', return_value=None)
     def test_parallel_indicator_distribution_study_save_run_true(
-        self, mock_study, mock_save
+        self, mock_ds_init, mock_study, mock_save
     ):
         """Test parallel_indicator_distribution_study with save_run=True."""
         # Mock detailed outputs
@@ -369,7 +376,8 @@ class TestParallelIndicatorDistributionStudy:
             assert "ADF Test" in result
             assert "Jarque-Bera Test" in result
 
-    def test_save_detailed_results(self):
+    @patch('jarjarquant.data_service.DataService.__init__', return_value=None)
+    def test_save_detailed_results(self, mock_ds_init):
         """Test _save_detailed_results method."""
         fe = FeatureEvaluator()
         fe.ds = MagicMock()
@@ -463,7 +471,8 @@ class TestParallelIndicatorDistributionStudy:
         for col in expected_columns:
             assert col in saved_df.columns
 
-    def test_save_detailed_results_empty_results(self):
+    @patch('jarjarquant.data_service.DataService.__init__', return_value=None)
+    def test_save_detailed_results_empty_results(self, mock_ds_init):
         """Test _save_detailed_results with empty results."""
         fe = FeatureEvaluator()
         fe.ds = MagicMock()
@@ -477,7 +486,8 @@ class TestParallelIndicatorDistributionStudy:
         # Verify save_to_database was not called
         fe.ds.save_to_database.assert_not_called()
 
-    def test_save_detailed_results_invalid_results(self):
+    @patch('jarjarquant.data_service.DataService.__init__', return_value=None)
+    def test_save_detailed_results_invalid_results(self, mock_ds_init):
         """Test _save_detailed_results with invalid results structure."""
         fe = FeatureEvaluator()
         fe.ds = MagicMock()

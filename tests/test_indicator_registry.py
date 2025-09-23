@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import polars as pl
 import pytest
+from unittest.mock import patch
 
 from jarjarquant.indicators import MACD, RSI
 from jarjarquant.indicators.registry import (
@@ -18,7 +19,10 @@ from jarjarquant.indicators.registry import (
     is_indicator_registered,
     list_available_indicators,
 )
-from jarjarquant.jarjarquant import Jarjarquant
+
+# Mock DataService before importing Jarjarquant to prevent data path issues in CI/CD
+with patch('jarjarquant.data_service.DataService.__init__', return_value=None):
+    from jarjarquant.jarjarquant import Jarjarquant
 
 
 class TestIndicatorRegistry:
@@ -107,9 +111,10 @@ class TestJarjarquantAddIndicator:
     @pytest.fixture
     def jjq_instance(self, sample_data):
         """Create a Jarjarquant instance with sample data."""
-        jjq = Jarjarquant()
-        jjq._df = sample_data
-        return jjq
+        with patch('jarjarquant.data_service.DataService.__init__', return_value=None):
+            jjq = Jarjarquant()
+            jjq._df = sample_data
+            return jjq
 
     def test_add_indicator_rsi(self, jjq_instance):
         """Test adding RSI indicator."""
@@ -184,7 +189,8 @@ class TestJarjarquantAddIndicator:
 
     def test_add_indicator_empty_dataframe(self):
         """Test error handling for empty DataFrame."""
-        jjq = Jarjarquant()
+        with patch('jarjarquant.data_service.DataService.__init__', return_value=None):
+            jjq = Jarjarquant()
         # _df is empty by default
 
         with pytest.raises(ValueError) as exc_info:

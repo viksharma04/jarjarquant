@@ -67,10 +67,11 @@ class MarketParams:
     start_price: float = 100.0
     start_date: str = "2023-01-01"
 
-    # Market hours (for intraday data)
-    market_open_hour: int = 9
-    market_close_hour: int = 16
-    timezone: str = "US/Eastern"
+    # Market hours (for intraday data) - times are in local market time (Eastern Time).
+    # Note: Eastern Time shifts between UTC-5 (EST) and UTC-4 (EDT) due to daylight saving time.
+    market_open_hour: int = 9   # 9 AM local market open (Eastern Time)
+    market_close_hour: int = 16 # 4 PM local market close (Eastern Time)
+    timezone: str = "America/New_York"  # Use IANA timezone for proper DST handling
 
 
 @register_data_source("synthetic")
@@ -257,7 +258,7 @@ class SyntheticDataSource(DataSource):
                 pl.col("High").cast(pl.Float64),
                 pl.col("Low").cast(pl.Float64),
                 pl.col("Close").cast(pl.Float64),
-                pl.col("Volume").cast(pl.Int64),
+                pl.col("Volume").cast(pl.Float64),
             ]
         )
 
@@ -510,4 +511,4 @@ class SyntheticDataSource(DataSource):
             )
             volumes = volumes * volume_multiplier[: len(volumes)]
 
-        return volumes.astype(int)
+        return volumes.astype(float)

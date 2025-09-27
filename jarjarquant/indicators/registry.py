@@ -14,7 +14,7 @@ Key functions:
 
 import inspect
 from enum import Enum
-from typing import TYPE_CHECKING, Dict, Type
+from typing import TYPE_CHECKING, Callable, Dict, Type, TypeVar
 
 if TYPE_CHECKING:
     from jarjarquant.indicators.base import Indicator
@@ -42,9 +42,12 @@ class IndicatorType(Enum):
 
 # Global registry mapping indicator types to their classes
 INDICATOR_REGISTRY: Dict[IndicatorType, Type["Indicator"]] = {}
+TIndicator = TypeVar("TIndicator", bound="Indicator")
 
 
-def register_indicator(indicator_type: IndicatorType):
+def register_indicator(
+    indicator_type: IndicatorType,
+) -> Callable[[Type[TIndicator]], Type[TIndicator]]:
     """
     Decorator to register an indicator class with the registry.
 
@@ -60,7 +63,7 @@ def register_indicator(indicator_type: IndicatorType):
             pass
     """
 
-    def decorator(cls: Type["Indicator"]) -> Type["Indicator"]:
+    def decorator(cls: Type[TIndicator]) -> Type[TIndicator]:
         INDICATOR_REGISTRY[indicator_type] = cls
         return cls
 

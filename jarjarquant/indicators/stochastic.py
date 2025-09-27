@@ -1,4 +1,5 @@
 import numpy as np
+import polars as pl
 import pandas as pd
 
 from jarjarquant.indicators.base import Indicator
@@ -9,7 +10,13 @@ from jarjarquant.indicators.registry import register_indicator, IndicatorType
 class Stochastic(Indicator):
     """Class to calculate the stochastic oscillator"""
 
-    def __init__(self, ohlcv_df, lookback: int = 14, n_smooth: int = 2, transform=None):
+    def __init__(
+        self,
+        ohlcv_df: pl.DataFrame,
+        lookback: int = 14,
+        n_smooth: int = 2,
+        transform=None,
+    ):
         super().__init__(ohlcv_df)
         self.lookback = lookback
         self.n_smooth = n_smooth
@@ -17,7 +24,7 @@ class Stochastic(Indicator):
         self.transform = transform
 
     def calculate(self) -> np.ndarray:
-        close = self.df["Close"].values
+        close = self.df["Close"].to_numpy()
         n = len(close)
         output = np.full(n, 50.0)
 
@@ -47,7 +54,7 @@ class Stochastic(Indicator):
                         output[i] = 0.33333 * sto_1 + 0.66667 * output[i - 2]
 
         if self.transform is not None:
-            output = self.feature_engineer.transform(pd.Series(output), self.transform)
+            output = self.feature_engineer.transform(output, self.transform)
             output = np.asarray(output)
 
         return output

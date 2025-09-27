@@ -111,10 +111,8 @@ def visual_stationary_test(
 
 def adf_test(
     values: np.ndarray,
-    maxlag: Optional[int] = None,
-    regression: str = "c",
-    autolag: Optional[str] = "AIC",
     alpha: float = 0.05,
+    fast: bool = True,
     verbose: bool = False,
 ) -> ADFTestResult:
     """
@@ -122,10 +120,8 @@ def adf_test(
 
     Args:
         values: Time series data
-        maxlag: Maximum number of lags to include in test
-        regression: Constant and trend order to include in regression
-        autolag: Method to use when automatically determining the lag length
         alpha: Significance level for hypothesis test
+        fast: If True, use optimized fast mode with limited maxlag
         verbose: If True, log test results
 
     Returns:
@@ -140,11 +136,28 @@ def adf_test(
     if len(clean_values) < 3:
         raise ValueError("Series too short for ADF test after dropping NaNs")
 
+    # Optimized lag selection for performance
+    if fast:
+        autolag = None
+        # Cap maxlag to reasonable values for performance
+        n = len(clean_values)
+        if n < 100:
+            maxlag = min(3, n // 4)
+        elif n < 500:
+            maxlag = min(8, n // 10)
+        else:
+            maxlag = min(12, n // 20)
+    else:
+        autolag = "AIC"
+        maxlag = None
+
     try:
-        result = adfuller(
-            clean_values, maxlag=maxlag, regression=regression, autolag=autolag
-        )
-        test_statistic, p_value, lags, nobs, critical_values, _ = result
+        result = adfuller(clean_values, maxlag=maxlag, autolag=autolag)
+        test_statistic = result[0]
+        p_value = result[1]
+        lags = result[2]
+        nobs = result[3]
+        critical_values = result[4]
 
         # Make decision based on p-value and alpha
         is_stationary = bool(p_value < alpha)
@@ -176,6 +189,74 @@ def adf_test(
 
     except ValueError as e:
         raise ValueError(f"ADF test failed: {str(e)}")
+
+
+def adf_test_ultra_fast(
+    values: np.ndarray,
+    alpha: float = 0.05,
+    verbose: bool = False,
+) -> ADFTestResult:
+    """
+    Ultra-fast ADF test using minimal lags for performance-critical applications.
+
+    This version sacrifices some statistical rigor for ~10x speed improvement.
+    Use when you need to test many series quickly and can tolerate some false positives.
+
+    Args:
+        values: Time series data
+        alpha: Significance level for hypothesis test
+        verbose: If True, log test results
+
+    Returns:
+        ADFTestResult: Structured result with test statistics and decision
+    """
+    # Drop NaNs and validate
+    clean_values = values[~np.isnan(values)] if np.any(np.isnan(values)) else values
+
+    if len(clean_values) < 3:
+        raise ValueError("Series too short for ADF test after dropping NaNs")
+
+    # Ultra-fast mode: use minimal lags
+    maxlag = min(2, len(clean_values) // 10)
+
+    try:
+        result = adfuller(clean_values, maxlag=maxlag, autolag=None)
+        test_statistic = result[0]
+        p_value = result[1]
+        lags = result[2]
+        nobs = result[3]
+        critical_values = result[4]
+
+        # Make decision based on p-value and alpha
+        is_stationary = bool(p_value < alpha)
+
+        # Determine strength of evidence
+        if test_statistic < critical_values.get("1%", float("-inf")):
+            decision = "strong_evidence_stationary"
+        elif is_stationary:
+            decision = "stationary"
+        else:
+            decision = "non_stationary"
+
+        test_result = ADFTestResult(
+            statistic=test_statistic,
+            pvalue=p_value,
+            lags=lags,
+            nobs=nobs,
+            critical_values=critical_values,
+            decision=decision,
+            is_stationary=is_stationary,
+        )
+
+        if verbose:
+            logger.info(
+                f"Ultra-fast ADF Test: statistic={test_statistic:.4f}, p-value={p_value:.4f}, decision={decision}"
+            )
+
+        return test_result
+
+    except ValueError as e:
+        raise ValueError(f"Ultra-fast ADF test failed: {str(e)}")
 
 
 def jb_normality_test(
@@ -811,40 +892,42 @@ def plot_loess(
 
 
 @jit(nopython=True)
-def _determine_initial_direction(series: np.ndarray, start_idx: int, thresholds: np.ndarray) -> int:
+def _determine_initial_direction(
+    series: np.ndarray, start_idx: int, thresholds: np.ndarray
+) -> int:
     """
     Look ahead to determine the initial direction based on first significant move.
-    
+
     Args:
         series: Price series
         start_idx: Starting index
         thresholds: Threshold values
-    
+
     Returns:
         1 for up, -1 for down, 0 if no significant move found
     """
     n = len(series)
     if start_idx >= n - 1:
         return 1  # Default to up if no data to analyze
-    
+
     initial_price = series[start_idx]
     if abs(initial_price) < 1e-10:
         return 1  # Default to up if price is zero
-    
+
     # Look ahead for first significant directional change
     for i in range(start_idx + 1, n):
         value = series[i]
-        
+
         # Skip invalid values
         if value == 0.0 or np.isnan(value):
             continue
-        
+
         threshold = thresholds[i]
         change = (value - initial_price) / abs(initial_price)
-        
+
         if abs(change) >= threshold:
             return 1 if change > 0 else -1
-    
+
     return 1  # Default to up if no significant move found
 
 
@@ -852,11 +935,11 @@ def _determine_initial_direction(series: np.ndarray, start_idx: int, thresholds:
 def _directional_change_core(series: np.ndarray, thresholds: np.ndarray) -> tuple:
     """
     Numba-optimized core directional change detection.
-    
+
     Args:
         series: Price series
         thresholds: Threshold values (same length as series)
-    
+
     Returns:
         Tuple of (recognition_indices, extreme_indices)
     """
@@ -864,52 +947,52 @@ def _directional_change_core(series: np.ndarray, thresholds: np.ndarray) -> tupl
     if n == 0:
         empty_array = np.empty(0, dtype=np.int64)
         return (empty_array, empty_array)
-    
+
     # Find first valid (non-zero) value for initial detection
     start_idx = 0
     for i in range(n):
         if series[i] != 0.0 and not np.isnan(series[i]):
             start_idx = i
             break
-    
+
     if start_idx == n - 1:  # Only one valid value
         result = np.empty(1, dtype=np.int64)
         result[0] = start_idx
         return (result, result)
-    
+
     # Determine initial direction by looking ahead
     initial_direction = _determine_initial_direction(series, start_idx, thresholds)
     up = initial_direction > 0
-    
+
     # Pre-allocate arrays with maximum possible size
     max_pivots = n // 2 + 1
     recognition_indices_temp = np.empty(max_pivots, dtype=np.int64)
     extreme_indices_temp = np.empty(max_pivots, dtype=np.int64)
-    
+
     pivot_count = 0
     current_pivot = series[start_idx]
     current_pivot_idx = start_idx
-    
+
     # Add initial pivot
     recognition_indices_temp[pivot_count] = start_idx
     extreme_indices_temp[pivot_count] = start_idx
     pivot_count += 1
-    
+
     for i in range(start_idx + 1, n):
         value = series[i]
-        
+
         # Skip invalid values
         if value == 0.0 or np.isnan(value):
             continue
-            
+
         threshold = thresholds[i]
-        
+
         # Guard against division by zero
         if abs(current_pivot) < 1e-10:
             current_pivot = value
             current_pivot_idx = i
             continue
-        
+
         if up:
             # Looking for higher highs
             if value > current_pivot:
@@ -921,7 +1004,9 @@ def _directional_change_core(series: np.ndarray, thresholds: np.ndarray) -> tupl
                 if change < -threshold:
                     up = False
                     recognition_indices_temp[pivot_count] = i  # Recognition index
-                    extreme_indices_temp[pivot_count] = current_pivot_idx  # Extreme index
+                    extreme_indices_temp[pivot_count] = (
+                        current_pivot_idx  # Extreme index
+                    )
                     pivot_count += 1
                     current_pivot = value
                     current_pivot_idx = i
@@ -936,15 +1021,17 @@ def _directional_change_core(series: np.ndarray, thresholds: np.ndarray) -> tupl
                 if change > threshold:
                     up = True
                     recognition_indices_temp[pivot_count] = i  # Recognition index
-                    extreme_indices_temp[pivot_count] = current_pivot_idx  # Extreme index
+                    extreme_indices_temp[pivot_count] = (
+                        current_pivot_idx  # Extreme index
+                    )
                     pivot_count += 1
                     current_pivot = value
                     current_pivot_idx = i
-    
+
     # Trim arrays to actual size
     recognition_indices = recognition_indices_temp[:pivot_count]
     extreme_indices = extreme_indices_temp[:pivot_count]
-    
+
     return (recognition_indices, extreme_indices)
 
 
@@ -960,7 +1047,7 @@ def directional_change_pivots(
 ) -> tuple:
     """
     Detect directional change pivots using static or volatility-based thresholds.
-    
+
     Args:
         series: Price series (typically close prices)
         threshold_type: "static" for fixed threshold, "volatility" for ATR-based
@@ -971,65 +1058,76 @@ def directional_change_pivots(
         close_series: Close prices (required for volatility threshold, defaults to series)
         return_extremes: If True, return tuple of (recognition_indices, extreme_indices).
                         If False, return only recognition_indices for backward compatibility.
-    
+
     Returns:
         If return_extremes=True: tuple of (recognition_indices, extreme_indices)
         If return_extremes=False: recognition_indices only (for backward compatibility)
-    
+
     Raises:
         ValueError: If inputs are invalid or missing required data for volatility threshold
     """
     if len(series) == 0:
         empty_array = np.array([], dtype=np.int64)
         return (empty_array, empty_array) if return_extremes else empty_array
-    
+
     series = np.asarray(series, dtype=np.float64)
-    
+
     if threshold_type == "static":
         if threshold_value is None:
-            raise ValueError("threshold_value must be provided for static threshold type")
-        
+            raise ValueError(
+                "threshold_value must be provided for static threshold type"
+            )
+
         # Create constant threshold array
         thresholds = np.full(len(series), abs(threshold_value), dtype=np.float64)
-        
+
     elif threshold_type == "volatility":
         if any(x is None for x in [high_series, low_series]):
-            raise ValueError("high_series and low_series must be provided for volatility threshold")
-        
+            raise ValueError(
+                "high_series and low_series must be provided for volatility threshold"
+            )
+
         high_series = np.asarray(high_series, dtype=np.float64)
         low_series = np.asarray(low_series, dtype=np.float64)
-        close_series = np.asarray(close_series if close_series is not None else series, dtype=np.float64)
-        
-        if not (len(series) == len(high_series) == len(low_series) == len(close_series)):
+        close_series = np.asarray(
+            close_series if close_series is not None else series, dtype=np.float64
+        )
+
+        if not (
+            len(series) == len(high_series) == len(low_series) == len(close_series)
+        ):
             raise ValueError("All price series must have the same length")
-        
+
         # Convert to pandas for ATR calculation
         import pandas as pd
+
         high_pd = pd.Series(high_series)
         low_pd = pd.Series(low_series)
         close_pd = pd.Series(close_series)
-        
+
         # Calculate ATR
         atr_series = atr(atr_window, high_pd, low_pd, close_pd)
         atr_values = atr_series.values
-        
+
         # Use ATR as percentage of current price for threshold
         # Guard against division by zero
         thresholds = np.where(
             np.abs(series) > 1e-10,
             atr_values / np.abs(series),
-            np.full(len(series), 0.01)  # Default 1% if division by zero
+            np.full(len(series), 0.01),  # Default 1% if division by zero
         )
-        
+
         # Handle NaN values in ATR (fill with default)
         thresholds = np.where(np.isnan(thresholds), 0.01, thresholds)
-        
+
     else:
-        raise ValueError(f"Invalid threshold_type: {threshold_type}. Must be 'static' or 'volatility'")
-    
+        raise ValueError(
+            f"Invalid threshold_type: {threshold_type}. Must be 'static' or 'volatility'"
+        )
+
     # Call optimized core function
     recognition_indices, extreme_indices = _directional_change_core(series, thresholds)
-    
+
     if return_extremes:
         return (recognition_indices, extreme_indices)
     else:

@@ -1,8 +1,8 @@
 import numpy as np
-import pandas as pd
+import polars as pl
 
 from jarjarquant.indicators.base import Indicator
-from jarjarquant.indicators.registry import register_indicator, IndicatorType
+from jarjarquant.indicators.registry import IndicatorType, register_indicator
 
 from .rsi import RSI
 from .stochastic import Stochastic
@@ -14,7 +14,7 @@ class StochasticRSI(Indicator):
 
     def __init__(
         self,
-        ohlcv_df: pd.DataFrame,
+        ohlcv_df: pl.DataFrame,
         rsi_period: int = 14,
         stochastic_period: int = 14,
         n_smooth: int = 2,
@@ -28,13 +28,13 @@ class StochasticRSI(Indicator):
         self.transform = transform
 
     def calculate(self) -> np.ndarray:
-        rsi = RSI(self.df, self.rsi_period).calculate()
-        # Store RSI values in a DataFrame and rename the column to 'Close'
-        rsi_df = pd.DataFrame(rsi, columns=["Close"])
+        rsi = RSI(ohlcv_df=self.df, period=self.rsi_period).calculate()
+        # Store RSI values in a polars DataFrame and rename the column to 'Close'
+        rsi_df = pl.DataFrame({"Close": rsi})
         output = Stochastic(rsi_df, self.stochastic_period, self.n_smooth).calculate()
 
         if self.transform is not None:
-            output = self.feature_engineer.transform(pd.Series(output), self.transform)
+            output = self.feature_engineer.transform(output, self.transform)
             output = np.asarray(output)
 
         return output

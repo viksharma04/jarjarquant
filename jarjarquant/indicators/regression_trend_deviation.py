@@ -1,4 +1,5 @@
 import numpy as np
+import polars as pl
 import pandas as pd
 from scipy.stats import norm
 
@@ -10,7 +11,7 @@ from jarjarquant.indicators.registry import register_indicator, IndicatorType
 class RegressionTrendDeviation(Indicator):
     def __init__(
         self,
-        ohlcv_df: pd.DataFrame,
+        ohlcv_df: pl.DataFrame,
         lookback: int = 14,
         fit_degree: int = 1,
         transform=None,
@@ -30,29 +31,28 @@ class RegressionTrendDeviation(Indicator):
                 } to accommodate fit_degree of {self.fit_degree}."
             )
 
-        close = self.df["Close"].values
+        close = self.df["Close"].to_numpy()
         n = len(close)
 
         output = np.full(n, 0.0)
 
         # Calculate the Legendre polynomials for 1, 2, and 3 degrees
-        lgdre_1 = self.data_analyst.compute_legendre_coefficients(self.lookback, 1)
-        lgdre_2 = self.data_analyst.compute_legendre_coefficients(self.lookback, 2)
-        lgdre_3 = self.data_analyst.compute_legendre_coefficients(self.lookback, 3)
+        from jarjarquant.data_analyst import (
+            compute_legendre_coefficients,
+            calculate_regression_coefficient,
+        )
+
+        lgdre_1 = compute_legendre_coefficients(self.lookback, 1)
+        lgdre_2 = compute_legendre_coefficients(self.lookback, 2)
+        lgdre_3 = compute_legendre_coefficients(self.lookback, 3)
 
         # Loop over data starting from lookback-1
         for i in range(self.lookback - 1, n):
             prices = np.log(np.asarray(close[i - self.lookback + 1 : i + 1]))
 
-            reg_coeff_1 = self.data_analyst.calculate_regression_coefficient(
-                prices, lgdre_1
-            )
-            reg_coeff_2 = self.data_analyst.calculate_regression_coefficient(
-                prices, lgdre_2
-            )
-            reg_coeff_3 = self.data_analyst.calculate_regression_coefficient(
-                prices, lgdre_3
-            )
+            reg_coeff_1 = calculate_regression_coefficient(prices, lgdre_1)
+            reg_coeff_2 = calculate_regression_coefficient(prices, lgdre_2)
+            reg_coeff_3 = calculate_regression_coefficient(prices, lgdre_3)
 
             intercept = sum(prices) / self.lookback
 
@@ -78,7 +78,7 @@ class RegressionTrendDeviation(Indicator):
                 output[i] = 100 * norm.cdf(0.6 * error_contribution) - 50
 
         if self.transform is not None:
-            output = self.feature_engineer.transform(pd.Series(output), self.transform)
+            output = self.feature_engineer.transform(output, self.transform)
             output = np.asarray(output)
 
         return output

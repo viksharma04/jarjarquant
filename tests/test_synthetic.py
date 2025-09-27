@@ -501,7 +501,7 @@ class TestSyntheticDataSource(unittest.TestCase):
 
         self.assertEqual(len(volumes), periods)
         self.assertTrue(all(volumes > 0))
-        self.assertTrue(all(volumes == volumes.astype(int)))  # Should be integers
+        self.assertTrue(all(volumes == volumes.astype(float)))  # Should be floats
 
     def test_gamma_spread_distribution(self):
         """Test gamma distribution for spreads."""

@@ -1,4 +1,5 @@
 import numpy as np
+import polars as pl
 import pandas as pd
 from scipy.stats import norm
 
@@ -26,7 +27,7 @@ class MovingAverageDifference(Indicator):
 
     def __init__(
         self,
-        ohlcv_df: pd.DataFrame,
+        ohlcv_df: pl.DataFrame,
         short_period: int = 5,
         long_period: int = 20,
         transform=None,
@@ -38,7 +39,7 @@ class MovingAverageDifference(Indicator):
         self.transform = transform
 
     def calculate(self) -> np.ndarray:
-        close = self.df["Close"].values
+        close = self.df["Close"].to_numpy()
         # Calculate the short-term MA
         short_ma = pd.Series(close).rolling(window=self.short_period).mean().values
 
@@ -52,11 +53,13 @@ class MovingAverageDifference(Indicator):
         long_ma = np.asarray(long_ma)
 
         # See pg 116 eq. 4.7 and 4.8 of Statistically Sound Indicators
-        atr_values = self.data_analyst.atr(
+        from jarjarquant.data_analyst import atr
+
+        atr_values = atr(
             self.short_period + self.long_period,
-            self.df["High"],
-            self.df["Low"],
-            self.df["Close"],
+            pd.Series(self.df["High"].to_numpy()),
+            pd.Series(self.df["Low"].to_numpy()),
+            pd.Series(self.df["Close"].to_numpy()),
         ).values
 
         denom = atr_values * np.sqrt(
@@ -72,7 +75,7 @@ class MovingAverageDifference(Indicator):
         mad = np.where(np.isnan(mad), 0, mad)
 
         if self.transform is not None:
-            mad = self.feature_engineer.transform(pd.Series(mad), self.transform)
+            mad = self.feature_engineer.transform(mad, self.transform)
             mad = np.asarray(mad)
 
         return mad

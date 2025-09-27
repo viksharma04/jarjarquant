@@ -1,22 +1,22 @@
 import numpy as np
-import pandas as pd
+import polars as pl
 
 from jarjarquant.indicators.base import Indicator
-from jarjarquant.indicators.registry import register_indicator, IndicatorType
+from jarjarquant.indicators.registry import IndicatorType, register_indicator
 
 
 @register_indicator(IndicatorType.RSI)
 class RSI(Indicator):
     """Class to calculate the Relative Strength Index (RSI)"""
 
-    def __init__(self, ohlcv_df: pd.DataFrame, period: int = 14, transform=None):
+    def __init__(self, ohlcv_df: pl.DataFrame, period: int = 14, transform=None):
         super().__init__(ohlcv_df)
         self.period = period
         self.indicator_type = "continuous"  # continuous or discrete
         self.transform = transform
 
     def calculate(self) -> np.ndarray:
-        close = np.asarray(self.df["Close"].values)
+        close = self.df["Close"].to_numpy()
         n = len(close)
         front_bad = self.period
         output = np.full(n, 50.0)  # Default RSI of 50.0 for undefined values
@@ -52,7 +52,7 @@ class RSI(Indicator):
         output = (output - 50) / 10
 
         if self.transform is not None:
-            output = self.feature_engineer.transform(pd.Series(output), self.transform)
+            output = self.feature_engineer.transform(output, self.transform)
             output = np.asarray(output)
 
         return output

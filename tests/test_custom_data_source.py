@@ -11,14 +11,16 @@ from unittest.mock import MagicMock, patch
 import polars as pl
 import pytest
 
-from jarjarquant.data_gatherer.custom import CustomDataSource
-from jarjarquant.data_gatherer.utils import BarSize, Duration
-from tests.mocks.mock_data import (
-    create_mock_daily_equity_data,
-    create_mock_forex_data,
-    create_mock_intraday_equity_data,
-    create_mock_iv_data,
-)
+# Mock DataService before any imports that might trigger it
+with patch('jarjarquant.data_service.DataService.__init__', return_value=None):
+    from jarjarquant.data_gatherer.custom import CustomDataSource
+    from jarjarquant.data_gatherer.utils import BarSize, Duration
+    from tests.mocks.mock_data import (
+        create_mock_daily_equity_data,
+        create_mock_forex_data,
+        create_mock_intraday_equity_data,
+        create_mock_iv_data,
+    )
 
 
 @pytest.fixture

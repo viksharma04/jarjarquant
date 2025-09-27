@@ -11,17 +11,16 @@ import polars as pl
 import pytest
 from unittest.mock import patch
 
-from jarjarquant.indicators import MACD, RSI
-from jarjarquant.indicators.registry import (
-    INDICATOR_REGISTRY,
-    IndicatorType,
-    get_indicator_class,
-    is_indicator_registered,
-    list_available_indicators,
-)
-
-# Mock DataService before importing Jarjarquant to prevent data path issues in CI/CD
+# Mock DataService before importing any jarjarquant modules to prevent data path issues in CI/CD
 with patch('jarjarquant.data_service.DataService.__init__', return_value=None):
+    from jarjarquant.indicators import MACD, RSI
+    from jarjarquant.indicators.registry import (
+        INDICATOR_REGISTRY,
+        IndicatorType,
+        get_indicator_class,
+        is_indicator_registered,
+        list_available_indicators,
+    )
     from jarjarquant.jarjarquant import Jarjarquant
 
 

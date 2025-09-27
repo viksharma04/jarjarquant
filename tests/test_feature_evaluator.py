@@ -5,10 +5,12 @@ import pandas as pd
 import polars as pl
 import pytest
 
-from jarjarquant.data_service import DataService, SampleRequest
-from jarjarquant.feature_evaluator import FeatureEvaluator
-from jarjarquant.indicators.base import IndicatorSpec
-from jarjarquant.indicators.registry import IndicatorType
+# Mock DataService before any imports that might trigger it
+with patch('jarjarquant.data_service.DataService.__init__', return_value=None):
+    from jarjarquant.data_service import DataService, SampleRequest
+    from jarjarquant.feature_evaluator import FeatureEvaluator
+    from jarjarquant.indicators.base import IndicatorSpec
+    from jarjarquant.indicators.registry import IndicatorType
 
 
 def test_indicator_threshold_search_linear():

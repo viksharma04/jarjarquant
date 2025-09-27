@@ -18,6 +18,7 @@ import duckdb
 import pandas as pd
 import polars as pl
 
+from jarjarquant.config import LOCAL_DB_PATH
 from jarjarquant.data_gatherer.utils import BarSize
 
 logger = logging.getLogger(__name__)
@@ -94,14 +95,17 @@ class DataService:
         Initialize the DataService.
 
         Args:
-            data_path: Base path to the data directory. Defaults to sample_data/data/
+            data_path: Base path to the data directory. Defaults to LOCAL_DB_PATH from config
         """
-        # If using default path, make it relative to this file's location
+        # If using default path, use the configured LOCAL_DB_PATH
         if data_path is None:
-            # Get the directory where this file is located
-            current_file_dir = Path(__file__).parent
-            # Navigate to the project root and then to the data path
-            self.data_path = current_file_dir / "db" / "sample_data"
+            local_db_path = Path(LOCAL_DB_PATH)
+            if local_db_path.is_absolute():
+                # LOCAL_DB_PATH is an absolute path, use as-is
+                self.data_path = local_db_path
+            else:
+                # LOCAL_DB_PATH is relative, resolve relative to current directory
+                self.data_path = Path.cwd() / local_db_path
         else:
             self.data_path = Path(data_path)
 

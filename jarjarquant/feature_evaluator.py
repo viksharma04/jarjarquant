@@ -122,7 +122,14 @@ class FeatureEvaluator:
         self.X = X
         self.y = y
         self.sw = sw
-        self.ds = DataService()
+        self._ds = None  # Lazy initialization of DataService
+
+    @property
+    def ds(self):
+        """Lazily initialize DataService when first accessed."""
+        if self._ds is None:
+            self._ds = DataService()
+        return self._ds
 
     @staticmethod
     def cv_score(

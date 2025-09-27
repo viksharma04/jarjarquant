@@ -67,10 +67,11 @@ class MarketParams:
     start_price: float = 100.0
     start_date: str = "2023-01-01"
 
-    # Market hours (for intraday data) - times in UTC
-    market_open_hour: int = 14  # 9 AM Eastern = 14:00 UTC (during standard time)
-    market_close_hour: int = 21  # 4 PM Eastern = 21:00 UTC (during standard time)
-    timezone: str = "UTC"
+    # Market hours (for intraday data) - times are in local market time (Eastern Time).
+    # Note: Eastern Time shifts between UTC-5 (EST) and UTC-4 (EDT) due to daylight saving time.
+    market_open_hour: int = 9   # 9 AM local market open (Eastern Time)
+    market_close_hour: int = 16 # 4 PM local market close (Eastern Time)
+    timezone: str = "America/New_York"  # Use IANA timezone for proper DST handling
 
 
 @register_data_source("synthetic")

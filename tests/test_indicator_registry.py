@@ -105,7 +105,7 @@ class TestJarjarquantAddIndicator:
             "Volume": np.random.randint(10000, 100000, 100),
         }
 
-        return pl.DataFrame(data)
+        return pl.DataFrame(data).sort("Date")
 
     @pytest.fixture
     def jjq_instance(self, sample_data):

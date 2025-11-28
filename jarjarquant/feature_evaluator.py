@@ -1036,9 +1036,14 @@ class FeatureEvaluator:
         work_signal = work_signal[sort_index]
         work_return = work_return[sort_index]
 
-        best_high_index, best_low_index, best_high_pf, best_low_pf = (
-            optimize_threshold_cython(work_signal, work_return, int(min_kept))
-        )
+        (
+            best_high_index,
+            best_low_index,
+            best_high_pf,
+            best_low_pf,
+            best_high_acc,
+            best_low_acc,
+        ) = optimize_threshold_cython(work_signal, work_return, int(min_kept))
 
         # The best thresholds are the signal values at the recorded indices.
         high_thresh = work_signal[best_high_index]
@@ -1055,7 +1060,7 @@ class FeatureEvaluator:
                 permuted_returns = np.random.choice(
                     work_return, size=len(work_return), replace=True
                 )
-                _, _, high_pf, low_pf = optimize_threshold_cython(
+                _, _, high_pf, low_pf, _, _ = optimize_threshold_cython(
                     work_signal, permuted_returns, int(min_kept)
                 )
                 permuted_pf = max(high_pf, low_pf)
@@ -1071,9 +1076,11 @@ class FeatureEvaluator:
             "spearman_corr": spearman_corr,
             "optimal_long_thresh": high_thresh,
             "optimal_long_pf": pf_high,
+            "optimal_long_acc": best_high_acc,
             "optimal_short_thresh": low_thresh,
             "optimal_short_pf": pf_low,
-            "best_bf": best_overall_pf,
+            "optimal_short_acc": best_low_acc,
+            "best_pf": best_overall_pf,
             "best_pf_pval": best_pf_pval,
         }
 
@@ -1122,3 +1129,100 @@ class FeatureEvaluator:
                 title=f"Quartile {i + 1} LOESS Scatter Plot",
                 annotation=spearman_results["spearman_corr_quartile"][i],
             )
+
+    @staticmethod
+    def threshold_optimization_study(inputs: dict) -> dict:
+        indicator_spec = inputs["indicator_spec"]
+        ohlcv_df = inputs["ohlcv_df"]
+        ticker = inputs.get("ticker", "")
+
+        # Timer: Indicator creation
+        indicator_instance = indicator_spec.create_indicator(ohlcv_df)
+
+        # Calculate indicator values
+        indicator_values = indicator_instance.calculate()
+
+        # Prepare returns
+        returns = ohlcv_df["Open"].pct_change().shift(-1)
+
+        # Optimize threshold
+        optimization_results = FeatureEvaluator.optimize_threshold(
+            indicator_values=indicator_values,
+            return_values=returns,
+            min_kept=0.1,
+            flip_sign=False,
+            return_pval=True,
+        )
+
+        # Return detailed data for database saving
+        return {
+            "ticker": ticker,
+            "indicator_spec": indicator_spec,
+            "optimization_results": optimization_results,
+        }
+
+    def parallel_threshold_optimization_study(
+        self,
+        indicator_spec: "IndicatorSpec",
+        sample_request: Optional[SampleRequest],
+        save_run: bool = False,
+    ):
+        start_time = time.time()
+        logger = logging.getLogger(__name__)
+
+        # Timer: Sample request setup
+        sample_setup_start = time.time()
+        if sample_request is None:
+            sample_request = SampleRequest(
+                sample_type="equities",
+                start_date=(pd.Timestamp.now() - pd.Timedelta(days=1)).strftime(
+                    "%Y-%m-%d"
+                ),
+                end_date=pd.Timestamp.now().strftime("%Y-%m-%d"),
+            )
+        sample_setup_time = time.time() - sample_setup_start
+        logger.info(f"Sample request setup time: {sample_setup_time:.4f}s")
+
+        # Timer: Data gathering
+        data_gather_start = time.time()
+        sample = self.ds.get_sample(sample_request)
+        df = sample.data
+        data_gather_time = time.time() - data_gather_start
+        logger.info(f"Data gathering time: {data_gather_time:.4f}s")
+
+        # Timer: Data preparation
+        data_prep_start = time.time()
+        grouped_data = list(df.group_by("ticker", maintain_order=True))
+        inputs_list = []
+
+        for ticker, ohlcv_df in grouped_data:
+            inputs = {
+                "indicator_spec": indicator_spec,
+                "ohlcv_df": ohlcv_df,
+                "ticker": ticker[0],
+            }
+            inputs_list.append(inputs)
+        data_prep_time = time.time() - data_prep_start
+        logger.info(f"Data preparation time: {data_prep_time:.4f}s")
+        logger.info(f"Processing {len(inputs_list)} ticker datasets")
+
+        # Timer: Parallel processing
+        parallel_start = time.time()
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            results = list(
+                executor.map(FeatureEvaluator.threshold_optimization_study, inputs_list)
+            )
+        parallel_time = time.time() - parallel_start
+        logger.info(f"Parallel processing time: {parallel_time:.4f}s")
+
+        # # Extract outputs and save detailed data if requested
+        # if save_run:
+        #     # Save detailed data to database
+        #     self._save_optimization_results(results, sample_request, indicator_spec)
+
+        total_time = time.time() - start_time
+        logger.info(
+            f"Total parallel_threshold_optimization_study time: {total_time:.4f}s"
+        )
+
+        return results

@@ -1,5 +1,7 @@
 """The feature evaluator specializes in calculating the efficacy of one or many indicators given a matrix of features X and a target label/series y"""
 
+from __future__ import annotations
+
 import concurrent.futures
 import json
 import logging
@@ -11,15 +13,14 @@ from typing import TYPE_CHECKING, Callable, Optional
 import numpy as np
 import pandas as pd
 import polars as pl
-from indicators.base import IndicatorEvalResult
 from scipy.stats import spearmanr
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, log_loss
 from sklearn.model_selection._split import _BaseKFold
 
-from jarjarquant.core.utils import _flatten_dataclass
 from jarjarquant.cython_utils.opt_threshold import optimize_threshold_cython
 
+from .core.utils import _flatten_dataclass
 from .data_analyst import get_spearman_correlation, plot_loess
 from .data_gatherer import DataGatherer
 from .data_service import DataService, SampleRequest
@@ -35,7 +36,9 @@ class EvalResult:
 
     indicator_spec: "IndicatorSpec"
     sample_request: SampleRequest
-    results_dict: dict[str, IndicatorEvalResult | None]
+    results_df: (
+        pl.DataFrame
+    )  # Each row should have a ticker and its corresponding results
 
 
 def _format_ind_dist_outputs(basic_outputs_list: list) -> list:
@@ -494,7 +497,6 @@ class FeatureEvaluator:
     def indicator_distribution_study(inputs: dict) -> dict:
         indicator_spec = inputs["indicator_spec"]
         ohlcv_df = inputs["ohlcv_df"]
-        include_detailed_data = inputs.get("include_detailed_data", False)
 
         # Timer: Indicator creation
         indicator_instance = indicator_spec.create_indicator(ohlcv_df)
@@ -502,25 +504,10 @@ class FeatureEvaluator:
         # Timer: Indicator evaluation report
         indicator_instance.indicator_evaluation_report()
 
-        # Basic outputs for backward compatibility
-        basic_outputs = [
-            indicator_instance.eval_result.adf_test.is_stationary,
-            indicator_instance.eval_result.jb_normality_test.is_normal,
-            indicator_instance.eval_result.relative_entropy.entropy,
-            indicator_instance.eval_result.range_iqr_ratio.ratio,
-        ]
+        result = {"ticker": inputs.get("ticker", "")}
+        result.update(_flatten_dataclass(indicator_instance.eval_result))
 
-        if include_detailed_data:
-            # Return detailed data for database saving
-            return {
-                "basic_outputs": basic_outputs,
-                "ticker": inputs.get("ticker", ""),
-                "indicator_spec": indicator_spec,
-                "eval_result": indicator_instance.eval_result,
-            }
-        else:
-            # Return just basic outputs for backward compatibility
-            return {"basic_outputs": basic_outputs}
+        return result
 
     def parallel_indicator_distribution_study(
         self,
@@ -546,77 +533,70 @@ class FeatureEvaluator:
 
         # Check if results already exist in database
         logger.info("Checking for existing results in database...")
-        existing_results = self._check_existing_results(sample_request, indicator_spec)
+        results_df = self._check_existing_results(
+            "ind_dist_studies_db", sample_request, indicator_spec
+        )
 
-        if existing_results is not None:
-            total_time = time.time() - start_time
-            logger.info(
-                f"Found existing results in database! Total time: {total_time:.4f}s"
-            )
-            return existing_results
+        if results_df is None:
+            logger.info("No existing results found. Running new study...")
+            # Timer: Data gathering
+            data_gather_start = time.time()
+            sample = self.ds.get_sample(sample_request)
+            df = sample.data
+            data_gather_time = time.time() - data_gather_start
+            logger.info(f"Data gathering time: {data_gather_time:.4f}s")
 
-        logger.info("No existing results found. Running new study...")
+            # Timer: Data preparation
+            data_prep_start = time.time()
+            grouped_data = list(df.group_by("ticker", maintain_order=True))
+            inputs_list = []
 
-        # Timer: Data gathering
-        data_gather_start = time.time()
-        sample = self.ds.get_sample(sample_request)
-        df = sample.data
-        data_gather_time = time.time() - data_gather_start
-        logger.info(f"Data gathering time: {data_gather_time:.4f}s")
+            for ticker, ohlcv_df in grouped_data:
+                inputs = {
+                    "indicator_spec": indicator_spec,
+                    "ohlcv_df": ohlcv_df,
+                    "ticker": ticker[0],
+                    "include_detailed_data": save_run,
+                }
+                inputs_list.append(inputs)
+            data_prep_time = time.time() - data_prep_start
+            logger.info(f"Data preparation time: {data_prep_time:.4f}s")
+            logger.info(f"Processing {len(inputs_list)} ticker datasets")
 
-        # Timer: Data preparation
-        data_prep_start = time.time()
-        grouped_data = list(df.group_by("ticker", maintain_order=True))
-        inputs_list = []
+            # Timer: Parallel processing
+            parallel_start = time.time()
+            with concurrent.futures.ProcessPoolExecutor() as executor:
+                results = list(
+                    executor.map(
+                        FeatureEvaluator.indicator_distribution_study, inputs_list
+                    )
+                )
 
-        for ticker, ohlcv_df in grouped_data:
-            inputs = {
-                "indicator_spec": indicator_spec,
-                "ohlcv_df": ohlcv_df,
-                "ticker": ticker[0],
-                "include_detailed_data": save_run,
-            }
-            inputs_list.append(inputs)
-        data_prep_time = time.time() - data_prep_start
-        logger.info(f"Data preparation time: {data_prep_time:.4f}s")
-        logger.info(f"Processing {len(inputs_list)} ticker datasets")
+            results_df = pl.DataFrame(results)
+            parallel_time = time.time() - parallel_start
+            logger.info(f"Parallel processing time: {parallel_time:.4f}s")
+        else:
+            logger.info("Existing results found. Skipping study execution.")
 
-        # Timer: Parallel processing
-        parallel_start = time.time()
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            results = list(
-                executor.map(FeatureEvaluator.indicator_distribution_study, inputs_list)
-            )
-        parallel_time = time.time() - parallel_start
-        logger.info(f"Parallel processing time: {parallel_time:.4f}s")
+        # Prepare EvalResult
+        eval_result = EvalResult(
+            indicator_spec=indicator_spec,
+            sample_request=sample_request,
+            results_df=results_df,
+        )
 
-        # Extract outputs and save detailed data if requested
         if save_run:
             # Save detailed data to database
-            self._save_detailed_results(results, sample_request, indicator_spec)
+            self._save_detailed_results("ind_dist_studies_db", eval_result)
 
-            # Extract basic outputs for aggregation
-            basic_outputs_list = [result["basic_outputs"] for result in results]
-        else:
-            # Handle backward compatibility - results are basic outputs
-            basic_outputs_list = [
-                result["basic_outputs"] if isinstance(result, dict) else result
-                for result in results
-            ]
-
-        final_results = _format_ind_dist_outputs(basic_outputs_list)
+        final_results = self._aggregate_ind_dist_results(eval_result.results_df)
 
         total_time = time.time() - start_time
         logger.info(
             f"Total parallel_indicator_distribution_study time: {total_time:.4f}s"
         )
 
-        return {
-            "ADF Test": final_results[0],
-            "Jarque-Bera Test": final_results[1],
-            "Relative Entropy": final_results[2],
-            "Range-IQR Ratio": final_results[3],
-        }
+        return final_results
 
     ### Indicator Performance Analysis Methods - Study joint properties with returns ###
     @staticmethod
@@ -1047,38 +1027,47 @@ class FeatureEvaluator:
 
         Args:
             db_name: The name of the database to save results to
-            results: EvalResult dataclass containing indicator_spec, sample_request, and results_dict
+            results: EvalResult dataclass containing indicator_spec, sample_request, and results_df
         """
-        rows = []
+        timestamp = datetime.now().isoformat()
+        df = results.results_df
 
-        for ticker, eval_result in results.results_dict.items():
-            if eval_result is None:
-                continue
+        if df.height > 0:
+            # Prepare metadata dictionary
+            metadata = {}
+            metadata.update(_flatten_dataclass(results.indicator_spec))
+            metadata.update(
+                {
+                    "sample_type": results.sample_request.sample_type,
+                    "start_date": results.sample_request.start_date,
+                    "end_date": results.sample_request.end_date,
+                    "bar_size": results.sample_request.bar_size,
+                }
+            )
+            metadata["timestamp"] = timestamp
 
-            # Create a row dictionary
-            row = {}
-            row.update(_flatten_dataclass(results.indicator_spec))
-            row.update(_flatten_dataclass(results.sample_request))
-            row["ticker"] = ticker
-            row["timestamp"] = datetime.now().isoformat()
-            row.update(_flatten_dataclass(eval_result))
-            rows.append(row)
+            # Add metadata columns to the DataFrame
+            df = df.with_columns(
+                [pl.lit(value).alias(key) for key, value in metadata.items()]
+            )
 
-        if rows:
-            # Convert to Polars DataFrame and save
-            df = pl.DataFrame(rows)
-            self.ds.save_to_database(df, db_name, append=True)
+            # Save to database
+            self.ds.save_to_database(df, db_name, append=True, drop_extra_cols=True)
             logging.getLogger(__name__).info(
-                f"Saved {len(rows)} rows to {db_name} table"
+                f"Saved {df.height} rows to {db_name} table"
             )
         else:
             raise ValueError(
                 "Error saving evaluation results: No valid rows were extracted."
             )
 
+    # TODO: Add sample_seed to sample_request to uniquely identify different samples
     def _check_existing_results(
-        self, sample_request: SampleRequest, indicator_spec: "IndicatorSpec"
-    ) -> Optional[dict]:
+        self,
+        db_name: str,
+        sample_request: SampleRequest,
+        indicator_spec: "IndicatorSpec",
+    ) -> Optional[pl.DataFrame]:
         """
         Check if results already exist in the database for the given sample request and indicator spec.
 
@@ -1090,108 +1079,94 @@ class FeatureEvaluator:
             Dictionary with aggregated results if found, None otherwise
         """
 
-        import duckdb
-
         logger = logging.getLogger(__name__)
-        db_file_path = self.ds.db_path / "ind_dist_studies_db.duckdb"
-
-        if not db_file_path.exists():
-            logger.debug("Database file does not exist")
-            return None
 
         try:
-            # Connect to the database
-            conn = duckdb.connect(str(db_file_path))
+            results_df = self.ds.load_from_database(db_name)
+        except Exception as e:
+            logger.error(f"Error loading data from database: {e}")
+            return None
 
-            try:
-                # Check if table exists
-                result = conn.execute(
-                    "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'ind_dist_studies_db'"
-                ).fetchone()
+        if results_df is None or results_df.height == 0:
+            logger.info("No existing results found in database.")
+            return None
 
-                if result is None or result[0] == 0:
-                    logger.debug("Table ind_dist_studies_db does not exist")
-                    return None
+        # Filter results based on sample_request and indicator_spec
+        try:
+            # Build query parameters
+            indicator_name = (
+                indicator_spec.indicator_type.value
+                if hasattr(indicator_spec.indicator_type, "value")
+                else str(indicator_spec.indicator_type)
+            )
 
-                # Build query parameters
-                indicator_name = (
-                    indicator_spec.indicator_type.value
-                    if hasattr(indicator_spec.indicator_type, "value")
-                    else str(indicator_spec.indicator_type)
-                )
+            bar_size = (
+                sample_request.bar_size.value
+                if hasattr(sample_request.bar_size, "value")
+                else str(sample_request.bar_size)
+            )
 
-                bar_size = (
-                    sample_request.bar_size.value
-                    if hasattr(sample_request.bar_size, "value")
-                    else str(sample_request.bar_size)
-                )
+            indicator_params_json = json.dumps(indicator_spec.parameters)
 
-                indicator_params_json = json.dumps(indicator_spec.parameters)
+            query = (
+                (pl.col("start_date") == sample_request.start_date)
+                & (pl.col("end_date") == sample_request.end_date)
+                & (pl.col("bar_size") == bar_size)
+                & (pl.col("indicator_type") == indicator_name)
+                & (pl.col("parameters") == indicator_params_json)
+            )
 
-                # Query for existing results
-                query = """
-                SELECT 
-                    adf_is_stationary,
-                    jb_is_normal,
-                    entropy,
-                    range_iqr_ratio
-                FROM ind_dist_studies_db 
-                WHERE indicator = ? 
-                    AND bar_size = ? 
-                    AND start_date = ? 
-                    AND end_date = ? 
-                    AND indicator_params = ?
-                """
+            filtered_results = results_df.filter(query)
 
-                result_df = conn.execute(
-                    query,
-                    [
-                        indicator_name,
-                        bar_size,
-                        sample_request.start_date,
-                        sample_request.end_date,
-                        indicator_params_json,
-                    ],
-                ).pl()
+            if filtered_results.height == 0:
+                logger.info("No existing results found for the given parameters.")
+                return None
 
-                if result_df.height == 0:
-                    logger.debug("No existing results found for the given parameters")
-                    return None
-
-                # Calculate aggregated results
-                adf_tests = result_df["adf_is_stationary"].to_list()
-                jb_tests = result_df["jb_is_normal"].to_list()
-                relative_entropies = result_df["entropy"].to_list()
-                range_iqr_ratios = result_df["range_iqr_ratio"].to_list()
-
-                # Filter out NaN and inf values for entropy and range_iqr_ratio
-                filtered_entropies = [
-                    x for x in relative_entropies if not (np.isnan(x) or np.isinf(x))
-                ]
-                filtered_ratios = [
-                    x for x in range_iqr_ratios if not (np.isnan(x) or np.isinf(x))
-                ]
-
-                final_results = [
-                    np.mean(adf_tests),
-                    np.mean(jb_tests),
-                    np.mean(filtered_entropies) if filtered_entropies else 0.0,
-                    np.mean(filtered_ratios) if filtered_ratios else 0.0,
-                ]
-                final_results = [round(value, 2) for value in final_results]
-
-                logger.info(f"Found {result_df.height} existing results in database")
-
-                return {
-                    "ADF Test": final_results[0],
-                    "Jarque-Bera Test": final_results[1],
-                    "Relative Entropy": final_results[2],
-                    "Range-IQR Ratio": final_results[3],
-                }
-
-            finally:
-                conn.close()
+            else:
+                return filtered_results
 
         except Exception as e:
             logger.error(f"Error checking existing results: {e}")
             return None
+
+    # TODO: Find a unified way to perform this aggregation when results
+    # are fetched from the database and when freshly calculated
+    # - make it less clunky and less ugly
+    def _aggregate_ind_dist_results(
+        self,
+        results_df: pl.DataFrame,
+    ) -> dict:
+        """
+        Aggregate indicator distribution results from the database.
+
+        Args:
+            results_df: Polars DataFrame containing detailed results from the database
+        """
+        # Calculate aggregated results
+        adf_tests = results_df["adf_test_is_stationary"].to_list()
+        jb_tests = results_df["jb_normality_test_is_normal"].to_list()
+        relative_entropies = results_df["relative_entropy_normalized_entropy"].to_list()
+        range_iqr_ratios = results_df["range_iqr_ratio_ratio"].to_list()
+
+        # Filter out NaN and inf values for entropy and range_iqr_ratio
+        filtered_entropies = [
+            x for x in relative_entropies if not (np.isnan(x) or np.isinf(x))
+        ]
+        filtered_ratios = [
+            x for x in range_iqr_ratios if not (np.isnan(x) or np.isinf(x))
+        ]
+
+        final_results = [
+            np.mean(adf_tests),
+            np.mean(jb_tests),
+            np.mean(filtered_entropies) if filtered_entropies else 0.0,
+            np.mean(filtered_ratios) if filtered_ratios else 0.0,
+        ]
+        final_results = [round(value, 2) for value in final_results]
+
+        return {
+            "ADF Test": final_results[0],
+            "Jarque-Bera Test": final_results[1],
+            "Relative Entropy": final_results[2],
+            "Range-IQR Ratio": final_results[3],
+        }

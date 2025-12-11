@@ -827,6 +827,7 @@ class FeatureEvaluator:
         Raises:
         ValueError: If the input arrays have less than one element.
         """
+        logger = logging.getLogger(__name__)
 
         # Ensure the inputs are numpy arrays.
         indicator_values = np.asarray(indicator_values)
@@ -834,43 +835,59 @@ class FeatureEvaluator:
 
         n = len(indicator_values)
         if n == 0:
+            logger.error("Input arrays are empty.")
             raise ValueError("Input arrays must have at least one element.")
+
+        logger.debug(f"Starting optimize_threshold with {n} data points.")
 
         # Enforce that min_kept is at least 1.
         min_kept = max(int(n * min_kept), 1)
+        logger.debug(f"min_kept calculated as: {min_kept} (from fraction)")
 
         # Calculate the spearman rank correlation between the indicator and returns.
         spearman_result = spearmanr(indicator_values, return_values)
-        spearman_corr = (
-            spearman_result[0]
-            if isinstance(spearman_result, tuple)
-            else spearman_result
-        )
+
+        if hasattr(spearman_result, "statistic"):
+            spearman_corr = float(getattr(spearman_result, "statistic"))
+        else:
+            spearman_corr = float(spearman_result[0])  # type: ignore
+
+        logger.debug(f"Spearman correlation: {spearman_corr}")
+
         if spearman_corr < 0.0:
             indicator_sign = -1.0
         else:
             indicator_sign = 1.0
 
+        logger.debug(f"Indicator sign determined as: {indicator_sign}")
+
         # Copy signals and returns into work arrays.
         # Optionally flip the sign of indicator values.
         if flip_sign:
             work_signal = -indicator_sign * indicator_values.copy()
+            logger.debug("Flipping sign of indicator values.")
         else:
             work_signal = indicator_sign * indicator_values.copy()
         work_return = return_values.copy()
 
         # Find the indices of NaN values in either array and drop them from both arrays
         nan_indices = np.isnan(work_signal) | np.isnan(work_return)
+        n_nans = np.sum(nan_indices)
+        if n_nans > 0:
+            logger.debug(f"Dropping {n_nans} NaN values.")
+
         work_signal = work_signal[~nan_indices]
         work_return = work_return[~nan_indices]
 
         n = len(work_signal)
+        logger.debug(f"Data points after NaN removal: {n}")
 
         # Sort the work arrays based on work_signal.
         sort_index = np.argsort(work_signal)
         work_signal = work_signal[sort_index]
         work_return = work_return[sort_index]
 
+        logger.debug("Calling optimize_threshold_cython...")
         (
             best_high_index,
             best_low_index,
@@ -887,8 +904,13 @@ class FeatureEvaluator:
         pf_low = best_low_pf
         best_overall_pf = max(pf_high, pf_low)
 
+        logger.debug(
+            f"Optimization results - High PF: {pf_high:.4f} at thresh {high_thresh:.4f}, Low PF: {pf_low:.4f} at thresh {low_thresh:.4f}"
+        )
+
         # Calculate the p-value for the best performance factor.
         if return_pval:
+            logger.debug("Calculating p-value with 1000 permutations...")
             i = 0
 
             for _ in range(1000):
@@ -903,9 +925,11 @@ class FeatureEvaluator:
                     i += 1
 
             best_pf_pval = i / 1000
+            logger.debug(f"P-value calculated: {best_pf_pval}")
 
         else:
             best_pf_pval = None
+            logger.debug("Skipping p-value calculation.")
 
         return {
             "spearman_corr": spearman_corr,
@@ -944,17 +968,15 @@ class FeatureEvaluator:
         )
 
         # Return detailed data for database saving
-        return {
-            "ticker": ticker,
-            "indicator_spec": indicator_spec,
-            "optimization_results": optimization_results,
-        }
+        result = {"ticker": ticker}
+        result.update(optimization_results)
+        return result
 
     def parallel_threshold_optimization_study(
         self,
         indicator_spec: "IndicatorSpec",
         sample_request: Optional[SampleRequest],
-        save_run: bool = False,
+        save_run: bool = True,
     ):
         start_time = time.time()
         logger = logging.getLogger(__name__)
@@ -972,49 +994,73 @@ class FeatureEvaluator:
         sample_setup_time = time.time() - sample_setup_start
         logger.info(f"Sample request setup time: {sample_setup_time:.4f}s")
 
-        # Timer: Data gathering
-        data_gather_start = time.time()
-        sample = self.ds.get_sample(sample_request)
-        df = sample.data
-        data_gather_time = time.time() - data_gather_start
-        logger.info(f"Data gathering time: {data_gather_time:.4f}s")
-
-        # Timer: Data preparation
-        data_prep_start = time.time()
-        grouped_data = list(df.group_by("ticker", maintain_order=True))
-        inputs_list = []
-
-        for ticker, ohlcv_df in grouped_data:
-            inputs = {
-                "indicator_spec": indicator_spec,
-                "ohlcv_df": ohlcv_df,
-                "ticker": ticker[0],
-            }
-            inputs_list.append(inputs)
-        data_prep_time = time.time() - data_prep_start
-        logger.info(f"Data preparation time: {data_prep_time:.4f}s")
-        logger.info(f"Processing {len(inputs_list)} ticker datasets")
-
-        # Timer: Parallel processing
-        parallel_start = time.time()
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            results = list(
-                executor.map(FeatureEvaluator.threshold_optimization_study, inputs_list)
+        # Check if results already exist in database
+        if save_run:
+            logger.info("Checking for existing results in database...")
+            results_df = self._check_existing_results(
+                "threshold_opt_studies_db", sample_request, indicator_spec
             )
-        parallel_time = time.time() - parallel_start
-        logger.info(f"Parallel processing time: {parallel_time:.4f}s")
+        else:
+            results_df = None
 
-        # # Extract outputs and save detailed data if requested
-        # if save_run:
-        #     # Save detailed data to database
-        #     self._save_optimization_results(results, sample_request, indicator_spec)
+        if results_df is None:
+            logger.info("No existing results found. Running new study...")
+            # Timer: Data gathering
+            data_gather_start = time.time()
+            sample = self.ds.get_sample(sample_request)
+            df = sample.data
+            data_gather_time = time.time() - data_gather_start
+            logger.info(f"Data gathering time: {data_gather_time:.4f}s")
+
+            # Timer: Data preparation
+            data_prep_start = time.time()
+            grouped_data = list(df.group_by("ticker", maintain_order=True))
+            inputs_list = []
+
+            for ticker, ohlcv_df in grouped_data:
+                inputs = {
+                    "indicator_spec": indicator_spec,
+                    "ohlcv_df": ohlcv_df,
+                    "ticker": ticker[0],
+                }
+                inputs_list.append(inputs)
+            data_prep_time = time.time() - data_prep_start
+            logger.info(f"Data preparation time: {data_prep_time:.4f}s")
+            logger.info(f"Processing {len(inputs_list)} ticker datasets")
+
+            # Timer: Parallel processing
+            parallel_start = time.time()
+            with concurrent.futures.ProcessPoolExecutor() as executor:
+                results = list(
+                    executor.map(
+                        FeatureEvaluator.threshold_optimization_study, inputs_list
+                    )
+                )
+
+            results_df = pl.DataFrame(results)
+            parallel_time = time.time() - parallel_start
+            logger.info(f"Parallel processing time: {parallel_time:.4f}s")
+        else:
+            logger.info("Existing results found. Skipping study execution.")
+            skip_save = True
+
+        # Prepare EvalResult
+        eval_result = EvalResult(
+            indicator_spec=indicator_spec,
+            sample_request=sample_request,
+            results_df=results_df,
+        )
+
+        if save_run and not skip_save:
+            # Save detailed data to database
+            self._save_detailed_results("threshold_opt_studies_db", eval_result)
 
         total_time = time.time() - start_time
         logger.info(
             f"Total parallel_threshold_optimization_study time: {total_time:.4f}s"
         )
 
-        return results
+        return results_df
 
     ### Helper Methods ###
     def _save_detailed_results(

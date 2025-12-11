@@ -744,6 +744,7 @@ class DataService:
         data: Union[pd.DataFrame, pl.DataFrame],
         table_name: str,
         append: bool = True,
+        drop_extra_cols: bool = False,
     ) -> None:
         """
         Save tabular data to a DuckDB table.
@@ -783,6 +784,22 @@ class DataService:
 
             try:
                 if append and self._table_exists(table_conn, table_name):
+                    if drop_extra_cols:
+                        # Get existing columns
+                        existing_cols = set(
+                            table_conn.execute(f"SELECT * FROM {table_name} LIMIT 0")
+                            .df()
+                            .columns
+                        )
+                        current_cols = set(pl_data.columns)
+                        extra_cols = current_cols - existing_cols
+
+                        if extra_cols:
+                            logger.warning(
+                                f"Dropping extra columns {extra_cols} when appending to {table_name}"
+                            )
+                            pl_data = pl_data.drop(list(extra_cols))
+
                     # Insert into existing table
                     table_conn.execute(
                         f"INSERT INTO {table_name} SELECT * FROM pl_data"

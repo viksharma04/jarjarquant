@@ -1,12 +1,18 @@
 """The feature evaluator specializes in calculating the efficacy of one or many indicators given a matrix of features X and a target label/series y"""
 
+from __future__ import annotations
+
 import concurrent.futures
+import json
 import logging
 import time
+from dataclasses import dataclass
+from datetime import datetime
 from typing import TYPE_CHECKING, Callable, Optional
 
 import numpy as np
 import pandas as pd
+import polars as pl
 from scipy.stats import spearmanr
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, log_loss
@@ -14,6 +20,7 @@ from sklearn.model_selection._split import _BaseKFold
 
 from jarjarquant.cython_utils.opt_threshold import optimize_threshold_cython
 
+from .core.utils import _flatten_dataclass
 from .data_analyst import get_spearman_correlation, plot_loess
 from .data_gatherer import DataGatherer
 from .data_service import DataService, SampleRequest
@@ -21,6 +28,17 @@ from .data_service import DataService, SampleRequest
 if TYPE_CHECKING:
     # Imported only for type checking to avoid circular import at runtime
     from .indicators.base import IndicatorSpec
+
+
+@dataclass
+class EvalResult:
+    """Dataclass to hold evaluation results for indicators"""
+
+    indicator_spec: "IndicatorSpec"
+    sample_request: SampleRequest
+    results_df: (
+        pl.DataFrame
+    )  # Each row should have a ticker and its corresponding results
 
 
 def _format_ind_dist_outputs(basic_outputs_list: list) -> list:
@@ -40,9 +58,8 @@ def _format_ind_dist_outputs(basic_outputs_list: list) -> list:
     return final_results
 
 
+### PurgedKFold Class as implemented in advances in financial machine learning ###
 # Define the PurgedKFold class for feature importance scores
-
-
 class PurgedKFold(_BaseKFold):
     """
     Custom KFold class to handle overlapping label intervals in time-series data.
@@ -115,9 +132,11 @@ class PurgedKFold(_BaseKFold):
             yield train_indices, test_indices
 
 
+### FeatureEvaluator Class ###
 class FeatureEvaluator:
     """Class to implement common feature evaluation and indicator testing methods"""
 
+    ### Class Methods ###
     def __init__(self, X=None, y=None, sw=None):
         self.X = X
         self.y = y
@@ -131,6 +150,7 @@ class FeatureEvaluator:
             self._ds = DataService()
         return self._ds
 
+    # Feature Importance Methods from Advances in Financial Machine Learning ###
     @staticmethod
     def cv_score(
         clf,
@@ -426,6 +446,159 @@ class FeatureEvaluator:
 
         return importance_scores
 
+    ### Indicator Distribution (Statistical) Methods - Indicator Design Analysis ###
+    @staticmethod
+    def co_distribution_analysis(
+        indicator_values: np.ndarray, associated_returns: np.ndarray
+    ):
+        # Use standalone function instead of DataAnalyst class
+        indicator_values = np.asarray(indicator_values)
+        associated_returns = np.asarray(associated_returns)
+
+        spearman_results = get_spearman_correlation(
+            indicator_values, associated_returns
+        )
+
+        # 1. Plot a LOESS scatter plot of the indicator values and associated returns
+        plot_loess(
+            x=indicator_values,
+            y=associated_returns,
+            x_label="Indicator Values",
+            y_label="Returns",
+            title="Overall LOESS Scatter Plot",
+            annotation=spearman_results["spearman_corr"],
+        )
+
+        # 2. Co sort the returns and indicator values and then create 4 LOESS plots for each quartile of indicator values
+        sorted_indices = np.argsort(indicator_values)
+        sorted_indicator = indicator_values[sorted_indices]
+        sorted_returns = associated_returns[sorted_indices]
+
+        n = len(sorted_indicator)
+        # Define bin edges for 4 equal-sized bins
+        bin_edges = np.linspace(0, n, 5, dtype=int)
+
+        for i in range(4):
+            start = bin_edges[i]
+            end = bin_edges[i + 1]
+            s1_bin = sorted_indicator[start:end]
+            s2_bin = sorted_returns[start:end]
+
+            plot_loess(
+                x=s1_bin,
+                y=s2_bin,
+                x_label="Indicator Values",
+                y_label="Returns",
+                title=f"Quartile {i + 1} LOESS Scatter Plot",
+                annotation=spearman_results["spearman_corr_quartile"][i],
+            )
+
+    @staticmethod
+    def indicator_distribution_study(inputs: dict) -> dict:
+        indicator_spec = inputs["indicator_spec"]
+        ohlcv_df = inputs["ohlcv_df"]
+
+        # Timer: Indicator creation
+        indicator_instance = indicator_spec.create_indicator(ohlcv_df)
+
+        # Timer: Indicator evaluation report
+        indicator_instance.indicator_evaluation_report()
+
+        result = {"ticker": inputs.get("ticker", "")}
+        result.update(_flatten_dataclass(indicator_instance.eval_result))
+
+        return result
+
+    def parallel_indicator_distribution_study(
+        self,
+        indicator_spec: "IndicatorSpec",
+        sample_request: Optional[SampleRequest],
+        save_run: bool = True,
+    ):
+        start_time = time.time()
+        logger = logging.getLogger(__name__)
+
+        # Timer: Sample request setup
+        sample_setup_start = time.time()
+        if sample_request is None:
+            sample_request = SampleRequest(
+                sample_type="equities",
+                start_date=(pd.Timestamp.now() - pd.Timedelta(days=1)).strftime(
+                    "%Y-%m-%d"
+                ),
+                end_date=pd.Timestamp.now().strftime("%Y-%m-%d"),
+            )
+        sample_setup_time = time.time() - sample_setup_start
+        logger.info(f"Sample request setup time: {sample_setup_time:.4f}s")
+
+        # Check if results already exist in database
+        logger.info("Checking for existing results in database...")
+        results_df = self._check_existing_results(
+            "ind_dist_studies_db", sample_request, indicator_spec
+        )
+
+        if results_df is None:
+            logger.info("No existing results found. Running new study...")
+            # Timer: Data gathering
+            data_gather_start = time.time()
+            sample = self.ds.get_sample(sample_request)
+            df = sample.data
+            data_gather_time = time.time() - data_gather_start
+            logger.info(f"Data gathering time: {data_gather_time:.4f}s")
+
+            # Timer: Data preparation
+            data_prep_start = time.time()
+            grouped_data = list(df.group_by("ticker", maintain_order=True))
+            inputs_list = []
+
+            for ticker, ohlcv_df in grouped_data:
+                inputs = {
+                    "indicator_spec": indicator_spec,
+                    "ohlcv_df": ohlcv_df,
+                    "ticker": ticker[0],
+                    "include_detailed_data": save_run,
+                }
+                inputs_list.append(inputs)
+            data_prep_time = time.time() - data_prep_start
+            logger.info(f"Data preparation time: {data_prep_time:.4f}s")
+            logger.info(f"Processing {len(inputs_list)} ticker datasets")
+
+            # Timer: Parallel processing
+            parallel_start = time.time()
+            with concurrent.futures.ProcessPoolExecutor() as executor:
+                results = list(
+                    executor.map(
+                        FeatureEvaluator.indicator_distribution_study, inputs_list
+                    )
+                )
+
+            results_df = pl.DataFrame(results)
+            parallel_time = time.time() - parallel_start
+            logger.info(f"Parallel processing time: {parallel_time:.4f}s")
+        else:
+            logger.info("Existing results found. Skipping study execution.")
+
+        # Prepare EvalResult
+        eval_result = EvalResult(
+            indicator_spec=indicator_spec,
+            sample_request=sample_request,
+            results_df=results_df,
+        )
+
+        if save_run:
+            # Save detailed data to database
+            self._save_detailed_results("ind_dist_studies_db", eval_result)
+
+        final_results = self._aggregate_ind_dist_results(eval_result.results_df)
+
+        total_time = time.time() - start_time
+        logger.info(
+            f"Total parallel_indicator_distribution_study time: {total_time:.4f}s"
+        )
+
+        return final_results
+
+    ### Indicator Performance Analysis Methods - Study joint properties with returns ###
     @staticmethod
     def indicator_threshold_search(
         indicator_values: pd.Series,
@@ -628,344 +801,6 @@ class FeatureEvaluator:
         return results
 
     @staticmethod
-    def indicator_distribution_study(inputs: dict) -> dict:
-        indicator_spec = inputs["indicator_spec"]
-        ohlcv_df = inputs["ohlcv_df"]
-        include_detailed_data = inputs.get("include_detailed_data", False)
-
-        # Timer: Indicator creation
-        indicator_instance = indicator_spec.create_indicator(ohlcv_df)
-
-        # Timer: Indicator evaluation report
-        indicator_instance.indicator_evaluation_report()
-
-        # Basic outputs for backward compatibility
-        basic_outputs = [
-            indicator_instance.eval_result.adf_test.is_stationary,
-            indicator_instance.eval_result.jb_normality_test.is_normal,
-            indicator_instance.eval_result.relative_entropy.entropy,
-            indicator_instance.eval_result.range_iqr_ratio.ratio,
-        ]
-
-        if include_detailed_data:
-            # Return detailed data for database saving
-            return {
-                "basic_outputs": basic_outputs,
-                "ticker": inputs.get("ticker", ""),
-                "indicator_spec": indicator_spec,
-                "eval_result": indicator_instance.eval_result,
-            }
-        else:
-            # Return just basic outputs for backward compatibility
-            return {"basic_outputs": basic_outputs}
-
-    def parallel_indicator_distribution_study(
-        self,
-        indicator_spec: "IndicatorSpec",
-        sample_request: Optional[SampleRequest],
-        save_run: bool = True,
-    ):
-        start_time = time.time()
-        logger = logging.getLogger(__name__)
-
-        # Timer: Sample request setup
-        sample_setup_start = time.time()
-        if sample_request is None:
-            sample_request = SampleRequest(
-                sample_type="equities",
-                start_date=(pd.Timestamp.now() - pd.Timedelta(days=1)).strftime(
-                    "%Y-%m-%d"
-                ),
-                end_date=pd.Timestamp.now().strftime("%Y-%m-%d"),
-            )
-        sample_setup_time = time.time() - sample_setup_start
-        logger.info(f"Sample request setup time: {sample_setup_time:.4f}s")
-
-        # Check if results already exist in database
-        logger.info("Checking for existing results in database...")
-        existing_results = self._check_existing_results(sample_request, indicator_spec)
-
-        if existing_results is not None:
-            total_time = time.time() - start_time
-            logger.info(
-                f"Found existing results in database! Total time: {total_time:.4f}s"
-            )
-            return existing_results
-
-        logger.info("No existing results found. Running new study...")
-
-        # Timer: Data gathering
-        data_gather_start = time.time()
-        sample = self.ds.get_sample(sample_request)
-        df = sample.data
-        data_gather_time = time.time() - data_gather_start
-        logger.info(f"Data gathering time: {data_gather_time:.4f}s")
-
-        # Timer: Data preparation
-        data_prep_start = time.time()
-        grouped_data = list(df.group_by("ticker", maintain_order=True))
-        inputs_list = []
-
-        for ticker, ohlcv_df in grouped_data:
-            inputs = {
-                "indicator_spec": indicator_spec,
-                "ohlcv_df": ohlcv_df,
-                "ticker": ticker[0],
-                "include_detailed_data": save_run,
-            }
-            inputs_list.append(inputs)
-        data_prep_time = time.time() - data_prep_start
-        logger.info(f"Data preparation time: {data_prep_time:.4f}s")
-        logger.info(f"Processing {len(inputs_list)} ticker datasets")
-
-        # Timer: Parallel processing
-        parallel_start = time.time()
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            results = list(
-                executor.map(FeatureEvaluator.indicator_distribution_study, inputs_list)
-            )
-        parallel_time = time.time() - parallel_start
-        logger.info(f"Parallel processing time: {parallel_time:.4f}s")
-
-        # Extract outputs and save detailed data if requested
-        if save_run:
-            # Save detailed data to database
-            self._save_detailed_results(results, sample_request, indicator_spec)
-
-            # Extract basic outputs for aggregation
-            basic_outputs_list = [result["basic_outputs"] for result in results]
-        else:
-            # Handle backward compatibility - results are basic outputs
-            basic_outputs_list = [
-                result["basic_outputs"] if isinstance(result, dict) else result
-                for result in results
-            ]
-
-        final_results = _format_ind_dist_outputs(basic_outputs_list)
-
-        total_time = time.time() - start_time
-        logger.info(
-            f"Total parallel_indicator_distribution_study time: {total_time:.4f}s"
-        )
-
-        return {
-            "ADF Test": final_results[0],
-            "Jarque-Bera Test": final_results[1],
-            "Relative Entropy": final_results[2],
-            "Range-IQR Ratio": final_results[3],
-        }
-
-    def _save_detailed_results(
-        self,
-        results: list,
-        sample_request: SampleRequest,
-        indicator_spec: "IndicatorSpec",
-    ) -> None:
-        """
-        Save detailed results to the database.
-
-        Args:
-            results: List of detailed result dictionaries
-            sample_request: The original sample request
-            indicator_spec: The indicator specification used
-        """
-        import json
-        from datetime import datetime
-
-        import polars as pl
-
-        rows = []
-
-        for result in results:
-            if not isinstance(result, dict) or "eval_result" not in result:
-                continue
-
-            ticker = result["ticker"]
-            eval_result = result["eval_result"]
-
-            # Create row with all required fields
-            row = {
-                # Main identification fields
-                "indicator": indicator_spec.indicator_type.value
-                if hasattr(indicator_spec.indicator_type, "value")
-                else str(indicator_spec.indicator_type),
-                "ticker": ticker,
-                "bar_size": sample_request.bar_size.value
-                if hasattr(sample_request.bar_size, "value")
-                else str(sample_request.bar_size),
-                "start_date": sample_request.start_date,
-                "end_date": sample_request.end_date,
-                "indicator_params": json.dumps(indicator_spec.parameters),
-                "timestamp": datetime.now().isoformat(),
-                # ADF Test results (prefixed to avoid naming conflicts)
-                "adf_statistic": eval_result.adf_test.statistic,
-                "adf_pvalue": eval_result.adf_test.pvalue,
-                "adf_lags": eval_result.adf_test.lags,
-                "adf_nobs": eval_result.adf_test.nobs,
-                "adf_critical_values": json.dumps(eval_result.adf_test.critical_values),
-                "adf_decision": eval_result.adf_test.decision,
-                "adf_is_stationary": eval_result.adf_test.is_stationary,
-                # Normality Test results (prefixed to avoid naming conflicts)
-                "jb_statistic": eval_result.jb_normality_test.statistic,
-                "jb_pvalue": eval_result.jb_normality_test.pvalue,
-                "jb_method": eval_result.jb_normality_test.method,
-                "jb_decision": eval_result.jb_normality_test.decision,
-                "jb_is_normal": eval_result.jb_normality_test.is_normal,
-                # Entropy results
-                "entropy": eval_result.relative_entropy.entropy,
-                "normalized_entropy": eval_result.relative_entropy.normalized_entropy,
-                "entropy_n_bins": eval_result.relative_entropy.n_bins,
-                "entropy_n_observations": eval_result.relative_entropy.n_observations,
-                "entropy_quality_assessment": eval_result.relative_entropy.quality_assessment,
-                "entropy_is_concerning": eval_result.relative_entropy.is_concerning,
-                # Range-IQR results
-                "range_iqr_ratio": eval_result.range_iqr_ratio.ratio,
-                "range_value": eval_result.range_iqr_ratio.range_value,
-                "iqr_value": eval_result.range_iqr_ratio.iqr_value,
-                "quality_assessment": eval_result.range_iqr_ratio.quality_assessment,
-                "has_excessive_outliers": eval_result.range_iqr_ratio.has_excessive_outliers,
-            }
-
-            rows.append(row)
-
-        if rows:
-            # Convert to Polars DataFrame and save
-            df = pl.DataFrame(rows)
-
-            try:
-                self.ds.save_to_database(df, "ind_dist_studies_db", append=True)
-                logging.getLogger(__name__).info(
-                    f"Saved {len(rows)} rows to ind_dist_studies_db table"
-                )
-            except Exception as e:
-                logging.getLogger(__name__).error(
-                    f"Failed to save detailed results: {e}"
-                )
-        else:
-            logging.getLogger(__name__).warning("No valid results to save")
-
-    def _check_existing_results(
-        self, sample_request: SampleRequest, indicator_spec: "IndicatorSpec"
-    ) -> Optional[dict]:
-        """
-        Check if results already exist in the database for the given sample request and indicator spec.
-
-        Args:
-            sample_request: The sample request parameters
-            indicator_spec: The indicator specification
-
-        Returns:
-            Dictionary with aggregated results if found, None otherwise
-        """
-        import json
-
-        import duckdb
-
-        logger = logging.getLogger(__name__)
-        db_file_path = self.ds.db_path / "ind_dist_studies_db.duckdb"
-
-        if not db_file_path.exists():
-            logger.debug("Database file does not exist")
-            return None
-
-        try:
-            # Connect to the database
-            conn = duckdb.connect(str(db_file_path))
-
-            try:
-                # Check if table exists
-                result = conn.execute(
-                    "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'ind_dist_studies_db'"
-                ).fetchone()
-
-                if result is None or result[0] == 0:
-                    logger.debug("Table ind_dist_studies_db does not exist")
-                    return None
-
-                # Build query parameters
-                indicator_name = (
-                    indicator_spec.indicator_type.value
-                    if hasattr(indicator_spec.indicator_type, "value")
-                    else str(indicator_spec.indicator_type)
-                )
-
-                bar_size = (
-                    sample_request.bar_size.value
-                    if hasattr(sample_request.bar_size, "value")
-                    else str(sample_request.bar_size)
-                )
-
-                indicator_params_json = json.dumps(indicator_spec.parameters)
-
-                # Query for existing results
-                query = """
-                SELECT 
-                    adf_is_stationary,
-                    jb_is_normal,
-                    entropy,
-                    range_iqr_ratio
-                FROM ind_dist_studies_db 
-                WHERE indicator = ? 
-                    AND bar_size = ? 
-                    AND start_date = ? 
-                    AND end_date = ? 
-                    AND indicator_params = ?
-                """
-
-                result_df = conn.execute(
-                    query,
-                    [
-                        indicator_name,
-                        bar_size,
-                        sample_request.start_date,
-                        sample_request.end_date,
-                        indicator_params_json,
-                    ],
-                ).pl()
-
-                if result_df.height == 0:
-                    logger.debug("No existing results found for the given parameters")
-                    return None
-
-                # Calculate aggregated results
-                adf_tests = result_df["adf_is_stationary"].to_list()
-                jb_tests = result_df["jb_is_normal"].to_list()
-                relative_entropies = result_df["entropy"].to_list()
-                range_iqr_ratios = result_df["range_iqr_ratio"].to_list()
-
-                # Filter out NaN and inf values for entropy and range_iqr_ratio
-                filtered_entropies = [
-                    x for x in relative_entropies if not (np.isnan(x) or np.isinf(x))
-                ]
-                filtered_ratios = [
-                    x for x in range_iqr_ratios if not (np.isnan(x) or np.isinf(x))
-                ]
-
-                final_results = [
-                    np.mean(adf_tests),
-                    np.mean(jb_tests),
-                    np.mean(filtered_entropies) if filtered_entropies else 0.0,
-                    np.mean(filtered_ratios) if filtered_ratios else 0.0,
-                ]
-                final_results = [round(value, 2) for value in final_results]
-
-                logger.info(f"Found {result_df.height} existing results in database")
-
-                return {
-                    "ADF Test": final_results[0],
-                    "Jarque-Bera Test": final_results[1],
-                    "Relative Entropy": final_results[2],
-                    "Range-IQR Ratio": final_results[3],
-                }
-
-            finally:
-                conn.close()
-
-        except Exception as e:
-            logger.error(f"Error checking existing results: {e}")
-            return None
-
-    @staticmethod
     def optimize_threshold(
         indicator_values,
         return_values,
@@ -992,6 +827,7 @@ class FeatureEvaluator:
         Raises:
         ValueError: If the input arrays have less than one element.
         """
+        logger = logging.getLogger(__name__)
 
         # Ensure the inputs are numpy arrays.
         indicator_values = np.asarray(indicator_values)
@@ -999,46 +835,67 @@ class FeatureEvaluator:
 
         n = len(indicator_values)
         if n == 0:
+            logger.error("Input arrays are empty.")
             raise ValueError("Input arrays must have at least one element.")
+
+        logger.debug(f"Starting optimize_threshold with {n} data points.")
 
         # Enforce that min_kept is at least 1.
         min_kept = max(int(n * min_kept), 1)
+        logger.debug(f"min_kept calculated as: {min_kept} (from fraction)")
 
         # Calculate the spearman rank correlation between the indicator and returns.
         spearman_result = spearmanr(indicator_values, return_values)
-        spearman_corr = (
-            spearman_result[0]
-            if isinstance(spearman_result, tuple)
-            else spearman_result
-        )
+
+        if hasattr(spearman_result, "statistic"):
+            spearman_corr = float(getattr(spearman_result, "statistic"))
+        else:
+            spearman_corr = float(spearman_result[0])  # type: ignore
+
+        logger.debug(f"Spearman correlation: {spearman_corr}")
+
         if spearman_corr < 0.0:
             indicator_sign = -1.0
         else:
             indicator_sign = 1.0
 
+        logger.debug(f"Indicator sign determined as: {indicator_sign}")
+
         # Copy signals and returns into work arrays.
         # Optionally flip the sign of indicator values.
         if flip_sign:
             work_signal = -indicator_sign * indicator_values.copy()
+            logger.debug("Flipping sign of indicator values.")
         else:
             work_signal = indicator_sign * indicator_values.copy()
         work_return = return_values.copy()
 
         # Find the indices of NaN values in either array and drop them from both arrays
         nan_indices = np.isnan(work_signal) | np.isnan(work_return)
+        n_nans = np.sum(nan_indices)
+        if n_nans > 0:
+            logger.debug(f"Dropping {n_nans} NaN values.")
+
         work_signal = work_signal[~nan_indices]
         work_return = work_return[~nan_indices]
 
         n = len(work_signal)
+        logger.debug(f"Data points after NaN removal: {n}")
 
         # Sort the work arrays based on work_signal.
         sort_index = np.argsort(work_signal)
         work_signal = work_signal[sort_index]
         work_return = work_return[sort_index]
 
-        best_high_index, best_low_index, best_high_pf, best_low_pf = (
-            optimize_threshold_cython(work_signal, work_return, int(min_kept))
-        )
+        logger.debug("Calling optimize_threshold_cython...")
+        (
+            best_high_index,
+            best_low_index,
+            best_high_pf,
+            best_low_pf,
+            best_high_acc,
+            best_low_acc,
+        ) = optimize_threshold_cython(work_signal, work_return, int(min_kept))
 
         # The best thresholds are the signal values at the recorded indices.
         high_thresh = work_signal[best_high_index]
@@ -1047,15 +904,20 @@ class FeatureEvaluator:
         pf_low = best_low_pf
         best_overall_pf = max(pf_high, pf_low)
 
+        logger.debug(
+            f"Optimization results - High PF: {pf_high:.4f} at thresh {high_thresh:.4f}, Low PF: {pf_low:.4f} at thresh {low_thresh:.4f}"
+        )
+
         # Calculate the p-value for the best performance factor.
         if return_pval:
+            logger.debug("Calculating p-value with 1000 permutations...")
             i = 0
 
             for _ in range(1000):
                 permuted_returns = np.random.choice(
                     work_return, size=len(work_return), replace=True
                 )
-                _, _, high_pf, low_pf = optimize_threshold_cython(
+                _, _, high_pf, low_pf, _, _ = optimize_threshold_cython(
                     work_signal, permuted_returns, int(min_kept)
                 )
                 permuted_pf = max(high_pf, low_pf)
@@ -1063,62 +925,294 @@ class FeatureEvaluator:
                     i += 1
 
             best_pf_pval = i / 1000
+            logger.debug(f"P-value calculated: {best_pf_pval}")
 
         else:
             best_pf_pval = None
+            logger.debug("Skipping p-value calculation.")
 
         return {
             "spearman_corr": spearman_corr,
             "optimal_long_thresh": high_thresh,
             "optimal_long_pf": pf_high,
+            "optimal_long_acc": best_high_acc,
             "optimal_short_thresh": low_thresh,
             "optimal_short_pf": pf_low,
-            "best_bf": best_overall_pf,
+            "optimal_short_acc": best_low_acc,
+            "best_pf": best_overall_pf,
             "best_pf_pval": best_pf_pval,
         }
 
     @staticmethod
-    def co_distribution_analysis(
-        indicator_values: np.ndarray, associated_returns: np.ndarray
+    def threshold_optimization_study(inputs: dict) -> dict:
+        indicator_spec = inputs["indicator_spec"]
+        ohlcv_df = inputs["ohlcv_df"]
+        ticker = inputs.get("ticker", "")
+
+        # Timer: Indicator creation
+        indicator_instance = indicator_spec.create_indicator(ohlcv_df)
+
+        # Calculate indicator values
+        indicator_values = indicator_instance.calculate()
+
+        # Prepare returns
+        returns = ohlcv_df["Open"].pct_change().shift(-1)
+
+        # Optimize threshold
+        optimization_results = FeatureEvaluator.optimize_threshold(
+            indicator_values=indicator_values,
+            return_values=returns,
+            min_kept=0.1,
+            flip_sign=False,
+            return_pval=True,
+        )
+
+        # Return detailed data for database saving
+        result = {"ticker": ticker}
+        result.update(optimization_results)
+        return result
+
+    def parallel_threshold_optimization_study(
+        self,
+        indicator_spec: "IndicatorSpec",
+        sample_request: Optional[SampleRequest],
+        save_run: bool = True,
     ):
-        # Use standalone function instead of DataAnalyst class
-        indicator_values = np.asarray(indicator_values)
-        associated_returns = np.asarray(associated_returns)
+        start_time = time.time()
+        logger = logging.getLogger(__name__)
 
-        spearman_results = get_spearman_correlation(
-            indicator_values, associated_returns
-        )
-
-        # 1. Plot a LOESS scatter plot of the indicator values and associated returns
-        plot_loess(
-            x=indicator_values,
-            y=associated_returns,
-            x_label="Indicator Values",
-            y_label="Returns",
-            title="Overall LOESS Scatter Plot",
-            annotation=spearman_results["spearman_corr"],
-        )
-
-        # 2. Co sort the returns and indicator values and then create 4 LOESS plots for each quartile of indicator values
-        sorted_indices = np.argsort(indicator_values)
-        sorted_indicator = indicator_values[sorted_indices]
-        sorted_returns = associated_returns[sorted_indices]
-
-        n = len(sorted_indicator)
-        # Define bin edges for 4 equal-sized bins
-        bin_edges = np.linspace(0, n, 5, dtype=int)
-
-        for i in range(4):
-            start = bin_edges[i]
-            end = bin_edges[i + 1]
-            s1_bin = sorted_indicator[start:end]
-            s2_bin = sorted_returns[start:end]
-
-            plot_loess(
-                x=s1_bin,
-                y=s2_bin,
-                x_label="Indicator Values",
-                y_label="Returns",
-                title=f"Quartile {i + 1} LOESS Scatter Plot",
-                annotation=spearman_results["spearman_corr_quartile"][i],
+        # Timer: Sample request setup
+        sample_setup_start = time.time()
+        if sample_request is None:
+            sample_request = SampleRequest(
+                sample_type="equities",
+                start_date=(pd.Timestamp.now() - pd.Timedelta(days=1)).strftime(
+                    "%Y-%m-%d"
+                ),
+                end_date=pd.Timestamp.now().strftime("%Y-%m-%d"),
             )
+        sample_setup_time = time.time() - sample_setup_start
+        logger.info(f"Sample request setup time: {sample_setup_time:.4f}s")
+
+        # Check if results already exist in database
+        if save_run:
+            logger.info("Checking for existing results in database...")
+            results_df = self._check_existing_results(
+                "threshold_opt_studies_db", sample_request, indicator_spec
+            )
+        else:
+            results_df = None
+
+        if results_df is None:
+            logger.info("No existing results found. Running new study...")
+            # Timer: Data gathering
+            data_gather_start = time.time()
+            sample = self.ds.get_sample(sample_request)
+            df = sample.data
+            data_gather_time = time.time() - data_gather_start
+            logger.info(f"Data gathering time: {data_gather_time:.4f}s")
+
+            # Timer: Data preparation
+            data_prep_start = time.time()
+            grouped_data = list(df.group_by("ticker", maintain_order=True))
+            inputs_list = []
+
+            for ticker, ohlcv_df in grouped_data:
+                inputs = {
+                    "indicator_spec": indicator_spec,
+                    "ohlcv_df": ohlcv_df,
+                    "ticker": ticker[0],
+                }
+                inputs_list.append(inputs)
+            data_prep_time = time.time() - data_prep_start
+            logger.info(f"Data preparation time: {data_prep_time:.4f}s")
+            logger.info(f"Processing {len(inputs_list)} ticker datasets")
+
+            # Timer: Parallel processing
+            parallel_start = time.time()
+            with concurrent.futures.ProcessPoolExecutor() as executor:
+                results = list(
+                    executor.map(
+                        FeatureEvaluator.threshold_optimization_study, inputs_list
+                    )
+                )
+
+            results_df = pl.DataFrame(results)
+            parallel_time = time.time() - parallel_start
+            logger.info(f"Parallel processing time: {parallel_time:.4f}s")
+        else:
+            logger.info("Existing results found. Skipping study execution.")
+            skip_save = True
+
+        # Prepare EvalResult
+        eval_result = EvalResult(
+            indicator_spec=indicator_spec,
+            sample_request=sample_request,
+            results_df=results_df,
+        )
+
+        if save_run and not skip_save:
+            # Save detailed data to database
+            self._save_detailed_results("threshold_opt_studies_db", eval_result)
+
+        total_time = time.time() - start_time
+        logger.info(
+            f"Total parallel_threshold_optimization_study time: {total_time:.4f}s"
+        )
+
+        return results_df
+
+    ### Helper Methods ###
+    def _save_detailed_results(
+        self,
+        db_name: str,
+        results: EvalResult,
+    ) -> None:
+        """
+        Save detailed results to the database.
+
+        Args:
+            db_name: The name of the database to save results to
+            results: EvalResult dataclass containing indicator_spec, sample_request, and results_df
+        """
+        timestamp = datetime.now().isoformat()
+        df = results.results_df
+
+        if df.height > 0:
+            # Prepare metadata dictionary
+            metadata = {}
+            metadata.update(_flatten_dataclass(results.indicator_spec))
+            metadata.update(
+                {
+                    "sample_type": results.sample_request.sample_type,
+                    "start_date": results.sample_request.start_date,
+                    "end_date": results.sample_request.end_date,
+                    "bar_size": results.sample_request.bar_size,
+                }
+            )
+            metadata["timestamp"] = timestamp
+
+            # Add metadata columns to the DataFrame
+            df = df.with_columns(
+                [pl.lit(value).alias(key) for key, value in metadata.items()]
+            )
+
+            # Save to database
+            self.ds.save_to_database(df, db_name, append=True, drop_extra_cols=True)
+            logging.getLogger(__name__).info(
+                f"Saved {df.height} rows to {db_name} table"
+            )
+        else:
+            raise ValueError(
+                "Error saving evaluation results: No valid rows were extracted."
+            )
+
+    # TODO: Add sample_seed to sample_request to uniquely identify different samples
+    def _check_existing_results(
+        self,
+        db_name: str,
+        sample_request: SampleRequest,
+        indicator_spec: "IndicatorSpec",
+    ) -> Optional[pl.DataFrame]:
+        """
+        Check if results already exist in the database for the given sample request and indicator spec.
+
+        Args:
+            sample_request: The sample request parameters
+            indicator_spec: The indicator specification
+
+        Returns:
+            Dictionary with aggregated results if found, None otherwise
+        """
+
+        logger = logging.getLogger(__name__)
+
+        try:
+            results_df = self.ds.load_from_database(db_name)
+        except Exception as e:
+            logger.error(f"Error loading data from database: {e}")
+            return None
+
+        if results_df is None or results_df.height == 0:
+            logger.info("No existing results found in database.")
+            return None
+
+        # Filter results based on sample_request and indicator_spec
+        try:
+            # Build query parameters
+            indicator_name = (
+                indicator_spec.indicator_type.value
+                if hasattr(indicator_spec.indicator_type, "value")
+                else str(indicator_spec.indicator_type)
+            )
+
+            bar_size = (
+                sample_request.bar_size.value
+                if hasattr(sample_request.bar_size, "value")
+                else str(sample_request.bar_size)
+            )
+
+            indicator_params_json = json.dumps(indicator_spec.parameters)
+
+            query = (
+                (pl.col("start_date") == sample_request.start_date)
+                & (pl.col("end_date") == sample_request.end_date)
+                & (pl.col("bar_size") == bar_size)
+                & (pl.col("indicator_type") == indicator_name)
+                & (pl.col("parameters") == indicator_params_json)
+            )
+
+            filtered_results = results_df.filter(query)
+
+            if filtered_results.height == 0:
+                logger.info("No existing results found for the given parameters.")
+                return None
+
+            else:
+                return filtered_results
+
+        except Exception as e:
+            logger.error(f"Error checking existing results: {e}")
+            return None
+
+    # TODO: Find a unified way to perform this aggregation when results
+    # are fetched from the database and when freshly calculated
+    # - make it less clunky and less ugly
+    def _aggregate_ind_dist_results(
+        self,
+        results_df: pl.DataFrame,
+    ) -> dict:
+        """
+        Aggregate indicator distribution results from the database.
+
+        Args:
+            results_df: Polars DataFrame containing detailed results from the database
+        """
+        # Calculate aggregated results
+        adf_tests = results_df["adf_test_is_stationary"].to_list()
+        jb_tests = results_df["jb_normality_test_is_normal"].to_list()
+        relative_entropies = results_df["relative_entropy_normalized_entropy"].to_list()
+        range_iqr_ratios = results_df["range_iqr_ratio_ratio"].to_list()
+
+        # Filter out NaN and inf values for entropy and range_iqr_ratio
+        filtered_entropies = [
+            x for x in relative_entropies if not (np.isnan(x) or np.isinf(x))
+        ]
+        filtered_ratios = [
+            x for x in range_iqr_ratios if not (np.isnan(x) or np.isinf(x))
+        ]
+
+        final_results = [
+            np.mean(adf_tests),
+            np.mean(jb_tests),
+            np.mean(filtered_entropies) if filtered_entropies else 0.0,
+            np.mean(filtered_ratios) if filtered_ratios else 0.0,
+        ]
+        final_results = [round(value, 2) for value in final_results]
+
+        return {
+            "ADF Test": final_results[0],
+            "Jarque-Bera Test": final_results[1],
+            "Relative Entropy": final_results[2],
+            "Range-IQR Ratio": final_results[3],
+        }

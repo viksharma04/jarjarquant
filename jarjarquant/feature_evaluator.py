@@ -845,7 +845,7 @@ class FeatureEvaluator:
         logger.debug(f"min_kept calculated as: {min_kept} (from fraction)")
 
         # Calculate the spearman rank correlation between the indicator and returns.
-        spearman_result = spearmanr(indicator_values, return_values)
+        spearman_result = spearmanr(indicator_values, return_values, nan_policy="omit")
 
         if hasattr(spearman_result, "statistic"):
             spearman_corr = float(getattr(spearman_result, "statistic"))
@@ -956,7 +956,7 @@ class FeatureEvaluator:
         indicator_values = indicator_instance.calculate()
 
         # Prepare returns
-        returns = ohlcv_df["Open"].pct_change().shift(-1)
+        returns = ohlcv_df["Open"].pct_change().shift(-2)
 
         # Optimize threshold
         optimization_results = FeatureEvaluator.optimize_threshold(

@@ -995,6 +995,7 @@ class FeatureEvaluator:
         logger.info(f"Sample request setup time: {sample_setup_time:.4f}s")
 
         # Check if results already exist in database
+        skip_save = False
         if save_run:
             logger.info("Checking for existing results in database...")
             results_df = self._check_existing_results(

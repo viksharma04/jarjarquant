@@ -1,27 +1,10 @@
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import numpy as np
 import polars as pl
 
-from jarjarquant.data_analyst import (
-    ADFTestResult,
-    EntropyResult,
-    NormalityTestResult,
-    RangeIQRResult,
-    adf_test_ultra_fast,
-    jb_normality_test,
-    range_iqr_ratio,
-    relative_entropy,
-    visual_stationary_test,
-)
-from jarjarquant.feature_engineer import FeatureEngineer
-from jarjarquant.feature_evaluator import FeatureEvaluator
-
 from .registry import IndicatorType
-
-FEATURE_ENGINEER = FeatureEngineer()
-FEATURE_EVALUATOR = FeatureEvaluator()
 
 
 @dataclass
@@ -105,14 +88,6 @@ class IndicatorSpec:
         return indicator_class(ohlcv_df, **self.parameters)
 
 
-@dataclass
-class IndicatorEvalResult:
-    adf_test: ADFTestResult
-    jb_normality_test: NormalityTestResult
-    relative_entropy: EntropyResult
-    range_iqr_ratio: RangeIQRResult
-
-
 class Indicator:
     """Base class to implement indicators"""
 
@@ -122,10 +97,6 @@ class Indicator:
 
         self.df = ohlcv_df
         self.indicator_type = None
-        self.feature_engineer = FEATURE_ENGINEER
-        self.feature_evaluator = FEATURE_EVALUATOR
-
-        self.eval_result = None
 
     def calculate(self) -> np.ndarray:
         """Implemented in derived classes
@@ -135,50 +106,4 @@ class Indicator:
         """
         raise NotImplementedError(
             "Derived classes must implement the calculate method."
-        )
-
-    def indicator_evaluation_report(
-        self,
-        verbose: bool = False,
-        transform: Optional[str] = None,
-        visual_test: Optional[bool] = False,
-        **kwargs,
-    ):
-        """Runs a set of statistical tests to examine various properties of the
-        indicator series, such as stationarity, normality, entropy, mutual
-        information, etc.
-
-        Args:
-            transform (str, optional): Acceptable values: 'log', 'root', 'tanh'. Transformation to apply to the indicator values.
-            n_bins_to_discretize (int, optional): Number of bins to use if indicator
-            is continuous. Used for mutual information calculation. Defaults to 10.
-        """
-        values = self.calculate()
-        if transform is not None:
-            values = self.feature_engineer.transform(values, transform, **kwargs)
-            if not isinstance(values, np.ndarray):
-                values = np.asarray(values)
-
-        if visual_test:
-            visual_stationary_test(values)
-        import concurrent.futures
-
-        # Run statistical tests in parallel using ThreadPoolExecutor
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            # Submit all tests to the executor
-            adf_future = executor.submit(adf_test_ultra_fast, values, verbose=verbose)
-            normality_future = executor.submit(
-                jb_normality_test, values, verbose=verbose
-            )
-            entropy_future = executor.submit(relative_entropy, values, verbose=verbose)
-            r_iqr_future = executor.submit(range_iqr_ratio, values, verbose=verbose)
-
-            # Wait for all results
-            adf_test_result = adf_future.result()
-            normality_test_result = normality_future.result()
-            entropy_result = entropy_future.result()
-            r_iqr_result = r_iqr_future.result()
-
-        self.eval_result = IndicatorEvalResult(
-            adf_test_result, normality_test_result, entropy_result, r_iqr_result
         )

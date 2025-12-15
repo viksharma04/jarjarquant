@@ -21,7 +21,18 @@ from sklearn.model_selection._split import _BaseKFold
 from jarjarquant.cython_utils.opt_threshold import optimize_threshold_cython
 
 from .core.utils import _flatten_dataclass
-from .data_analyst import get_spearman_correlation, plot_loess
+from .data_analyst import (
+    ADFTestResult,
+    EntropyResult,
+    NormalityTestResult,
+    RangeIQRResult,
+    adf_test_ultra_fast,
+    get_spearman_correlation,
+    jb_normality_test,
+    plot_loess,
+    range_iqr_ratio,
+    relative_entropy,
+)
 from .data_gatherer import DataGatherer
 from .data_service import DataService, SampleRequest
 
@@ -39,6 +50,14 @@ class EvalResult:
     results_df: (
         pl.DataFrame
     )  # Each row should have a ticker and its corresponding results
+
+
+@dataclass
+class IndicatorEvalResult:
+    adf_test: ADFTestResult
+    jb_normality_test: NormalityTestResult
+    relative_entropy: EntropyResult
+    range_iqr_ratio: RangeIQRResult
 
 
 def _format_ind_dist_outputs(basic_outputs_list: list) -> list:
@@ -494,6 +513,32 @@ class FeatureEvaluator:
             )
 
     @staticmethod
+    def indicator_design_eval(values, verbose=False) -> IndicatorEvalResult:
+        import concurrent.futures
+
+        # Run statistical tests in parallel using ThreadPoolExecutor
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            # Submit all tests to the executor
+            adf_future = executor.submit(adf_test_ultra_fast, values, verbose=verbose)
+            normality_future = executor.submit(
+                jb_normality_test, values, verbose=verbose
+            )
+            entropy_future = executor.submit(relative_entropy, values, verbose=verbose)
+            r_iqr_future = executor.submit(range_iqr_ratio, values, verbose=verbose)
+
+            # Wait for all results
+            adf_test_result = adf_future.result()
+            normality_test_result = normality_future.result()
+            entropy_result = entropy_future.result()
+            r_iqr_result = r_iqr_future.result()
+
+        eval_result = IndicatorEvalResult(
+            adf_test_result, normality_test_result, entropy_result, r_iqr_result
+        )
+
+        return eval_result
+
+    @staticmethod
     def indicator_distribution_study(inputs: dict) -> dict:
         indicator_spec = inputs["indicator_spec"]
         ohlcv_df = inputs["ohlcv_df"]
@@ -501,11 +546,12 @@ class FeatureEvaluator:
         # Timer: Indicator creation
         indicator_instance = indicator_spec.create_indicator(ohlcv_df)
 
-        # Timer: Indicator evaluation report
-        indicator_instance.indicator_evaluation_report()
+        eval_results = FeatureEvaluator.indicator_design_eval(
+            indicator_instance.calculate(), verbose=False
+        )
 
         result = {"ticker": inputs.get("ticker", "")}
-        result.update(_flatten_dataclass(indicator_instance.eval_result))
+        result.update(_flatten_dataclass(eval_results))
 
         return result
 

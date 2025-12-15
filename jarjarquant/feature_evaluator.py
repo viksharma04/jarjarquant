@@ -514,7 +514,6 @@ class FeatureEvaluator:
 
     @staticmethod
     def indicator_design_eval(values, verbose=False) -> IndicatorEvalResult:
-        import concurrent.futures
 
         # Run statistical tests in parallel using ThreadPoolExecutor
         with concurrent.futures.ThreadPoolExecutor() as executor:

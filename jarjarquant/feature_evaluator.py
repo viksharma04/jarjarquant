@@ -8,7 +8,7 @@ import logging
 import time
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING, Optional
 
 import numpy as np
 import pandas as pd
@@ -33,7 +33,6 @@ from .data_analyst import (
     range_iqr_ratio,
     relative_entropy,
 )
-from .data_gatherer import DataGatherer
 from .data_service import DataService, SampleRequest
 
 if TYPE_CHECKING:
@@ -774,55 +773,100 @@ class FeatureEvaluator:
         return pd.DataFrame(results)
 
     @staticmethod
-    def single_indicator_threshold_search(inputs: dict):
+    def single_indicator_threshold_search(inputs: dict) -> pd.DataFrame:
+        indicator_spec = inputs["indicator_spec"]
         ohlcv_df = inputs["ohlcv_df"]
-        indicator_values = inputs["indicator_values"]
         thresholds = inputs["thresholds"]
+        ticker = inputs.get("ticker", "")
 
-        ohlcv_df["returns"] = ohlcv_df["Open"].pct_change().shift(-1)
-        ohlcv_df["ind"] = indicator_values
-        ohlcv_df["ind"] = ohlcv_df["ind"].shift(1)
+        # Create indicator and calculate values
+        indicator_instance = indicator_spec.create_indicator(ohlcv_df)
+        indicator_values = indicator_instance.calculate()
+
+        # Calculate returns
+        returns = ohlcv_df["Open"].pct_change().shift(-1)
+
+        # Create a DataFrame with indicator values and returns, properly aligned
+        df = pl.DataFrame({
+            "ind": indicator_values,
+            "returns": returns
+        }).with_columns([
+            pl.col("ind").shift(1).alias("ind")
+        ]).drop_nulls()
 
         results = FeatureEvaluator.indicator_threshold_search(
-            indicator_values=ohlcv_df["ind"].dropna(),
-            associated_returns=ohlcv_df["returns"].dropna(),
+            indicator_values=pd.Series(df["ind"].to_list()),
+            associated_returns=pd.Series(df["returns"].to_list()),
             thresholds=thresholds,
         )
 
+        results["ticker"] = ticker
         return results
 
-    @staticmethod
     def parallel_indicator_threshold_search(
-        indicator_func: Callable, n_runs: int = 10, n_thresholds: int = 10, **kwargs
+        self,
+        indicator_spec: "IndicatorSpec",
+        sample_request: Optional[SampleRequest],
+        n_thresholds: int = 10,
     ):
-        inputs_list = []
+        """
+        Perform threshold search analysis across multiple tickers in parallel.
+
+        Args:
+            indicator_spec: The indicator specification to evaluate.
+            sample_request: The sample request parameters for data gathering.
+            n_thresholds: Number of thresholds to evaluate.
+
+        Returns:
+            pd.DataFrame: DataFrame with thresholds and averaged metrics across all tickers.
+        """
+        start_time = time.time()
+        logger = logging.getLogger(__name__)
+
+        # Sample request setup
+        sample_setup_start = time.time()
+        if sample_request is None:
+            sample_request = SampleRequest(
+                sample_type="equities",
+                start_date=(pd.Timestamp.now() - pd.Timedelta(days=365)).strftime(
+                    "%Y-%m-%d"
+                ),
+                end_date=pd.Timestamp.now().strftime("%Y-%m-%d"),
+            )
+        sample_setup_time = time.time() - sample_setup_start
+        logger.info(f"Sample request setup time: {sample_setup_time:.4f}s")
+
+        # Data gathering
+        data_gather_start = time.time()
+        sample = self.ds.get_sample(sample_request)
+        df = sample.data
+        data_gather_time = time.time() - data_gather_start
+        logger.info(f"Data gathering time: {data_gather_time:.4f}s")
+
+        # Data preparation - first pass to calculate all indicator values for threshold determination
+        data_prep_start = time.time()
+        grouped_data = list(df.group_by("ticker", maintain_order=True))
         indicator_values_list = []
+        inputs_list = []
 
-        # Generate dataframes and calculate indicator values in parallel
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            data_gatherer = DataGatherer()
-            futures = [
-                executor.submit(
-                    data_gatherer.get_random_price_samples_tws, num_tickers_to_sample=1
-                )
-                for _ in range(n_runs)
-            ]
-            for future in concurrent.futures.as_completed(futures):
-                ohlcv_df = future.result()[0]
-                indicator_values = (
-                    indicator_func(ohlcv_df, **kwargs).calculate()
-                    if kwargs
-                    else indicator_func(ohlcv_df).calculate()
-                )
-                indicator_values_list.append(indicator_values)
-                inputs_list.append(
-                    {"ohlcv_df": ohlcv_df, "indicator_values": indicator_values}
-                )
+        for ticker, ohlcv_df in grouped_data:
+            indicator_instance = indicator_spec.create_indicator(ohlcv_df)
+            indicator_values = indicator_instance.calculate()
+            indicator_values_list.append(indicator_values)
+            inputs_list.append({
+                "indicator_spec": indicator_spec,
+                "ohlcv_df": ohlcv_df,
+                "ticker": ticker[0],
+            })
 
-        # Determine thresholds based on the entire range of indicator values across all runs
+        data_prep_time = time.time() - data_prep_start
+        logger.info(f"Data preparation time: {data_prep_time:.4f}s")
+        logger.info(f"Processing {len(inputs_list)} ticker datasets")
+
+        # Determine thresholds based on the entire range of indicator values across all tickers
         all_indicator_values = np.concatenate(indicator_values_list)
-        # thresholds = np.linspace(all_indicator_values.min(
-        # ), all_indicator_values.max(), n_thresholds + 2)[1:-1]
+        # Filter out NaN values for threshold calculation
+        all_indicator_values = all_indicator_values[~np.isnan(all_indicator_values)]
 
         # Implement percentile thresholds
         percentiles = np.linspace(0, 100, n_thresholds + 2)[1:-1]
@@ -833,15 +877,21 @@ class FeatureEvaluator:
             inputs["thresholds"] = thresholds
 
         # Run threshold search in parallel
+        parallel_start = time.time()
         with concurrent.futures.ProcessPoolExecutor() as executor:
             results = list(
                 executor.map(
                     FeatureEvaluator.single_indicator_threshold_search, inputs_list
                 )
             )
+        parallel_time = time.time() - parallel_start
+        logger.info(f"Parallel processing time: {parallel_time:.4f}s")
 
-        # Concatenate results and average across runs
-        results = pd.concat(results).groupby("Threshold").mean().reset_index()
+        # Concatenate results and average across tickers
+        results = pd.concat(results).groupby("Threshold").mean(numeric_only=True).reset_index()
+
+        total_time = time.time() - start_time
+        logger.info(f"Total parallel_indicator_threshold_search time: {total_time:.4f}s")
 
         return results
 

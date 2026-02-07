@@ -1,10 +1,11 @@
 import numpy as np
-import polars as pl
 import pandas as pd
+import polars as pl
 from scipy.stats import norm
 
+from jarjarquant.core.schemas import VolatilityMeasure
 from jarjarquant.indicators.base import Indicator
-from jarjarquant.indicators.registry import register_indicator, IndicatorType
+from jarjarquant.indicators.registry import IndicatorType, register_indicator
 
 
 @register_indicator(IndicatorType.PRICE_CHANGE_OSCILLATOR)
@@ -14,13 +15,13 @@ class PriceChangeOscillator(Indicator):
         ohlcv_df: pl.DataFrame,
         short_lookback: int = 5,
         long_lookback_multiplier: int = 5,
-        transform=None,
+        indicator_volatilty_measure: VolatilityMeasure = VolatilityMeasure.ATR,
+        scaling_volatility_measure: VolatilityMeasure = VolatilityMeasure.ATR,
     ):
         super().__init__(ohlcv_df)
         self.short_lookback = short_lookback
         self.long_lookback_multiplier = long_lookback_multiplier
         self.indicator_type = "continuous"
-        self.transform = transform
 
     def calculate(self) -> np.ndarray:
         close = self.df["Close"].to_numpy()
@@ -40,14 +41,17 @@ class PriceChangeOscillator(Indicator):
             pd.Series(self.df["Close"].to_numpy()),
         ).values
 
-        for i in range(long_lookback, n):
-            # Calculate the short-term and long-term mean
+        for i in range(long_lookback + self.short_lookback, n):
+            # Calculate the short-term mean (most recent short_lookback returns)
             short_ma = np.mean(
-                prices[i - self.short_lookback + 1 : i]
-                - prices[i - self.short_lookback : i - 1]
+                prices[i - self.short_lookback + 1 : i + 1]
+                - prices[i - self.short_lookback : i]
             )
+            # Calculate the long-term mean (lagged by short_lookback to avoid overlap)
+            long_start = i - self.short_lookback - long_lookback
+            long_end = i - self.short_lookback
             long_ma = np.mean(
-                prices[i - long_lookback + 1 : i] - prices[i - long_lookback : i - 1]
+                prices[long_start + 1 : long_end + 1] - prices[long_start:long_end]
             )
 
             const = (
@@ -63,9 +67,5 @@ class PriceChangeOscillator(Indicator):
 
         # Replace nan and inf values with 0
         output = np.where(np.isnan(output), 0, output)
-
-        if self.transform is not None:
-            output = self.feature_engineer.transform(output, self.transform)
-            output = np.asarray(output)
 
         return output

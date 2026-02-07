@@ -628,10 +628,10 @@ def _compute_true_ranges(
     for i in range(n):
         if np.isnan(prev_close[i]):
             # If previous close is NaN, use high-low range
-            true_ranges[i] = high[i] - low[i]
+            true_ranges[i] = abs(high[i] - low[i])
         else:
             # True range = max(high-low, |high-prev_close|, |low-prev_close|)
-            hl = high[i] - low[i]
+            hl = abs(high[i] - low[i])
             hc = abs(high[i] - prev_close[i])
             lc = abs(low[i] - prev_close[i])
             true_ranges[i] = max(hl, hc, lc)

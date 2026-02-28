@@ -1,10 +1,10 @@
 import numpy as np
 import polars as pl
-import pandas as pd
 from scipy.stats import norm
 
 from jarjarquant.indicators.base import Indicator
 from jarjarquant.indicators.registry import register_indicator, IndicatorType
+from jarjarquant.indicators._math_utils import rolling_mean, shift
 from jarjarquant.volatility import atr_volatility
 
 
@@ -26,12 +26,8 @@ class MovingAverageDifference(Indicator):
 
     def _compute(self) -> np.ndarray:
         close = self._df["Close"].to_numpy()
-        short_ma = pd.Series(close).rolling(window=self.short_period).mean().values
-        long_ma = pd.Series(close).rolling(window=self.long_period).mean()
-        long_ma = long_ma.shift(self.short_period).values
-
-        short_ma = np.asarray(short_ma)
-        long_ma = np.asarray(long_ma)
+        short_ma = rolling_mean(close, self.short_period)
+        long_ma = shift(rolling_mean(close, self.long_period), self.short_period)
 
         atr_values = atr_volatility(
             self._df["High"].to_numpy(),

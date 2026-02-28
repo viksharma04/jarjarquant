@@ -9,6 +9,110 @@ from scipy.special import legendre
 from jarjarquant.volatility import atr_volatility
 
 
+def ewm(data: np.ndarray, span: int, adjust: bool = True) -> np.ndarray:
+    """Exponential weighted moving average (replicates pd.Series.ewm().mean()).
+
+    Args:
+        data: Input array.
+        span: EWM span (alpha = 2 / (span + 1)).
+        adjust: If True, use bias-correcting denominator (matches pandas default).
+
+    Returns:
+        EWM array same length as input.
+    """
+    alpha = 2.0 / (span + 1)
+    n = len(data)
+    result = np.empty(n)
+
+    if adjust:
+        # Weighted average with decaying weights — matches pandas adjust=True
+        numerator = 0.0
+        denominator = 0.0
+        for i in range(n):
+            numerator = data[i] + (1 - alpha) * numerator
+            denominator = 1.0 + (1 - alpha) * denominator
+            result[i] = numerator / denominator
+    else:
+        result[0] = data[0]
+        for i in range(1, n):
+            result[i] = alpha * data[i] + (1 - alpha) * result[i - 1]
+
+    return result
+
+
+def rolling_mean(data: np.ndarray, window: int) -> np.ndarray:
+    """Rolling mean with NaN for incomplete windows (replicates pd.Series.rolling().mean()).
+
+    Args:
+        data: Input array.
+        window: Window size.
+
+    Returns:
+        Array same length as input, NaN for first (window-1) elements.
+    """
+    n = len(data)
+    result = np.full(n, np.nan)
+    cumsum = np.cumsum(data)
+    result[window - 1] = cumsum[window - 1] / window
+    for i in range(window, n):
+        result[i] = (cumsum[i] - cumsum[i - window]) / window
+    return result
+
+
+def rolling_max(data: np.ndarray, window: int) -> np.ndarray:
+    """Rolling max with NaN for incomplete windows.
+
+    Args:
+        data: Input array.
+        window: Window size.
+
+    Returns:
+        Array same length as input.
+    """
+    n = len(data)
+    result = np.full(n, np.nan)
+    for i in range(window - 1, n):
+        result[i] = np.max(data[i - window + 1: i + 1])
+    return result
+
+
+def rolling_min(data: np.ndarray, window: int) -> np.ndarray:
+    """Rolling min with NaN for incomplete windows.
+
+    Args:
+        data: Input array.
+        window: Window size.
+
+    Returns:
+        Array same length as input.
+    """
+    n = len(data)
+    result = np.full(n, np.nan)
+    for i in range(window - 1, n):
+        result[i] = np.min(data[i - window + 1: i + 1])
+    return result
+
+
+def shift(data: np.ndarray, periods: int) -> np.ndarray:
+    """Shift array by N periods, filling with NaN.
+
+    Args:
+        data: Input array.
+        periods: Number of positions to shift (positive = forward).
+
+    Returns:
+        Shifted array.
+    """
+    result = np.full_like(data, np.nan)
+    if periods > 0:
+        result[periods:] = data[:-periods]
+    elif periods < 0:
+        result[:periods] = data[-periods:]
+    else:
+        result[:] = data
+    return result
+
+
 def compute_legendre_coefficients(lookback: int, degree: int) -> np.ndarray:
     """Compute Legendre polynomial coefficients over a lookback window.
 

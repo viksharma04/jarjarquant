@@ -1,9 +1,9 @@
 import numpy as np
-import pandas as pd
 import polars as pl
 
 from jarjarquant.indicators.base import Indicator
 from jarjarquant.indicators.registry import IndicatorType, register_indicator
+from jarjarquant.indicators._math_utils import ewm, rolling_mean
 
 
 @register_indicator(IndicatorType.CHAIKIN_MONEY_FLOW)
@@ -42,17 +42,13 @@ class ChaikinMoneyFlow(Indicator):
                     * Volume[i]
                 )
 
-        output = np.asarray(
-            pd.Series(output).rolling(window=self.smoothing_lookback).mean().values
-        )
+        output = rolling_mean(output, self.smoothing_lookback)
 
         if self.return_cmf:
-            sma_volume = (
-                pd.Series(Volume).rolling(window=self.volume_lookback).mean().values
-            )
+            sma_volume = rolling_mean(Volume, self.volume_lookback)
             output = np.where(sma_volume != 0, output / sma_volume, 0)
         else:
-            ema_volume = pd.Series(Volume).ewm(span=self.volume_lookback).mean().values
+            ema_volume = ewm(Volume, span=self.volume_lookback)
             output = np.where(ema_volume != 0, output / ema_volume, 0)
 
         output = np.where(np.isnan(output), 0, output)

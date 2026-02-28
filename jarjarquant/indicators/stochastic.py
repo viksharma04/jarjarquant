@@ -1,9 +1,9 @@
 import numpy as np
 import polars as pl
-import pandas as pd
 
 from jarjarquant.indicators.base import Indicator
 from jarjarquant.indicators.registry import register_indicator, IndicatorType
+from jarjarquant.indicators._math_utils import rolling_max, rolling_min
 
 
 @register_indicator(IndicatorType.STOCHASTIC)
@@ -27,14 +27,14 @@ class Stochastic(Indicator):
         n = len(close)
         output = np.full(n, 50.0)
 
-        high_max = pd.Series(close).rolling(window=self.lookback).max().values
-        low_min = pd.Series(close).rolling(window=self.lookback).min().values
+        high_max_arr = rolling_max(close, self.lookback)
+        low_min_arr = rolling_min(close, self.lookback)
 
         for i in range(self.lookback, n):
-            if high_max[i] == low_min[i]:
+            if high_max_arr[i] == low_min_arr[i]:
                 output[i] = 50.0
             else:
-                sto_0 = 100 * (close[i] - low_min[i]) / (high_max[i] - low_min[i])
+                sto_0 = 100 * (close[i] - low_min_arr[i]) / (high_max_arr[i] - low_min_arr[i])
                 if self.n_smooth == 0:
                     output[i] = sto_0
                 elif self.n_smooth == 1:

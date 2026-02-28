@@ -1,10 +1,10 @@
 import numpy as np
-import pandas as pd
 import polars as pl
 from scipy.stats import norm
 
 from jarjarquant.indicators.base import Indicator
 from jarjarquant.indicators.registry import IndicatorType, register_indicator
+from jarjarquant.indicators._math_utils import ewm
 from jarjarquant.volatility import atr_volatility
 
 
@@ -30,13 +30,13 @@ class CMMA(Indicator):
         High = self._df["High"].to_numpy()
 
         log_close = np.log(Close)
-        rolling_mean = pd.Series(log_close).ewm(span=self.lookback).mean()
+        rolling_mean_val = ewm(log_close, span=self.lookback)
 
         denom = atr_volatility(
             High, Low, Close, self.atr_length, use_ema=True
         ) * np.sqrt(self.lookback + 1)
 
-        normalized_output = np.where(denom > 0, (log_close - rolling_mean) / denom, 0)
+        normalized_output = np.where(denom > 0, (log_close - rolling_mean_val) / denom, 0)
         output = 100 * norm.cdf(normalized_output) - 50
 
         return output

@@ -1,10 +1,10 @@
 import numpy as np
-import pandas as pd
 import polars as pl
 from scipy.stats import norm
 
 from jarjarquant.indicators.base import Indicator
 from jarjarquant.indicators.registry import IndicatorType, register_indicator
+from jarjarquant.indicators._math_utils import ewm
 
 
 @register_indicator(IndicatorType.PRICE_INTENSITY)
@@ -34,12 +34,7 @@ class PriceIntensity(Indicator):
             )
             output[i] = (close[i] - _open[i]) / denom if denom != 0 else 0.0
 
-        output = (
-            pd.Series(output)
-            .ewm(span=self.smoothing_factor, adjust=False)
-            .mean()
-            .values
-        )
+        output = ewm(output, span=self.smoothing_factor, adjust=False)
 
         output = 100 * norm.cdf(0.8 * np.sqrt(self.smoothing_factor) * output) - 50
         output = np.where(np.isnan(output), 0, output)

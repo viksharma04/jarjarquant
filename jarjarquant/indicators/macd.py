@@ -1,10 +1,10 @@
 import numpy as np
 import polars as pl
-import pandas as pd
 from scipy.stats import norm
 
 from jarjarquant.indicators.base import Indicator
 from jarjarquant.indicators.registry import IndicatorType, register_indicator
+from jarjarquant.indicators._math_utils import ewm
 from jarjarquant.volatility import atr_volatility
 
 
@@ -28,14 +28,8 @@ class MACD(Indicator):
 
     def _compute(self) -> np.ndarray:
         close = self._df["Close"].to_numpy()
-        short_ema = np.asarray(
-            pd.Series(close).ewm(span=self.short_period, adjust=False).mean().values,
-            dtype=np.float64,
-        )
-        long_ema = np.asarray(
-            pd.Series(close).ewm(span=self.long_period, adjust=False).mean().values,
-            dtype=np.float64,
-        )
+        short_ema = ewm(close, span=self.short_period, adjust=False).astype(np.float64)
+        long_ema = ewm(close, span=self.long_period, adjust=False).astype(np.float64)
 
         atr_values = atr_volatility(
             self._df["High"].to_numpy(),
@@ -58,10 +52,5 @@ class MACD(Indicator):
         if self.return_raw_macd:
             return macd
         else:
-            signal_line = (
-                pd.Series(macd)
-                .ewm(span=self.smoothing_factor, adjust=False)
-                .mean()
-                .values
-            )
+            signal_line = ewm(macd, span=self.smoothing_factor, adjust=False)
             return macd - signal_line

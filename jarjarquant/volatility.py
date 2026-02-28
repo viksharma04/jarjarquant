@@ -18,7 +18,7 @@ def calculate_volatility(
             return max_range_volatility(high, low, n, **kwargs)
         case VolatilityMeasure.ATR:
             return atr_volatility(high, low, close, n, **kwargs)
-        case VolatilityMeasure.ANNUNALIZED_STD_DEV:
+        case VolatilityMeasure.ANNUALIZED_STD_DEV:
             return annualized_std_dev_volatility(close, n, **kwargs)
         case VolatilityMeasure.HIGH_LOW:
             return high_low_volatility(high, low, n, **kwargs)

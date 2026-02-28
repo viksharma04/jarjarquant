@@ -1,18 +1,9 @@
-from .data_gatherer.utils import BarSize, Duration
-from .data_service import SampleRequest
-from .indicators.base import IndicatorSpec
-from .indicators.registry import IndicatorType, get_indicator_parameters
-from .jarjarquant import Jarjarquant
+"""Jarjarquant — composable financial ML toolkit."""
 
 __version__ = "0.1.0"
 
-# Expose Jarjarquant at the package level
-__all__ = [
-    "Jarjarquant",
-    "BarSize",
-    "Duration",
-    "IndicatorType",
-    "get_indicator_parameters",
-    "IndicatorSpec",
-    "SampleRequest",
-]
+# NOTE: Old imports removed during refactor (Phase 1).
+# New public API will be wired in Phase 6 (Task 6.2).
+# Individual modules can be imported directly:
+#   from jarjarquant.schemas import BarSize, SampleRequest
+#   from jarjarquant.indicators import IndicatorType

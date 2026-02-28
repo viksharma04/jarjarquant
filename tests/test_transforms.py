@@ -43,6 +43,14 @@ def test_apply_transform_dispatches():
     np.testing.assert_allclose(result, np.array([1.0, 2.0, 3.0]))
 
 
+def test_apply_transform_tanh_alias():
+    """'tanh' should be an alias for 'sigmoid' for backward compat."""
+    data = np.array([-100.0, 0.0, 100.0])
+    result_sigmoid = apply_transform(data.copy(), "sigmoid")
+    result_tanh = apply_transform(data.copy(), "tanh")
+    np.testing.assert_array_equal(result_sigmoid, result_tanh)
+
+
 def test_apply_transform_unknown_raises():
     with pytest.raises(ValueError, match="Unknown transform"):
         apply_transform(np.array([1.0]), "nonexistent")

@@ -107,6 +107,7 @@ def apply_transform(data: np.ndarray, method: str, **kwargs) -> np.ndarray:
         "root": root_transform,
         "log": log_transform,
         "sigmoid": sigmoid_transform,
+        "tanh": sigmoid_transform,  # alias for backward compat
     }
     if method not in transforms:
         raise ValueError(

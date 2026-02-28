@@ -83,4 +83,5 @@ test_nb.ipynb
 copilot-instructions.md
 CLAUDE.local.md
 
-
+# Worktrees
+.worktrees/

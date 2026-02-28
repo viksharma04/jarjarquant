@@ -3,12 +3,12 @@ from Cython.Build import cythonize
 import numpy as np
 
 extensions = [
-    Extension("jarjarquant.cython_utils.opt_threshold", [
-              "jarjarquant/cython_utils/opt_threshold.pyx"]),
-    Extension("jarjarquant.cython_utils.bar_permute", [
-              "jarjarquant/cython_utils/bar_permute.pyx"]),
-    Extension("jarjarquant.cython_utils.indicators", [
-              "jarjarquant/cython_utils/indicators.pyx"]),
+    Extension("jarjarquant._cython.opt_threshold", [
+              "jarjarquant/_cython/opt_threshold.pyx"]),
+    Extension("jarjarquant._cython.bar_permute", [
+              "jarjarquant/_cython/bar_permute.pyx"]),
+    Extension("jarjarquant._cython.indicators", [
+              "jarjarquant/_cython/indicators.pyx"]),
 ]
 
 setup(

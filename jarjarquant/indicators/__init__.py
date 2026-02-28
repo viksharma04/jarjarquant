@@ -5,6 +5,7 @@ from .base import Indicator, IndicatorSpec
 from .chaikin_money_flow import ChaikinMoneyFlow
 from .cmma import CMMA
 from .detrended_rsi import DetrendedRSI
+from .gap_size import GapSize
 from .macd import MACD
 from .moving_average_difference import MovingAverageDifference
 from .price_change_oscillator import PriceChangeOscillator
@@ -43,4 +44,5 @@ __all__ = [
     "RegressionTrendDeviation",
     "PriceChangeOscillator",
     "ChaikinMoneyFlow",
+    "GapSize",
 ]

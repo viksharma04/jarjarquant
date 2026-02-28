@@ -410,59 +410,78 @@ class FeatureEvaluator:
 
     def feature_importance_SFI(
         self,
-        feature_names,
-        X,
-        y,
-        sw,
-        t1,
+        feature: pl.Series,
+        labels: pl.DataFrame,
         cv: int = 4,
-        pct_embargo: float = 0.04,
+        pct_embargo: float = 0.01,
         clf=None,
-        cv_gen=None,
-        scoring="accuracy",
-    ):
+        scoring: str = "accuracy",
+        use_sample_weights: bool = True,
+    ) -> dict[str, float]:
         """
-        Calculate Single Feature Importance (SFI) scores for each feature using cross-validation.
+        Calculate Single Feature Importance (SFI) for a single feature using purged cross-validation.
 
-        This function evaluates the importance of each feature independently by training and scoring
-        a model on only that feature in a cross-validation loop, providing a measure of each feature's
-        contribution to the model.
+        Evaluates the importance of a single feature by training and scoring a model using
+        purged k-fold cross-validation with automatic sample weight calculation.
 
         Args:
-            feature_names (list): List of feature names to evaluate.
-            clf (object): Classifier with `fit`, `predict`, and/or `predict_proba` methods.
-            transformed_X (pd.DataFrame): Feature matrix.
-            cont (pd.DataFrame): DataFrame containing target values ('bin') and sample weights ('w').
-            scoring (str): Scoring method to use, either 'neg_log_loss' or 'accuracy'.
-            cv_gen (PurgedKFold): Cross-validation generator with purged k-fold splits.
+            feature: Polars Series of feature values, aligned with labels rows.
+            labels: Polars DataFrame with columns: ``date``, ``exit_date``, ``label``, ``returns``.
+            cv: Number of cross-validation folds.
+            pct_embargo: Fraction of observations to embargo after each test interval.
+            clf: Classifier with ``fit``, ``predict``, and optionally ``predict_proba`` methods.
+                If None, a RandomForestClassifier is used.
+            scoring: Scoring method, either ``'neg_log_loss'`` or ``'accuracy'``.
+            use_sample_weights: If True, compute sample weights via average uniqueness.
+                If False, all samples are weighted equally.
 
         Returns:
-            pd.DataFrame: DataFrame with mean and standard deviation of SFI scores for each feature.
+            Dictionary with ``mean`` and ``std`` of cross-validation scores.
         """
-        importance_scores = pd.DataFrame(columns=["mean", "std"])
+        # 1. Construct t1 (entry -> exit date mapping) for PurgedKFold
+        dates_pd = labels["date"].to_pandas()
+        exit_dates_pd = labels["exit_date"].to_pandas()
+        t1 = pd.Series(exit_dates_pd.values, index=dates_pd.values)
 
-        # Loop through each feature and calculate its importance using cross-validation
-        for feature_name in feature_names:
-            # Calculate cross-validation scores using only the current feature
-            feature_scores = self.cv_score(
-                clf,
-                X=X[[feature_name]],  # Single feature DataFrame
-                y=y,
-                sample_weight=sw,
-                t1=t1,
-                cv=cv,
-                scoring=scoring,
-                cv_gen=cv_gen,
-                pct_embargo=pct_embargo,
+        # 2. Compute sample weights
+        if use_sample_weights:
+            from .labeller import Labeller
+
+            all_dates = np.sort(
+                np.unique(np.concatenate([dates_pd.values, exit_dates_pd.values]))
             )
+            date_idx = pd.DatetimeIndex(all_dates)
 
-            # Record mean and standard deviation of scores for the feature
-            importance_scores.loc[feature_name, "mean"] = feature_scores.mean()
-            importance_scores.loc[feature_name, "std"] = (
-                feature_scores.std() * feature_scores.shape[0] ** -0.5
-            )
+            co_events = Labeller.num_co_events(date_idx, t1)
+            sw = Labeller.average_uniqueness(t1, co_events)
+        else:
+            sw = pd.Series(1.0, index=dates_pd.values)
 
-        return importance_scores
+        # 3. Convert feature to pandas DataFrame
+        feature_name = feature.name or "feature"
+        X = pd.DataFrame(
+            {feature_name: feature.to_pandas().values}, index=dates_pd.values
+        )
+
+        # 4. Extract y from labels
+        y = pd.Series(labels["label"].to_numpy(), index=dates_pd.values)
+
+        # 5. Run cross-validation and return results
+        scores = self.cv_score(
+            clf,
+            X=X,
+            y=y,
+            sample_weight=sw,
+            t1=t1,
+            cv=cv,
+            scoring=scoring,
+            pct_embargo=pct_embargo,
+        )
+
+        return {
+            "mean": float(scores.mean()),
+            "std": float(scores.std() * scores.shape[0] ** -0.5),
+        }
 
     ### Indicator Distribution (Statistical) Methods - Indicator Design Analysis ###
     @staticmethod
@@ -513,7 +532,6 @@ class FeatureEvaluator:
 
     @staticmethod
     def indicator_design_eval(values, verbose=False) -> IndicatorEvalResult:
-
         # Run statistical tests in parallel using ThreadPoolExecutor
         with concurrent.futures.ThreadPoolExecutor() as executor:
             # Submit all tests to the executor
@@ -664,6 +682,20 @@ class FeatureEvaluator:
         Returns:
         pd.DataFrame: DataFrame with thresholds and profit factors for long/short positions above/below the thresholds.
         """
+        # Coerce inputs to pandas Series to support Polars/numpy inputs
+        if not isinstance(indicator_values, pd.Series):
+            indicator_values = pd.Series(
+                indicator_values.to_list()
+                if hasattr(indicator_values, "to_list")
+                else indicator_values
+            )
+        if not isinstance(associated_returns, pd.Series):
+            associated_returns = pd.Series(
+                associated_returns.to_list()
+                if hasattr(associated_returns, "to_list")
+                else associated_returns
+            )
+
         # Ensure the inputs are of the same length
         if len(indicator_values) != len(associated_returns):
             raise ValueError(
@@ -787,12 +819,11 @@ class FeatureEvaluator:
         returns = ohlcv_df["Open"].pct_change().shift(-1)
 
         # Create a DataFrame with indicator values and returns, properly aligned
-        df = pl.DataFrame({
-            "ind": indicator_values,
-            "returns": returns
-        }).with_columns([
-            pl.col("ind").shift(1).alias("ind")
-        ]).drop_nulls()
+        df = (
+            pl.DataFrame({"ind": indicator_values, "returns": returns})
+            .with_columns([pl.col("ind").shift(1).alias("ind")])
+            .drop_nulls()
+        )
 
         results = FeatureEvaluator.indicator_threshold_search(
             indicator_values=pd.Series(df["ind"].to_list()),
@@ -853,11 +884,13 @@ class FeatureEvaluator:
             indicator_instance = indicator_spec.create_indicator(ohlcv_df)
             indicator_values = indicator_instance.calculate()
             indicator_values_list.append(indicator_values)
-            inputs_list.append({
-                "indicator_spec": indicator_spec,
-                "ohlcv_df": ohlcv_df,
-                "ticker": ticker[0],
-            })
+            inputs_list.append(
+                {
+                    "indicator_spec": indicator_spec,
+                    "ohlcv_df": ohlcv_df,
+                    "ticker": ticker[0],
+                }
+            )
 
         data_prep_time = time.time() - data_prep_start
         logger.info(f"Data preparation time: {data_prep_time:.4f}s")
@@ -888,10 +921,17 @@ class FeatureEvaluator:
         logger.info(f"Parallel processing time: {parallel_time:.4f}s")
 
         # Concatenate results and average across tickers
-        results = pd.concat(results).groupby("Threshold").mean(numeric_only=True).reset_index()
+        results = (
+            pd.concat(results)
+            .groupby("Threshold")
+            .mean(numeric_only=True)
+            .reset_index()
+        )
 
         total_time = time.time() - start_time
-        logger.info(f"Total parallel_indicator_threshold_search time: {total_time:.4f}s")
+        logger.info(
+            f"Total parallel_indicator_threshold_search time: {total_time:.4f}s"
+        )
 
         return results
 

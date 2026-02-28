@@ -1,9 +1,11 @@
 import numpy as np
-import polars as pl
 import pandas as pd
+import polars as pl
 
 from jarjarquant.indicators.base import Indicator
-from jarjarquant.indicators.registry import register_indicator, IndicatorType
+from jarjarquant.indicators.registry import IndicatorType, register_indicator
+
+from ..feature_engineer import FeatureEngineer
 
 
 @register_indicator(IndicatorType.CHAIKIN_MONEY_FLOW)
@@ -71,7 +73,8 @@ class ChaikinMoneyFlow(Indicator):
         output = np.where(np.isnan(output), 0, output)
 
         if self.transform is not None:
-            output = self.feature_engineer.transform(output, self.transform)
+            feature_engineer = FeatureEngineer()
+            output = feature_engineer.transform(pd.Series(output), self.transform)
             output = np.asarray(output)
 
         return output

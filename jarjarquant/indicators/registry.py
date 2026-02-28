@@ -38,6 +38,7 @@ class IndicatorType(Enum):
     REGRESSION_TREND = "regression_trend"
     REGRESSION_TREND_DEVIATION = "regression_trend_deviation"
     ANCHORED_VWAP = "anchored_vwap"
+    GAP_SIZE = "gap_size"
 
 
 # Global registry mapping indicator types to their classes

@@ -9,3 +9,4 @@ class VolatilityMeasure(str, Enum):
     HIGH_LOW_CLOSE = "high_low_close"
     YANG_ZHANG = "yang_zhang"
     AVG_LOG_RETURNS = "avg_log_returns"
+    EWM_STD = "ewm_std"

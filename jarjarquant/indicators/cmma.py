@@ -1,10 +1,12 @@
 import numpy as np
-import polars as pl
 import pandas as pd
+import polars as pl
 from scipy.stats import norm
 
 from jarjarquant.indicators.base import Indicator
-from jarjarquant.indicators.registry import register_indicator, IndicatorType
+from jarjarquant.indicators.registry import IndicatorType, register_indicator
+
+from ..feature_engineer import FeatureEngineer
 
 
 @register_indicator(IndicatorType.CMMA)
@@ -77,7 +79,10 @@ class CMMA(Indicator):
 
         # Return the final CMMA values
         if self.transform is not None:
-            output = self.feature_engineer.transform(output, self.transform)
+            feature_engineer = FeatureEngineer(self.df.to_pandas())
+            output = feature_engineer.transform(
+                series=pd.Series(output), method=self.transform
+            )
             output = np.asarray(output)
 
         return output

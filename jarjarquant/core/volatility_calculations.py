@@ -28,6 +28,8 @@ def calculate_volatility(
             return yang_zhang_volatility(open, high, low, close, n, **kwargs)
         case VolatilityMeasure.AVG_LOG_RETURNS:
             return avg_log_returns_volatility(close, n, **kwargs)
+        case VolatilityMeasure.EWM_STD:
+            return ewm_std_volatility(close, n, **kwargs)
         case _:
             raise ValueError(f"Unsupported volatility measure: {measure}")
 
@@ -274,6 +276,18 @@ def _ema(data: np.ndarray, n: int) -> np.ndarray:
 def atr_volatility(
     high: np.ndarray, low: np.ndarray, close: np.ndarray, n: int, use_ema: bool = False
 ) -> np.ndarray:
+    """Compute ATR (Average True Range) volatility.
+
+    Args:
+        high (np.ndarray)
+        low (np.ndarray)
+        close (np.ndarray)
+        n (int): period for ATR calculation. If n <= 0, returns one value at last index calculated over entire array.
+        use_ema (bool, optional): Whether to use exponential moving average. Defaults to False.
+
+    Returns:
+        np.ndarray: ATR volatility values
+    """
     n = n if n > 0 else len(close)
     length = len(close)
     vol = np.full(length, np.nan)
@@ -305,6 +319,43 @@ def atr_volatility(
         inv_n = 1.0 / n
         for i in range(n - 1, length):
             vol[i] = (cumsum[i + 1] - cumsum[i - n + 1]) * inv_n
+
+    return vol
+
+
+@jit(nopython=True, cache=True, nogil=True)
+def ewm_std_volatility(close: np.ndarray, n: int) -> np.ndarray:
+    """Compute exponentially weighted moving standard deviation of returns.
+
+    Uses span-based EWM (alpha = 2 / (n + 1)) to incrementally compute
+    the EWM variance of simple returns, then returns sqrt(variance).
+
+    Args:
+        close: Array of close prices.
+        n: Span for the EWM calculation.
+
+    Returns:
+        np.ndarray: EWM standard deviation of returns at each step.
+    """
+    length = len(close)
+    vol = np.full(length, np.nan)
+    alpha = 2.0 / (n + 1)
+
+    # First return is undefined
+    if length < 2:
+        return vol
+
+    ret = close[1] / close[0] - 1.0
+    ewm_mean = ret
+    ewm_var = 0.0
+    vol[1] = 0.0
+
+    for i in range(2, length):
+        ret = close[i] / close[i - 1] - 1.0
+        delta = ret - ewm_mean
+        ewm_mean = ewm_mean + alpha * delta
+        ewm_var = (1.0 - alpha) * (ewm_var + alpha * delta * delta)
+        vol[i] = np.sqrt(ewm_var)
 
     return vol
 

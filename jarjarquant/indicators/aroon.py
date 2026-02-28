@@ -12,12 +12,11 @@ class Aroon(Indicator):
     def __init__(self, ohlcv_df: pl.DataFrame, lookback: int = 25, transform=None):
         super().__init__(ohlcv_df)
         self.lookback = lookback
-        self.indicator_type = "continuous"
-        self.transform = transform
+        self._transform = transform
 
-    def calculate(self) -> np.ndarray:
-        high = self.df["High"].to_numpy()
-        low = self.df["Low"].to_numpy()
+    def _compute(self) -> np.ndarray:
+        high = self._df["High"].to_numpy()
+        low = self._df["Low"].to_numpy()
         n = len(high)
         output = np.full(n, 0.0)
 
@@ -29,9 +28,5 @@ class Aroon(Indicator):
             aroon_down = 100 * (self.lookback - (i - low_min)) / self.lookback
 
             output[i] = aroon_up - aroon_down
-
-        if self.transform is not None:
-            output = self.feature_engineer.transform(output, self.transform)
-            output = np.asarray(output)
 
         return output

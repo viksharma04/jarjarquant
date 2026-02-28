@@ -24,17 +24,10 @@ class StochasticRSI(Indicator):
         self.rsi_period = rsi_period
         self.stochastic_period = stochastic_period
         self.n_smooth = n_smooth
-        self.indicator_type = "continuous"
-        self.transform = transform
+        self._transform = transform
 
-    def calculate(self) -> np.ndarray:
-        rsi = RSI(ohlcv_df=self.df, period=self.rsi_period).calculate()
-        # Store RSI values in a polars DataFrame and rename the column to 'Close'
+    def _compute(self) -> np.ndarray:
+        rsi = RSI(ohlcv_df=self._df, period=self.rsi_period).calculate()
         rsi_df = pl.DataFrame({"Close": rsi})
         output = Stochastic(rsi_df, self.stochastic_period, self.n_smooth).calculate()
-
-        if self.transform is not None:
-            output = self.feature_engineer.transform(output, self.transform)
-            output = np.asarray(output)
-
         return output

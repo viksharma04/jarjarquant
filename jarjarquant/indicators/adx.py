@@ -10,14 +10,12 @@ class ADX(Indicator):
     def __init__(self, ohlcv_df: pl.DataFrame, lookback: int = 14, transform=None):
         super().__init__(ohlcv_df)
         self.lookback = lookback
-        self.indicator_type = "continuous"
-        self.transform = transform
+        self._transform = transform
 
-    def calculate(self) -> np.ndarray:
-        close = self.df["Close"].to_numpy()
-        high = self.df["High"].to_numpy()
-        low = self.df["Low"].to_numpy()
-        _open = self.df["Open"].to_numpy()
+    def _compute(self) -> np.ndarray:
+        close = self._df["Close"].to_numpy()
+        high = self._df["High"].to_numpy()
+        low = self._df["Low"].to_numpy()
 
         n = len(close)
         output = np.full(n, 0.0)
@@ -26,7 +24,6 @@ class ADX(Indicator):
         dms_minus = 0
         atr_sum = 0
 
-        # Initialize the high and low movement variables using a SMA over the lookback period
         for i in range(1, self.lookback):
             dm_plus = high[i] - high[i - 1]
             dm_minus = low[i - 1] - low[i]
@@ -42,7 +39,6 @@ class ADX(Indicator):
             dms_plus += dm_plus
             dms_minus += dm_minus
 
-            # Calculate and cumulate the ATR
             atr = np.maximum.reduce(
                 [high[i] - low[i], high[i] - close[i - 1], close[i - 1] - low[i]]
             )
@@ -60,7 +56,6 @@ class ADX(Indicator):
             output[i] = 100 * adx
 
         adx_sum = 0
-        # Secondary initialization to generate ADX values to begin exp smoothing
         for i in range(self.lookback, self.lookback * 2):
             dm_plus = high[i] - high[i - 1]
             dm_minus = low[i - 1] - low[i]
@@ -73,11 +68,9 @@ class ADX(Indicator):
             dm_plus = 0 if dm_plus < 0 else dm_plus
             dm_minus = 0 if dm_minus < 0 else dm_minus
 
-            # Begin using exp smoothing instead of SMA
             dms_plus = (self.lookback - 1) / self.lookback * dms_plus + dm_plus
             dms_minus = (self.lookback - 1) / self.lookback * dms_minus + dm_minus
 
-            # Calculate and cumulate the ATR
             atr = np.maximum.reduce(
                 [high[i] - low[i], high[i] - close[i - 1], close[i - 1] - low[i]]
             )
@@ -93,13 +86,10 @@ class ADX(Indicator):
             )
 
             adx_sum += adx
-
             output[i] = 100 * adx
 
-        # Secondary initialization complete - use adx/lookback as the first value
         adx_sum /= self.lookback
 
-        # Final loop to calculate rest of the values
         for i in range(self.lookback * 2, n):
             dm_plus = high[i] - high[i - 1]
             dm_minus = low[i - 1] - low[i]
@@ -112,11 +102,9 @@ class ADX(Indicator):
             dm_plus = 0 if dm_plus < 0 else dm_plus
             dm_minus = 0 if dm_minus < 0 else dm_minus
 
-            # Begin using exp smoothing instead of SMA
             dms_plus = (self.lookback - 1) / self.lookback * dms_plus + dm_plus
             dms_minus = (self.lookback - 1) / self.lookback * dms_minus + dm_minus
 
-            # Calculate and cumulate the ATR
             atr = np.maximum.reduce(
                 [high[i] - low[i], high[i] - close[i - 1], close[i - 1] - low[i]]
             )
@@ -132,14 +120,8 @@ class ADX(Indicator):
             )
 
             adx_sum = (self.lookback - 1) / self.lookback * adx_sum + adx
-
             output[i] = 100 * adx_sum
 
-        # Replace any nan values with 0
         output = np.where(np.isnan(output), 0, output)
-
-        if self.transform is not None:
-            output = self.feature_engineer.transform(output, self.transform)
-            output = np.asarray(output)
 
         return output

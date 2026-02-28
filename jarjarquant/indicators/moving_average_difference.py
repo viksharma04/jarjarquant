@@ -5,25 +5,12 @@ from scipy.stats import norm
 
 from jarjarquant.indicators.base import Indicator
 from jarjarquant.indicators.registry import register_indicator, IndicatorType
+from jarjarquant.volatility import atr_volatility
 
 
 @register_indicator(IndicatorType.MOVING_AVERAGE_DIFFERENCE)
 class MovingAverageDifference(Indicator):
-    """
-    A class to calculate the Moving Average Difference (MAD) indicator.
-    The MAD indicator is a normalized difference between a short-term and a long-term moving average,
-    adjusted by the Average True Range (ATR) to account for volatility.
-    Attributes:
-        ohlcv_df (pd.DataFrame): DataFrame containing OHLCV (Open, High, Low, Close, Volume) data.
-        short_period (int): The period for the short-term moving average. Default is 5.
-        long_period (int): The period for the long-term moving average. Default is 20.
-        indicator_type (str): Type of the indicator, set to 'continuous'.
-    Methods:
-        calculate() -> np.ndarray:
-            Calculates the Moving Average Difference (MAD) indicator.
-            Returns:
-                np.ndarray: The calculated MAD values.
-    """
+    """Moving Average Difference (MAD) indicator."""
 
     def __init__(
         self,
@@ -35,32 +22,23 @@ class MovingAverageDifference(Indicator):
         super().__init__(ohlcv_df)
         self.short_period = short_period
         self.long_period = long_period
-        self.indicator_type = "continuous"
-        self.transform = transform
+        self._transform = transform
 
-    def calculate(self) -> np.ndarray:
-        close = self.df["Close"].to_numpy()
-        # Calculate the short-term MA
+    def _compute(self) -> np.ndarray:
+        close = self._df["Close"].to_numpy()
         short_ma = pd.Series(close).rolling(window=self.short_period).mean().values
-
-        # Calculate the long-term MA
         long_ma = pd.Series(close).rolling(window=self.long_period).mean()
-        # Lag long_ma by short_period
         long_ma = long_ma.shift(self.short_period).values
 
-        # Ensure both arrays are NumPy arrays for arithmetic operations
         short_ma = np.asarray(short_ma)
         long_ma = np.asarray(long_ma)
 
-        # See pg 116 eq. 4.7 and 4.8 of Statistically Sound Indicators
-        from jarjarquant.data_analyst import atr
-
-        atr_values = atr(
+        atr_values = atr_volatility(
+            self._df["High"].to_numpy(),
+            self._df["Low"].to_numpy(),
+            self._df["Close"].to_numpy(),
             self.short_period + self.long_period,
-            pd.Series(self.df["High"].to_numpy()),
-            pd.Series(self.df["Low"].to_numpy()),
-            pd.Series(self.df["Close"].to_numpy()),
-        ).values
+        )
 
         denom = atr_values * np.sqrt(
             (0.5 * (self.long_period - 1) + self.short_period)
@@ -71,11 +49,6 @@ class MovingAverageDifference(Indicator):
         COMPRESSION_FACTOR = 1.5
         mad = 100 * norm.cdf(COMPRESSION_FACTOR * norm_diff) - 50
 
-        # Replace nan values with 0
         mad = np.where(np.isnan(mad), 0, mad)
-
-        if self.transform is not None:
-            mad = self.feature_engineer.transform(mad, self.transform)
-            mad = np.asarray(mad)
 
         return mad

@@ -15,6 +15,7 @@ from .registry import (
     get_indicator_class,
     get_indicator_parameters,
     list_available_indicators,
+    is_indicator_registered,
 )
 from .regression_trend import RegressionTrend
 from .regression_trend_deviation import RegressionTrendDeviation

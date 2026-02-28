@@ -20,15 +20,13 @@ class Stochastic(Indicator):
         super().__init__(ohlcv_df)
         self.lookback = lookback
         self.n_smooth = n_smooth
-        self.indicator_type = "continuous"
-        self.transform = transform
+        self._transform = transform
 
-    def calculate(self) -> np.ndarray:
-        close = self.df["Close"].to_numpy()
+    def _compute(self) -> np.ndarray:
+        close = self._df["Close"].to_numpy()
         n = len(close)
         output = np.full(n, 50.0)
 
-        # Calculate rolling max and min for Close values
         high_max = pd.Series(close).rolling(window=self.lookback).max().values
         low_min = pd.Series(close).rolling(window=self.lookback).min().values
 
@@ -52,9 +50,5 @@ class Stochastic(Indicator):
                     else:
                         sto_1 = 0.33333 * sto_0 + 0.66667 * output[i - 1]
                         output[i] = 0.33333 * sto_1 + 0.66667 * output[i - 2]
-
-        if self.transform is not None:
-            output = self.feature_engineer.transform(output, self.transform)
-            output = np.asarray(output)
 
         return output

@@ -4,6 +4,7 @@ from typing import Any, Dict
 import numpy as np
 import polars as pl
 
+from jarjarquant.transforms import apply_transform
 from .registry import IndicatorType
 
 
@@ -89,21 +90,23 @@ class IndicatorSpec:
 
 
 class Indicator:
-    """Base class to implement indicators"""
+    """Base class for all technical indicators."""
 
     def __init__(self, ohlcv_df: pl.DataFrame):
-        if ohlcv_df is None or ohlcv_df.height == 0:
-            raise ValueError("Please provide a valid OHLCV DataFrame!")
-
-        self.df = ohlcv_df
-        self.indicator_type = None
+        if ohlcv_df is None or ohlcv_df.is_empty():
+            raise ValueError("ohlcv_df must be a non-empty Polars DataFrame")
+        self._df = ohlcv_df
+        self._transform: str | None = None
 
     def calculate(self) -> np.ndarray:
-        """Implemented in derived classes
+        """Calculate indicator values, applying transform if set."""
+        raw = self._compute()
+        if self._transform is not None:
+            return apply_transform(raw, self._transform)
+        return raw
 
-        Raises:
-            NotImplementedError
-        """
+    def _compute(self) -> np.ndarray:
+        """Override in subclasses — raw indicator computation."""
         raise NotImplementedError(
-            "Derived classes must implement the calculate method."
+            "Derived classes must implement the _compute method."
         )

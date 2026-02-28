@@ -12,27 +12,22 @@ class RSI(Indicator):
     def __init__(self, ohlcv_df: pl.DataFrame, period: int = 14, transform=None):
         super().__init__(ohlcv_df)
         self.period = period
-        self.indicator_type = "continuous"  # continuous or discrete
-        self.transform = transform
+        self._transform = transform
 
-    def calculate(self) -> np.ndarray:
-        close = self.df["Close"].to_numpy()
+    def _compute(self) -> np.ndarray:
+        close = self._df["Close"].to_numpy()
         n = len(close)
         front_bad = self.period
-        output = np.full(n, 50.0)  # Default RSI of 50.0 for undefined values
+        output = np.full(n, 50.0)
 
-        # Calculate initial sums for up and down movements
         deltas = np.diff(close)
         ups = np.where(deltas > 0, deltas, 0)
         downs = np.where(deltas < 0, -deltas, 0)
 
-        # Initialize the up and down sums
         upsum = np.sum(ups[: self.period - 1]) / (self.period - 1) + np.finfo(float).eps
         dnsum = (
             np.sum(downs[: self.period - 1]) / (self.period - 1) + np.finfo(float).eps
         )
-
-        # Compute RSI values after initial self.period period
 
         for i in range(front_bad, n):
             diff = deltas[i - 1]
@@ -43,16 +38,11 @@ class RSI(Indicator):
                 dnsum = ((self.period - 1) * dnsum - diff) / self.period
                 upsum *= (self.period - 1) / self.period
 
-            # RSI calculation
             if upsum + dnsum == 0:
-                output[i] = 50.0  # Default RSI value when both sums are zero
+                output[i] = 50.0
             else:
                 output[i] = 100.0 * upsum / (upsum + dnsum)
 
         output = (output - 50) / 10
-
-        if self.transform is not None:
-            output = self.feature_engineer.transform(output, self.transform)
-            output = np.asarray(output)
 
         return output

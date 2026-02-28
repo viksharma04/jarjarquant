@@ -68,7 +68,7 @@ def get_weights_ffd(d: float, threshold: float = 1e-5) -> np.ndarray:
             break
         w.append(w_)
         k += 1
-    return np.array(w[::-1]).reshape(-1, 1)
+    return np.array(w[::-1])
 
 
 def frac_diff_ffd(
@@ -93,7 +93,7 @@ def frac_diff_ffd(
     for iloc in range(width, n):
         if not np.isfinite(values[iloc]):
             continue
-        window = values[iloc - width: iloc + 1].reshape(-1, 1)
-        result[iloc] = np.dot(w.T, window)[0, 0]
+        window = values[iloc - width: iloc + 1]
+        result[iloc] = np.dot(w, window)
 
     return pl.Series(series.name, result)

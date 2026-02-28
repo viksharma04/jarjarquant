@@ -28,6 +28,11 @@ def test_frac_diff_ffd_returns_series():
     assert len(result) == len(series)
 
 
+def test_get_weights_ffd_returns_1d():
+    weights = get_weights_ffd(d=0.5, threshold=1e-4)
+    assert weights.ndim == 1
+
+
 def test_frac_diff_d_zero_is_identity():
     values = np.cumsum(np.random.randn(50)) + 100
     series = pl.Series("price", values)

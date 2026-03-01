@@ -4,7 +4,6 @@ Extracted from the Labeller class. All functions are stateless and operate
 on numpy arrays / Polars DataFrames.
 """
 
-from typing import Optional
 
 import numpy as np
 import polars as pl

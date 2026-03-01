@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import concurrent.futures
 import logging
-from typing import Dict, Literal
+from typing import Literal
 
 import numpy as np
 from scipy.stats import jarque_bera, normaltest

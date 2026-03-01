@@ -1,2 +1,2 @@
-from .protocol import DataRepository
-from .duckdb import DuckDBRepository
+from .protocol import DataRepository as DataRepository
+from .duckdb import DuckDBRepository as DuckDBRepository

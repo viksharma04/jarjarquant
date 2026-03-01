@@ -8,7 +8,6 @@ optimal threshold finding).
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 import numpy as np
 from scipy.stats import spearmanr

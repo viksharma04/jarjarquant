@@ -28,6 +28,7 @@ __all__ = [
     "IndicatorSpec",
     "IndicatorType",
     "get_indicator_class",
+    "is_indicator_registered",
     "list_available_indicators",
     "get_indicator_parameters",
     "RSI",
